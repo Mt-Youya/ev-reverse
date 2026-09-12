@@ -1,0 +1,12 @@
+{
+  "title": "前端课程",
+  "roots": [
+    { "id": "foundation", "title": "技术应用阶段", "kind": "folder", "children": [] },
+    { "id": "career", "title": "高薪就业阶段", "kind": "folder", "children": [
+      { "id": "frontend-algorithms", "title": "【前端必会算法（新）】", "kind": "folder", "children": [] },
+      { "id": "uni-app", "title": "【uni-app从入门到实战】", "kind": "folder", "children": [] },
+      { "id": "node", "title": "【node】", "kind": "folder", "children": [] },
+      { "id": "react-v18", "title": "【新React(V18)】", "kind": "folder", "children": [] }
+    ] }
+  ]
+}
