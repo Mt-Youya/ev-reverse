@@ -71,13 +71,36 @@ cargo build --release -p evmedia-gui
 
 1. The player holds two things in readable memory while a lesson is open: playback-context
    objects, and the fully signed segment URLs it built for its own requests.
-2. A context carries the segment index (`+8`), the filename (`+0x18`) and a 32-byte AES key
-   schedule (`+0x120`). `crypto::schedule_to_key` turns that schedule back into the 32-character
-   hex key; the slot reads `0xBAADF00D` until the player has decrypted that segment.
-3. `scan::active_keys` finds the contexts by their vtable range, `scan::segment_urls` recovers
-   the URLs, and the loop joins the two on filename.
+2. A context carries the segment index (`+8`), the filename (`+0x18`), and a 32-byte key-schedule
+   slot (`+0x120`). `scan::segment_indexes` and `scan::segment_urls` find them by their vtable
+   range, and the loop joins the two on filename.
+3. Keys come from two sources, and both are needed. A live context carries the key in its
+   key-schedule slot (`+0x120`), which `scan::active_keys` reconstructs — exact, cheap, and it
+   brings the index and the filename with it. A key outlives its context, though, and once the
+   context is gone it is only a loose 32-hex string on the heap: `scan::hex_candidates` collects
+   those and `keyscan` tests each against the segments' own bytes. Neither covers the other's
+   ground, so the loop consults both.
 4. Each segment is fetched, cached under `enc/`, decrypted into `dec/`, and the whole set is
    merged in index order.
+5. The order of those steps is load-bearing in one specific way: **the download must never be
+   gated on already holding a key.** Downloading needs none — only decrypting does — so gating it
+   is circular, and a segment whose key has not arrived yet would never be fetched at all.
+
+### The key-schedule slot
+
+`+0x120` holds the segment key once the player has decrypted that segment: the first 16 bytes
+verbatim, the second 16 MixColumns'd, which `crypto::schedule_to_key` inverts. It reads
+`0xBAADF00D` until then, which is how "not decrypted yet" is detected.
+
+This was believed disproven for a while, and the code that read it was deleted on that belief. The
+belief came from a test that was itself broken — a probe length that was not AES-block aligned, so
+AES rejected it and every key was read as a wrong key. The conclusion outlived the bug it came
+from. Measured directly against a live player (`tools/parser-tools/probe_schedule_key.py`): 333
+filled slots yielded 333 keys and opened 333 segments, with no failures.
+
+Its limit is coverage, not correctness — it sees only segments the player still holds a context
+for. `scan::segment_indexes` deliberately walks *every* context, decrypted or not, because that is
+what gap detection needs: a segment the playhead skipped has a context and no key.
 
 ### Keys exist only during playback
 
@@ -95,7 +118,8 @@ no UI coordinates.
 memory for the concatenation `tk + filename` returned nothing, and neither did ~1.1 million
 candidate combinations. An earlier collector (`src/evplayer_windows.rs`, since replaced by
 `evmedia-win/src/capture.rs`) rested entirely on that formula and could therefore only ever fail.
-`capture-ev` now derives keys from the same live schedule the harvest loop uses.
+`capture-ev` now recovers keys the same way everything else does: by testing heap candidates
+against the segment's own bytes.
 
 ## Data contracts
 

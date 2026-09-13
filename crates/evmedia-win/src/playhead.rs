@@ -7,9 +7,9 @@
 //!
 //! Posting `WM_KEYDOWN`/`WM_KEYUP` to the player's own window does that without focus, without
 //! injection, and without knowing a single UI coordinate — only the window handle is needed.
-//! The live key window doubles as a position readout: it starts at the playhead and runs some
-//! way ahead of it, so the sweep can measure how far one key press moved things and size the
-//! next batch from that rather than assuming a step size.
+//! The set of segments the player has decrypted doubles as a position readout: it starts at the
+//! playhead and runs some way ahead of it, so the sweep can measure how far one key press moved
+//! things and size the next batch from that rather than assuming a step size.
 
 use crate::process::Player;
 use anyhow::Result;
@@ -87,6 +87,23 @@ fn post_key(hwnd: isize, vk: usize, count: usize, gap: Duration) {
     }
 }
 
+/// The lowest and highest segment index whose key is live right now.
+///
+/// This is the window the sweep aims at, and it doubles as the position readout the caller
+/// measures a key press with — a press moves this window, which is the only feedback available
+/// without reading the player's UI.
+///
+/// It must be the *keyed* set, not every context the player holds. The player keeps a context for
+/// each segment it has touched, and on a real lesson that is the whole lesson — a recorded dump in
+/// `tools/parser-tools/dump_contexts.json` shows 134 contexts held with only 2 decrypted. A
+/// window measured from those spans everything, so the "is the target already inside?" guard is
+/// satisfied for a segment that was never decrypted and the seek posts no keys at all while
+/// reporting success.
+fn live_window(player: &Player) -> Option<(u32, u32)> {
+    let live = player.active_keys();
+    Some((*live.keys().next()?, *live.keys().next_back()?))
+}
+
 /// Move the playhead so that `target` sits inside the live (decrypted) key window, which is
 /// what makes the player decrypt it. Returns false when the seek keys turn out to be unbound,
 /// so the caller can stop asking instead of looping forever.
@@ -103,9 +120,8 @@ pub fn seek_window_to(
     // Segments moved per key press. The first batch guesses 1 and the measurement corrects it.
     let mut per_press = 1.0f64;
     for round in 1..=8 {
-        let live = player.active_keys();
-        let (Some(&current), Some(&highest)) = (live.keys().next(), live.keys().next_back()) else {
-            reporter.info("  player is not holding a key window; nothing to aim at");
+        let Some((current, highest)) = live_window(player) else {
+            reporter.info("  player is holding no segment window; nothing to aim at");
             return Ok(false);
         };
         if current <= target && target <= highest {
@@ -119,9 +135,7 @@ pub fn seek_window_to(
         let presses = (distance / per_press).clamp(2.0, 400.0) as usize;
         post_key(hwnd, vk, presses, press_gap);
 
-        let after = player.active_keys();
-        let (Some(&moved), Some(&moved_high)) = (after.keys().next(), after.keys().next_back())
-        else {
+        let Some((moved, moved_high)) = live_window(player) else {
             return Ok(false);
         };
         if moved == current && moved_high == highest {
@@ -135,16 +149,12 @@ pub fn seek_window_to(
         };
         per_press = (travelled / presses as f64).max(0.05);
         reporter.info(format!(
-            "  sweep {round}: {presses} x VK_{} moved the key window {current}..{highest} -> {moved}..{moved_high} (~{per_press:.2} seg/press)",
+            "  sweep {round}: {presses} x VK_{} moved the segment window {current}..{highest} -> {moved}..{moved_high} (~{per_press:.2} seg/press)",
             if vk == VK_LEFT { "LEFT" } else { "RIGHT" }
         ));
     }
-    let live = player.active_keys();
-    let covered = live
-        .keys()
-        .next()
-        .zip(live.keys().next_back())
-        .is_some_and(|(low, high)| *low <= target && target <= *high);
+    let covered = live_window(player)
+        .is_some_and(|(low, high)| low <= target && target <= high);
     if !covered {
         reporter.info(format!("  sweep did not converge on index {target}"));
     }

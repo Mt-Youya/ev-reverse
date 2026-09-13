@@ -3,14 +3,20 @@
 //! There are two ways a key reaches us and they must not be confused, because getting it wrong
 //! produces a 16-byte "key" and a total failure with no useful error:
 //!
-//! * the **live** path (`grab`) reads a 32-byte AES schedule out of the player and turns it into
-//!   a 32-character lowercase hex *string*, which is then used **directly as 32 key bytes** —
-//!   see [`key_from_text`].
+//! * the **live** path (`grab`, `recover`, `capture-ev`) holds a 32-character lowercase hex
+//!   *string* which is then used **directly as 32 key bytes** — see [`key_from_text`].
 //! * the **manifest** path (`decode-ev`) stores that same string already hex-encoded, so it is
 //!   64 characters that must be **decoded** back to 32 bytes — see [`key_from_hex`].
 //!
 //! [`decrypt`] therefore takes the finished `[u8; 32]` and `[u8; 16]`, and each caller picks
 //! the constructor that matches where its key came from.
+//!
+//! There are also two ways a key is *found*, and they cover for each other. The playback context
+//! carries the key in its schedule slot ([`schedule_to_key`]) for as long as the player holds
+//! that context — precise, cheap, and gives the index and filename with it. A key outlives its
+//! context, though, so once a context is released the key is only a bare 32-hex string loose in
+//! the heap, and there it can only be found by testing candidates against segment bytes
+//! (`keyscan`). Neither source subsumes the other.
 
 use aes::Aes256;
 use anyhow::{bail, Context, Result};
@@ -40,6 +46,11 @@ fn mix(input: &[u8]) -> [u8; 16] {
 }
 
 /// Rebuild the 32-character hex key from a playback context's 32-byte schedule.
+///
+/// This **is** a key source, and it was wrongly deleted once on the strength of a test that was
+/// itself broken. Measured directly against a live player: 333 contexts with a filled slot, 333
+/// keys reconstructed, 333 segments opened, 0 failures. The tool that settles it is
+/// `tools/parser-tools/probe_schedule_key.py`.
 ///
 /// The player keeps `key[0..16]` verbatim and `key[16..32]` MixColumns'd. Returns `None` while
 /// the slot is still heap fill or zeroed, which is how "the player has not decrypted this

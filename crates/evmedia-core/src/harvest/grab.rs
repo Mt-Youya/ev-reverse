@@ -1,15 +1,22 @@
 //! The harvest loop.
 //!
-//! Shape of a run: poll the player for (index, file, key) and for signed URLs, join the two on
-//! filename, download and decrypt whatever is new, and repeat until the lesson stops growing.
-//! Everything already decrypted is on disk, so a rerun resumes.
+//! Shape of a run: poll the player for its live keys, its segment indexes and its signed URLs;
+//! download the ciphertext those URLs point at; add the keys that are only loose in the heap by
+//! testing candidates against that ciphertext; then decrypt and merge whatever is new. Repeat
+//! until the lesson stops growing. Everything already decrypted is on disk, so a rerun resumes.
 //!
-//! The loop body is a direct port of the version that completed a 43-minute lesson end to end.
-//! The borrow structure in the worker pool in particular is deliberately left as it was — it is
-//! the part most easily broken by a well-meaning rewrite.
+//! Keys arrive from two places and the loop uses both. The player's live playback contexts carry
+//! index, filename and key together — cheap and exact — but only while the player still holds
+//! that context. A key outlives its context, and after that it is a loose 32-hex string on the
+//! heap, which `keyscan` finds by testing candidates against segment bytes.
+//!
+//! One ordering rule follows, and it is easy to state too strongly: **the download must never be
+//! gated on already holding a key.** Gating it is circular — no bytes, no key; no key, no fetch.
+//! The version before this asked the player for keys first and then fetched only the segments it
+//! already had keys for, so a segment whose key had not arrived yet was never downloaded at all.
 
 use super::{fetch, GrabOptions, Harvester, Segment, MAX_SWEEPS, SWEEP_AFTER};
-use crate::media;
+use crate::{keyscan, keyscan::KeyEntry, keyscan::Library, media};
 use anyhow::Result;
 use evmedia_contract::{Event, Reporter, SegmentState, Stage, StageState, Status};
 use std::{
@@ -51,6 +58,14 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
     let mut seen: BTreeSet<u32> = BTreeSet::new();
     let mut sweeps_left = MAX_SWEEPS;
     let mut cancelled = false;
+    // Filename -> key, accumulating across polls. A segment solved on an earlier poll is handed
+    // back as the skip set so it is not re-derived, which means this poll's `recover` returns
+    // only what is new — the accumulated result has to live here or it would be lost.
+    let mut known: BTreeMap<String, String> = BTreeMap::new();
+    // Filename -> playback index, also sticky. The player releases contexts as playback moves
+    // on, so an index read once has to outlive the object it was read from, or a segment already
+    // downloaded could never be placed afterwards.
+    let mut places: HashMap<String, u32> = HashMap::new();
 
     reporter.event(&Event::Stage {
         name: Stage::Scan,
@@ -65,21 +80,63 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
             break;
         }
 
-        let keys = harvester.keys()?;
         let urls = harvester.urls();
-        if keys.is_empty() && urls.is_empty() && ok.is_empty() && started.elapsed().as_secs() < 30 {
-            reporter.info(format!("  nothing visible yet: {}", harvester.diagnose()));
+        places.extend(harvester.indexes());
+        // The live contexts come first: index, filename and key arrive together, so this is both
+        // the cheapest source and the most precise. `keyscan` below covers what it cannot reach —
+        // a key whose context the player has already released is only a loose 32-hex string.
+        for (index, (file, key)) in harvester.keys() {
+            places.insert(file.clone(), index);
+            known.insert(file, key);
         }
-
-        let jobs: Vec<Segment> = keys
+        // Ciphertext first, keys second — though the order of these two lines is not what
+        // carries the weight. What carries it is that the download is never gated on already
+        // holding a key, which is circular. Segments already decrypted are left out of the
+        // download entirely: on a resumed run that is most of the lesson.
+        let done: BTreeSet<String> = places
             .iter()
-            .filter_map(|(index, (file, key))| {
-                let url = urls.get(file)?;
-                Some(Segment { index: *index, file: file.clone(), key: key.clone(), url: url.clone() })
+            .filter(|(_, index)| ok.contains_key(index))
+            .map(|(file, _)| file.clone())
+            .collect();
+        let (fetched, unreachable) = fetch::download_missing(&client, &enc_dir, &urls, &done);
+
+        let skip: Library = known
+            .keys()
+            .map(|file| (file.clone(), KeyEntry { key: String::new(), index: None, lesson: None }))
+            .collect();
+        let candidates = harvester.candidates();
+        known.extend(keyscan::recover(&enc_dir, &candidates, &skip)?);
+
+        // A key and an index are enough to place and decrypt a cached segment; the URL is only
+        // consulted when the ciphertext is missing, so it is carried, not required.
+        let jobs: Vec<Segment> = known
+            .iter()
+            .filter_map(|(file, key)| {
+                let index = places.get(file)?;
+                Some(Segment {
+                    index: *index,
+                    file: file.clone(),
+                    key: key.clone(),
+                    url: urls.get(file).cloned(),
+                })
             })
             .collect();
 
+        if jobs.is_empty() && urls.is_empty() && ok.is_empty() && started.elapsed().as_secs() < 30 {
+            reporter.info(format!("  nothing visible yet: {}", harvester.diagnose()));
+        }
+
         let mut progressed = false;
+        // Every index the player has revealed that this lesson owns. It has to come from `places`
+        // and not only from `jobs`: a segment the playhead skipped never gets a key, so it never
+        // becomes a job — and a gap the loop cannot see is a gap `--sweep` cannot aim at, which
+        // is precisely the case the sweep exists for.
+        seen.extend(
+            places
+                .iter()
+                .filter(|(file, _)| urls.contains_key(*file))
+                .map(|(_, index)| *index),
+        );
         // Only indexes that joined a signed URL of this lesson count: the player can hold
         // contexts from more than one lesson, and a stray index would send the sweep chasing a
         // gap that does not belong to the lesson being captured.
@@ -161,7 +218,7 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
         // ten seconds, so the cadence they are used to does not change.
         reporter.event(&Event::Progress {
             stage: Stage::Scan,
-            keys: keys.len(),
+            keys: known.len(),
             urls: urls.len(),
             segments: jobs.len(),
             done: ok.len(),
@@ -171,8 +228,8 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
         if last_report.elapsed() > Duration::from_secs(10) {
             last_report = Instant::now();
             reporter.info(format!(
-                "  keys={:<5} urls={:<5} segments={:<5} done={:<5} failed={:<4} elapsed={}s",
-                keys.len(),
+                "  keys={:<5} urls={:<5} segments={:<5} done={:<5} failed={:<4} new={fetched} unreachable={unreachable} elapsed={}s",
+                known.len(),
                 urls.len(),
                 jobs.len(),
                 ok.len(),

@@ -4,10 +4,10 @@
 //! but nothing about Windows. Everything platform-specific arrives through [`Harvester`],
 //! which is also what lets `tests/grab_loop.rs` drive the real loop against a fixture.
 //!
-//! Why a gap needs the playhead at all: the AES schedule for a segment exists in the player
-//! only once that segment has been decrypted for playback. A segment the playhead ran past was
-//! never decrypted, so its key was never computed and no amount of waiting will produce it —
-//! the playhead has to be walked back over the gap.
+//! Why a gap needs the playhead at all: a segment's key exists in the player only once that
+//! segment has been decrypted for playback. A segment the playhead ran past was never decrypted,
+//! so its key was never computed and no amount of waiting will produce it — the playhead has to
+//! be walked back over the gap.
 
 pub mod fetch;
 pub mod grab;
@@ -15,7 +15,7 @@ pub mod grab;
 use anyhow::Result;
 use evmedia_contract::Reporter;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     path::PathBuf,
     time::Duration,
 };
@@ -25,15 +25,43 @@ pub struct Segment {
     pub index: u32,
     pub file: String,
     pub key: String,
-    pub url: String,
+    /// The signed URL to fetch the ciphertext from, when the player is still offering one.
+    ///
+    /// Optional on purpose. The player drops signed URLs as playback moves past them, but a key,
+    /// an index and a cached ciphertext are all permanent — so a segment whose bytes are already
+    /// on disk needs no URL at all, and requiring one would strand it.
+    pub url: Option<String>,
 }
 
 /// What the loop needs from a live player.
 pub trait Harvester {
     fn pid(&self) -> u32;
 
-    /// Segment index -> (filename, key), for every segment whose key is live right now.
-    fn keys(&self) -> Result<BTreeMap<u32, (String, String)>>;
+    /// Segment index -> (filename, key) for every segment whose key is live right now.
+    ///
+    /// The cheapest source and the most precise: the index and the filename arrive with the key,
+    /// so a segment learned this way needs nothing worked out about it. It is not a replacement
+    /// for [`Harvester::candidates`] — a key outlives the context that carried it, and a key whose
+    /// context is gone is just a loose 32-hex string that has to be tested against segment bytes
+    /// to be attributed.
+    fn keys(&self) -> BTreeMap<u32, (String, String)>;
+
+    /// Every 32-hex-character run in the player's readable memory, right now.
+    ///
+    /// The loop tests these against the ciphertext on disk itself, through `keyscan::recover`,
+    /// which is what recovers the keys whose context the player has already released — the ones
+    /// [`Harvester::keys`] can no longer see. Cheap it is not: this walks the whole heap.
+    fn candidates(&self) -> BTreeSet<String>;
+
+    /// Segment filename -> the playback index the player is holding for it, right now.
+    ///
+    /// The index is the one thing a key cannot tell you: it is not in the filename and not in the
+    /// segment, so it can only come from the player. The loop keeps the latest answer it has seen
+    /// for each file, because the player releases contexts as playback moves on and an index that
+    /// has been read once must outlive the object it was read from. (The mapping is stable — a
+    /// filename belongs to one index for good — so latest and highest are the same answer; the
+    /// loop just takes whichever arrives.)
+    fn indexes(&self) -> HashMap<String, u32>;
 
     /// Segment filename -> the fully signed URL the player built for its own request.
     fn urls(&self) -> HashMap<String, String>;

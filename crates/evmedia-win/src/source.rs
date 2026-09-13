@@ -5,7 +5,7 @@ use anyhow::Result;
 use evmedia_contract::Reporter;
 use evmedia_core::harvest::Harvester;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     time::Duration,
 };
 
@@ -28,8 +28,16 @@ impl Harvester for WinSource {
         self.player.pid()
     }
 
-    fn keys(&self) -> Result<BTreeMap<u32, (String, String)>> {
-        Ok(self.player.active_keys())
+    fn keys(&self) -> BTreeMap<u32, (String, String)> {
+        self.player.active_keys()
+    }
+
+    fn candidates(&self) -> BTreeSet<String> {
+        self.player.hex_candidates()
+    }
+
+    fn indexes(&self) -> HashMap<String, u32> {
+        self.player.segment_indexes()
     }
 
     fn urls(&self) -> HashMap<String, String> {

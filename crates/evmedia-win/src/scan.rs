@@ -1,8 +1,8 @@
 //! Finding things in the player's heap: the playback contexts that carry segment keys, and
 //! the fully signed URLs it built for its own requests.
 
-use crate::process::{Player, CONTEXT_SIZE, OFF_FILE, OFF_INDEX, OFF_MASK, OFF_SCHEDULE};
-use evmedia_core::crypto::{is_hex32, schedule_to_key};
+use crate::process::{Player, CONTEXT_SIZE, OFF_FILE, OFF_INDEX, OFF_SCHEDULE};
+use evmedia_core::crypto::schedule_to_key;
 use evmedia_core::keyscan::{self, KeyEntry, Library};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -38,42 +38,6 @@ impl Player {
         )
     }
 
-    /// Segment index -> (filename, derived key) for every context whose key is already live.
-    ///
-    /// Probing every 8-byte step with ReadProcessMemory would be tens of millions of syscalls,
-    /// so the vtable range check happens against the chunk already in hand and only a pointer
-    /// that passes it costs a read.
-    pub fn active_keys(&self) -> BTreeMap<u32, (String, String)> {
-        let Some(base) = self.module_base(RENDER_DLL) else {
-            return BTreeMap::new();
-        };
-        let (low, high) = (base + VTABLE_LOW, base + VTABLE_HIGH);
-        let mut out = BTreeMap::new();
-        self.for_each_chunk(4 << 20, |chunk_base, bytes| {
-            for offset in (0..bytes.len().saturating_sub(8)).step_by(8) {
-                let pointer =
-                    u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap()) as usize;
-                if pointer < low || pointer >= high {
-                    continue;
-                }
-                let Some(object) = self.read(chunk_base + offset, CONTEXT_SIZE) else { continue };
-                let Some(mask) = self.string_field(&object, OFF_MASK) else { continue };
-                if !is_hex32(&mask) {
-                    continue;
-                }
-                let Some(file) = self.string_field(&object, OFF_FILE) else { continue };
-                if !file.ends_with(".ts") {
-                    continue;
-                }
-                let schedule: [u8; 32] = object[OFF_SCHEDULE..OFF_SCHEDULE + 32].try_into().unwrap();
-                let Some(key) = schedule_to_key(&schedule) else { continue };
-                let index = u32::from_le_bytes(object[OFF_INDEX..OFF_INDEX + 4].try_into().unwrap());
-                out.insert(index, (file, key));
-            }
-        });
-        out
-    }
-
     /// Every 32-hex-character run in the process's readable memory.
     ///
     /// This is the shape a segment key has in memory: the player holds it as the 32 characters of
@@ -98,9 +62,10 @@ impl Player {
     /// a search of 759 MB of its heap found zero occurrences of `"idx":`. It lives here instead,
     /// one context per segment the player has touched, at a fixed offset.
     ///
-    /// Note this is the *only* thing the context object is good for. Its key schedule slot
-    /// (`OFF_SCHEDULE`) never holds the segment key — every key that opens a segment was found by
-    /// testing hex candidates against the segment's bytes, not by reading this struct.
+    /// Note the index and the key are independent facts: this walks every context the player
+    /// holds, decrypted or not, which is what makes it the right source for *gap detection* —
+    /// a segment the playhead skipped has a context and no key. Reading the key is
+    /// [`Player::active_keys`], which walks the same objects and keeps only the filled ones.
     pub fn segment_indexes(&self) -> HashMap<String, u32> {
         let Some(base) = self.module_base(RENDER_DLL) else {
             return HashMap::new();
@@ -121,6 +86,45 @@ impl Player {
                 }
                 let index = u32::from_le_bytes(object[OFF_INDEX..OFF_INDEX + 4].try_into().unwrap());
                 out.insert(file, index);
+            }
+        });
+        out
+    }
+
+    /// Segment index -> (filename, key) for every context whose key is already live.
+    ///
+    /// The cheapest key source there is: one read per context yields the index, the filename and
+    /// the key together, with no heap-wide search and nothing to test. It was deleted once on the
+    /// belief that the schedule slot never held a key; a direct experiment against a live player
+    /// settled it the other way — 333 filled slots, 333 keys rebuilt, 333 segments opened, none
+    /// failed (`tools/parser-tools/probe_schedule_key.py`).
+    ///
+    /// The limit is its coverage, not its correctness: it sees only the segments the player still
+    /// holds a context for. A key outlives its context, and once the context is gone the key is a
+    /// bare 32-hex string that [`Player::hex_candidates`] and `keyscan` have to find instead.
+    pub fn active_keys(&self) -> BTreeMap<u32, (String, String)> {
+        let Some(base) = self.module_base(RENDER_DLL) else {
+            return BTreeMap::new();
+        };
+        let (low, high) = (base + VTABLE_LOW, base + VTABLE_HIGH);
+        let mut out = BTreeMap::new();
+        self.for_each_chunk(4 << 20, |chunk_base, bytes| {
+            for offset in (0..bytes.len().saturating_sub(8)).step_by(8) {
+                let pointer =
+                    u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap()) as usize;
+                if pointer < low || pointer >= high {
+                    continue;
+                }
+                let Some(object) = self.read(chunk_base + offset, CONTEXT_SIZE) else { continue };
+                let Some(file) = self.string_field(&object, OFF_FILE) else { continue };
+                if !file.ends_with(".ts") {
+                    continue;
+                }
+                let schedule: [u8; 32] =
+                    object[OFF_SCHEDULE..OFF_SCHEDULE + 32].try_into().unwrap();
+                let Some(key) = schedule_to_key(&schedule) else { continue };
+                let index = u32::from_le_bytes(object[OFF_INDEX..OFF_INDEX + 4].try_into().unwrap());
+                out.insert(index, (file, key));
             }
         });
         out

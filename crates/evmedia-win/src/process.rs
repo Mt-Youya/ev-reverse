@@ -66,10 +66,16 @@ pub const CONTEXT_SIZE: usize = 0x2a8;
 pub const OFF_INDEX: usize = 8;
 /// Segment filename.
 pub const OFF_FILE: usize = 0x18;
-/// 32-byte AES key schedule, filled in only once the player has decrypted that segment.
+/// The 32-byte key schedule, which holds the segment key once the player has decrypted it.
+///
+/// This is the cheapest way to learn a key: index, filename and key all come out of one read,
+/// with no heap-wide search and nothing to test. What it does not do is outlive the context —
+/// a key does, and past that point it is a bare 32-hex string that can only be found by testing
+/// candidates against segment bytes. See `keyscan`.
 pub const OFF_SCHEDULE: usize = 0x120;
-/// The 32-hex-character mask string.
-pub const OFF_MASK: usize = 0x268;
+/// What the key-schedule slot holds before the player has decrypted that segment
+/// (`0xBAADF00D` little-endian). A slot starting with this, or zeroed, is untouched.
+pub const HEAP_FILL: [u8; 4] = [0x0d, 0xf0, 0xad, 0xba];
 
 /// Owns the process handle and closes it on drop.
 struct Process(HANDLE);

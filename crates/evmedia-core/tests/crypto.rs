@@ -81,33 +81,32 @@ fn the_mask_is_the_first_sixteen_ascii_bytes_of_the_filename_digest() {
     assert_eq!(mask_from_hex(&hex_lower(&mask)).unwrap(), mask);
 }
 
+/// A schedule and the key it must rebuild, recorded from a live player by
+/// `tools/parser-tools/probe_schedule_key.py`.
+///
+/// Recorded rather than constructed, and that is the whole point. This derivation was once
+/// declared dead and its code deleted, on the strength of a test that was itself broken — a probe
+/// length that was not AES-block aligned, so every key was reported as wrong and the conclusion
+/// outlived the bug. This pair is the evidence that the derivation is alive; the run it came from
+/// rebuilt 369 of 369 keys and opened 369 of 369 segments.
+///
+/// The first half is legible: the player stores `key[0..16]` verbatim, and those bytes are the
+/// first 16 characters of the key text.
 #[test]
-fn a_context_that_has_not_been_decrypted_yet_has_no_key() {
+fn a_recorded_schedule_rebuilds_the_key_that_opened_its_segment() {
+    const SCHEDULE: &str = "33646635316664303237353364353630ec0eb6528dfc3916857876d9fab6504b";
+    const KEY: &str = "3df51fd02753d5605cc3139e66a3561e";
+    let bytes: [u8; 32] = hex::decode(SCHEDULE).expect("hex").try_into().expect("32 bytes");
+    assert_eq!(schedule_to_key(&bytes).as_deref(), Some(KEY));
+    assert_eq!(&bytes[..16], &KEY.as_bytes()[..16], "the verbatim half must really be verbatim");
+}
+
+#[test]
+fn an_untouched_schedule_is_not_a_key() {
     let mut untouched = [0u8; 32];
     untouched[..4].copy_from_slice(&HEAP_FILL);
     assert_eq!(schedule_to_key(&untouched), None, "heap fill must not read as a key");
     assert_eq!(schedule_to_key(&[0u8; 32]), None, "an empty schedule is not a key");
-}
-
-#[test]
-fn schedule_to_key_never_returns_anything_but_a_live_key() {
-    // A schedule that is not in the player's format must be rejected, not turned into a key
-    // that fails later with a decryption error that points at the wrong place.
-    let mut state = 0x1234_5678_9abc_def0u64;
-    for _ in 0..512 {
-        let mut schedule = [0u8; 32];
-        for byte in schedule.iter_mut() {
-            state ^= state << 13;
-            state ^= state >> 7;
-            state ^= state << 17;
-            *byte = (state & 0xff) as u8;
-        }
-        if let Some(key) = schedule_to_key(&schedule) {
-            assert_eq!(key.len(), 32);
-            assert!(key.bytes().all(|byte| byte.is_ascii_hexdigit()));
-            assert_eq!(&key.as_bytes()[..16], &schedule[..16]);
-        }
-    }
 }
 
 #[test]

@@ -1,16 +1,18 @@
 //! `capture-ev`: write a manifest for a lesson from a live player.
 //!
-//! Keys come from the same schedule the harvest loop uses, so this path is live. It replaces an
-//! earlier collector whose only key source was a salt-based derivation that this build turned
-//! out not to implement — it searched process memory for `tk + filename` and never found it, so
-//! that command could only ever fail. See `docs/ARCHITECTURE.md`.
+//! Keys come from two sources, the same two the harvest loop uses. A live playback context gives
+//! the index, the filename and the key together; a key whose context the player has released is
+//! only a loose 32-hex string on the heap, and has to be tested against the segment's own bytes
+//! to be attributed to it. Neither source covers everything, so both are consulted.
 //!
-//! PRECONDITION: every segment in `input` must already be decrypted by the player, which means
-//! the lesson has been played through. This is a consequence of where keys come from, not a
-//! limitation that can be coded around here.
+//! The command also replaces an earlier collector whose only key source was a salt-based
+//! derivation that this build turned out not to implement — it searched process memory for
+//! `tk + filename` and never found it, so that command could only ever fail. See
+//! `docs/ARCHITECTURE.md`.
 //!
-//! Re-verify this path against a real lesson before relying on it: it is the one command whose
-//! behaviour changed rather than moved.
+//! PRECONDITION: every segment in `input` must have been decrypted by the player at least once,
+//! which means the lesson has been played through. This is a consequence of where keys come
+//! from, not a limitation that can be coded around here.
 
 use crate::process::Player;
 use anyhow::{bail, Context, Result};
@@ -18,8 +20,9 @@ use evmedia_contract::Reporter;
 use evmedia_core::{
     crypto::{hex_lower, mask_from_filename, sha256_hex},
     decode::{find_input_bytes, list_input_names, CaptureManifest, EvSegment},
+    keyscan::{self, Library},
 };
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 const TOOL: &str = "EVPlayer2 5.0.5 Rust live collector";
 
@@ -33,26 +36,38 @@ pub fn capture(pid: u32, input: &Path, output: &Path, reporter: &Reporter) -> Re
     }
 
     let player = Player::open(pid)?;
-    let keys = player.active_keys();
-    // index -> (file, key) inverted to file -> (index, key), because the input is a list of files.
-    let by_file: std::collections::HashMap<&str, (u32, &str)> = keys
-        .iter()
-        .map(|(index, (file, key))| (file.as_str(), (*index, key.as_str())))
+    // Filename -> (index, key). The live contexts fill this first because they are exact; the
+    // candidate search then adds whatever they could not reach.
+    let mut entries: HashMap<String, (u32, String)> = player
+        .active_keys()
+        .into_iter()
+        .map(|(index, (file, key))| (file, (index, key)))
         .collect();
+    let indexes = player.segment_indexes();
+    let candidates = player.hex_candidates();
+    for (file, key) in keyscan::recover(input, &candidates, &Library::new())? {
+        if let Some(index) = indexes.get(&file) {
+            // The index is not in the segment and not in the filename, so a key recovered this
+            // way still needs the player to say where the segment sits.
+            entries.entry(file).or_insert((*index, key));
+        }
+    }
 
     let mut missing = Vec::new();
     let mut found: Vec<(u32, String, String)> = Vec::new();
     for name in &names {
-        match by_file.get(name.as_str()) {
-            Some((index, key)) => found.push((*index, name.clone(), (*key).to_string())),
+        match entries.get(name) {
+            Some((index, key)) => found.push((*index, name.clone(), key.clone())),
             None => missing.push(name.clone()),
         }
     }
     if !missing.is_empty() {
         bail!(
-            "the player has not decrypted {} of {} segment(s) yet; play the lesson through and retry",
+            "no key and index for {} of {} segment(s); the player derives a key only while it \
+             plays a segment, so play the lesson through and retry. First missing: {}",
             missing.len(),
-            names.len()
+            names.len(),
+            missing[0]
         );
     }
     found.sort_by_key(|(index, _, _)| *index);
