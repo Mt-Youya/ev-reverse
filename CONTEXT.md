@@ -94,3 +94,8 @@ _Avoid_: join, combine, concat
 A merge whose indexes form an unbroken `0..n-1` run. It is written to `lesson.ts`; anything else
 is written to `lesson.partial.ts`. The filename is a promise to the caller.
 _Avoid_: full, finished, successful
+
+
+下载的 7537 个加密文件,硬链接进 enc 目录(不占额外磁盘),grab 直接复用它们解密,一个字节都不重新下载。
+解密公式本身早就有了:明文 = AES-256-ECB解密(密文 XOR MD5(文件名)前16字节),密钥是 32 个十六进制字符。这个项目整个 Rust 链路(grab→解密→合并→转 MP4)就是干这个的,现在正跑着。
+唯一绕不过去的硬约束:每段的密钥和播放顺序(index)只存在于播放器的内存里——密钥是播放器解密那一刻才生成、顺序是播放器 context 里的一个 u32。文件名是随机 UUID,不含顺序;加密内容里也读不出顺序。所以离线(不播放)拿不到,必须让播放器把这些段解出来,grab 从内存抓。
