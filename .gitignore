@@ -4,19 +4,23 @@
 # Tauri regenerates these on every build from tauri.conf.json
 /crates/evmedia-gui/gen/
 
-tools/parser-tools/dump_contexts.json
-tools/parser-tools/strings_dump.txt
-tools/parser-tools/found_segments.txt
-tools/parser-tools/urls.log
-tools/parser-tools/capture_error.txt
-tools/parser-tools/evplayer2_manifest.json
-tools/parser-tools/decoded.ts
-tools/parser-tools/decoded.mp4
+# Script output. A rule earns its place here only while its producer writes something that must
+# not be committed -- ticket 03 deleted the scripts that wrote `strings_dump.txt`,
+# `found_segments.txt`, `capture_error.txt`, `evplayer2_manifest.json`, `decoded.ts` and
+# `decoded.mp4`, so their rules went with them and this list is now producer-backed.
+#
 # capture_all.py output (contains session tokens, JWT, tk, sign - do not commit)
 tools/parser-tools/captured/
 tools/parser-tools/ev2_out/
+tools/parser-tools/urls.log
 tools/parser-tools/ctx_dump.json
 tools/parser-tools/triple.json
+# A redis dump holding every segment's key and XOR mask for a whole lesson -- the recovered
+# credential class itself, and not ours to redistribute.
+tools/parser-tools/EVPlayer2_解密工具与参数/redis_segments.json
+# A recorded context dump kept as evidence. No script writes it any more, but it is a memory dump
+# and must stay out of the repository regardless.
+tools/parser-tools/dump_contexts.json
 
 rust_out/
 

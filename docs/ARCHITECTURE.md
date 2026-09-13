@@ -27,10 +27,15 @@ lists neither `evmedia-core` nor `evmedia-win`.
 
 **`harvest::Harvester`** is what keeps Windows out of the harvest loop. The loop knows about
 segments, keys, gaps and the playhead; `evmedia-win::WinSource` is the only real implementation,
-and a fixture in `crates/evmedia-core/tests/grab_loop.rs` is the other. That is why the loop's
-resume, retry, completeness and merge behaviour can be tested with no player, no Windows and no
-network. `seek_to` defaults to `Ok(false)`, which is the honest answer for a source with no
-playhead.
+and the fixture under `crates/evmedia-core/tests/harvest_fixture/` is the other, shared by
+`grab_loop.rs` and `grab_sweep.rs`. That is why the loop's resume, retry, completeness, sweep and
+merge behaviour can be tested with no player, no Windows and no network.
+
+`Harvester` has `Playhead` as a supertrait, so a source is one object rather than two and the loop
+passes the harvester itself to `seek::seek_window_to`. That function reads `window()` for where the
+playhead is and calls `step()` to move it. A source that has no playhead is not a special case: it
+answers `window()` with `None`, and the seek reports `Ok(false)` — could not arrive — rather than
+retrying.
 
 **`evmedia-contract`** is what keeps the GUI and the CLI from disagreeing. The argv is defined
 once, in `args.rs`; the GUI builds the same structs and calls `ToArgv`, and re-parses every argv

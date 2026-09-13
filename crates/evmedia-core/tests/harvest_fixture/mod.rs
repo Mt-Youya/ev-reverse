@@ -18,9 +18,8 @@
 
 use aes::Aes256;
 use ecb::cipher::{block_padding::NoPadding, BlockEncryptMut, KeyInit};
-use evmedia_contract::Reporter;
 use evmedia_core::crypto::{key_from_text, mask_from_filename};
-use evmedia_core::harvest::{GrabOptions, Harvester};
+use evmedia_core::harvest::{seek::Playhead, GrabOptions, Harvester};
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     io::{Read, Write},
@@ -43,18 +42,25 @@ struct State {
     urls: HashMap<String, String>,
     /// Where the encrypted segments live; a candidate is only offered once its bytes are here.
     enc: PathBuf,
-    /// Targets the loop has asked the playhead to move to, in order.
-    seeks: Vec<u32>,
-    /// What `seek_to` answers. `None` models a source with no playhead at all — the trait's
-    /// default, and what a real source reports when its seek keys turn out to be unbound.
-    seek_reply: Option<bool>,
-    /// Keys the player produces because the playhead moved onto the segment, applied on seek.
-    unlock_on_seek: Vec<(u32, (String, String))>,
+    /// Where the playhead is, as the range of lesson indexes whose key is live.
+    ///
+    /// This is the fixture's counterpart of `WinSource`'s window: the thing the seek reads to
+    /// decide whether it has arrived and how far one press moved. It starts at the beginning of
+    /// the lesson, which is where a player that has just opened one sits.
+    window: (u32, u32),
+    /// Every step the loop posted, in order: whether it went back, and how many presses.
+    steps: Vec<(bool, usize)>,
+    /// When set, stepping changes nothing — a player whose seek keys are bound to nothing.
+    stuck: bool,
+    /// Keys the player produces because the playhead moved onto the segment.
+    ///
+    /// Nothing else can produce a key for a gap: the player computes it when it decrypts that
+    /// segment, and it only decrypts it because the playhead arrived.
+    unlock_on_step: Vec<(u32, (String, String))>,
     /// Make the live-context source the *only* one, so the loop's use of it is observable.
     ///
     /// Off by default, which keeps every other test on the candidate path. With it on, a key can
-    /// come from nowhere else: if the loop ignored `keys()` the lesson would stay empty, and that
-    /// is the point.
+    /// come from nowhere else: if the loop ignored `keys()` the lesson would stay empty.
     slot_only: bool,
 }
 
@@ -89,16 +95,24 @@ impl Fixture {
         self.lock().keys.insert(index, (file, key));
     }
 
-    pub fn seeks(&self) -> Vec<u32> {
-        self.lock().seeks.clone()
+    /// Where the playhead has arrived.
+    pub fn window_at(&self) -> (u32, u32) {
+        self.lock().window
     }
 
-    pub fn set_seek_reply(&self, reply: bool) {
-        self.lock().seek_reply = Some(reply);
+    /// Every step the loop posted, in order.
+    pub fn steps(&self) -> Vec<(bool, usize)> {
+        self.lock().steps.clone()
     }
 
-    pub fn unlock_on_seek(&self, entries: Vec<(u32, (String, String))>) {
-        self.lock().unlock_on_seek = entries;
+    /// Make stepping change nothing, as a player whose seek keys are bound to nothing does.
+    pub fn set_stuck(&self, stuck: bool) {
+        self.lock().stuck = stuck;
+    }
+
+    /// Keys the player produces when the playhead lands on a segment.
+    pub fn unlock_on_step(&self, entries: Vec<(u32, (String, String))>) {
+        self.lock().unlock_on_step = entries;
     }
 
     /// Answer every question from the live contexts and from nowhere else.
@@ -165,15 +179,40 @@ impl Harvester for Fixture {
     fn diagnose(&self) -> String {
         "fixture".to_string()
     }
+}
 
-    fn seek_to(&self, target: u32, _gap: Duration, _reporter: &Reporter) -> anyhow::Result<bool> {
+/// The fixture's playhead.
+///
+/// A press moves the window one lesson index. A real player moves further per press, which is what
+/// the seek's calibration exists to discover; keeping it at exactly one here makes the arithmetic
+/// in the sweep tests checkable by hand.
+impl Playhead for Fixture {
+    fn window(&self) -> Option<(u32, u32)> {
+        Some(self.lock().window)
+    }
+
+    fn step(&self, back: bool, count: usize, _gap: Duration) {
         let mut state = self.lock();
-        state.seeks.push(target);
-        let unlocks = state.unlock_on_seek.clone();
-        for (index, entry) in unlocks {
+        state.steps.push((back, count));
+        if state.stuck {
+            return;
+        }
+        let shift = count as i64 * if back { -1 } else { 1 };
+        let moved = |value: u32| (value as i64 + shift).max(0) as u32;
+        state.window = (moved(state.window.0), moved(state.window.1));
+
+        // Decrypting a segment is what the player does when the playhead lands on it, and it is
+        // the only thing that ever produces a key for one.
+        let (low, high) = state.window;
+        let arrived: Vec<(u32, (String, String))> = state
+            .unlock_on_step
+            .iter()
+            .filter(|(index, _)| (low..=high).contains(index))
+            .cloned()
+            .collect();
+        for (index, entry) in arrived {
             state.keys.insert(index, entry);
         }
-        Ok(state.seek_reply.unwrap_or(false))
     }
 }
 
@@ -240,9 +279,10 @@ pub fn stage(output: &Path, count: u32) -> (Fixture, Vec<Vec<u8>>) {
         keys,
         urls,
         enc,
-        seeks: Vec::new(),
-        seek_reply: None,
-        unlock_on_seek: Vec::new(),
+        window: (0, 0),
+        steps: Vec::new(),
+        stuck: false,
+        unlock_on_step: Vec::new(),
         slot_only: false,
     }));
     (fixture, plains)
@@ -304,8 +344,8 @@ pub fn options(output: &Path) -> GrabOptions {
         idle_limit: 3,
         attempts: 2,
         mp4: false,
-        // Off by default: `seek_to` is the fixture default of Ok(false), so a test that wants a
-        // sweep has to ask for one and say what the playhead answers.
+        // Off by default, so a test that wants a sweep has to ask for one and say where the
+        // playhead is. Every other test stays out of the playhead's way entirely.
         sweep: false,
         press_gap: Duration::from_millis(1),
     }

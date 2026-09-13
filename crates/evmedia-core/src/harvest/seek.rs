@@ -25,10 +25,10 @@ pub trait Playhead {
     ///
     /// This must be the *keyed* set rather than every segment the player has a context for. The
     /// player keeps a context for each segment it has touched, and on a real lesson that is the
-    /// whole lesson: a recorded dump in `tools/parser-tools/dump_contexts.json` shows 134 contexts
-    /// held with only 2 decrypted. A window measured from those spans everything, so the
-    /// "is the target already inside?" test below passes for a segment that was never decrypted
-    /// and the seek posts no keys at all while reporting success.
+    /// whole lesson: a recorded dump from the research bench shows 134 contexts held with only 2
+    /// decrypted. A window measured from those spans everything, so the "is the target already
+    /// inside?" test below passes for a segment that was never decrypted and the seek posts no keys
+    /// at all while reporting success.
     fn window(&self) -> Option<(u32, u32)>;
 
     /// Step the playhead `count` times, backwards when `back` is set.
@@ -46,10 +46,14 @@ const MIN_PER_PRESS: f64 = 0.05;
 
 /// Move the playhead until `target` sits inside the live window.
 ///
+/// Generic over the playhead rather than taking `&dyn Playhead` so that a caller holding a
+/// `&dyn Harvester` can pass it straight in: `Harvester` has `Playhead` as a supertrait, so the
+/// object satisfies this bound without an upcast.
+///
 /// Returns false when the steps turn out to have no effect, so the caller can stop asking and
 /// simply wait instead of hammering the player.
-pub fn seek_window_to(
-    playhead: &dyn Playhead,
+pub fn seek_window_to<P: Playhead + ?Sized>(
+    playhead: &P,
     target: u32,
     press_gap: Duration,
     reporter: &Reporter,

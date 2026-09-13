@@ -13,8 +13,7 @@ pub mod fetch;
 pub mod grab;
 pub mod seek;
 
-use anyhow::Result;
-use evmedia_contract::Reporter;
+use crate::harvest::seek::Playhead;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     path::PathBuf,
@@ -35,7 +34,11 @@ pub struct Segment {
 }
 
 /// What the loop needs from a live player.
-pub trait Harvester {
+///
+/// [`Playhead`] is a supertrait rather than a second parameter: moving the playhead is one of the
+/// things the loop asks its player to do, so one implementation drives the whole harvest loop, gap
+/// handling included.
+pub trait Harvester: Playhead {
     fn pid(&self) -> u32;
 
     /// Segment index -> (filename, key) for every segment whose key is live right now.
@@ -69,13 +72,6 @@ pub trait Harvester {
 
     /// One-shot description of what a scan can actually see, for troubleshooting.
     fn diagnose(&self) -> String;
-
-    /// Move the playhead so `target` falls inside the live key window. `Ok(false)` means this
-    /// source cannot steer a playhead — the loop then stops asking and simply waits.
-    fn seek_to(&self, target: u32, press_gap: Duration, reporter: &Reporter) -> Result<bool> {
-        let _ = (target, press_gap, reporter);
-        Ok(false)
-    }
 }
 
 /// Polls with no newly decrypted segment before the loop decides playback has stalled.

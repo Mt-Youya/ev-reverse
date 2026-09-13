@@ -8,14 +8,11 @@
 //! Posting `WM_KEYDOWN`/`WM_KEYUP` to the player's own window does that without focus, without
 //! injection, and without knowing a single UI coordinate — only the window handle is needed.
 //!
-//! The algorithm itself — when to step, how far, and when to give up — is portable and lives in
-//! `evmedia_core::harvest::seek`, where it is tested without a player. This module supplies the
-//! only two things it cannot know: where the live key window is, and how to post a key.
+//! This module is the input-posting half only. *Which* way to step, how far, and when to give up is
+//! `harvest::seek`, which is portable and tested without a player. The window it aims at is read by
+//! `WinSource`, which is what implements `Playhead` for the real thing.
 
 use crate::process::Player;
-use anyhow::Result;
-use evmedia_contract::Reporter;
-use evmedia_core::harvest::seek::{self, Playhead};
 use std::time::Duration;
 use windows_sys::Win32::{
     Foundation::RECT,
@@ -30,6 +27,8 @@ const VK_RIGHT: usize = 0x27;
 
 /// The key that steps the playhead forward by one increment.
 pub const STEP_FORWARD: usize = VK_RIGHT;
+/// The key that steps it back by one increment.
+pub const STEP_BACK: usize = VK_LEFT;
 
 /// Post `count` presses of `vk` to the player's window, returning how many were sent.
 ///
@@ -73,13 +72,20 @@ unsafe extern "system" fn pick_window(hwnd: isize, lparam: isize) -> i32 {
 }
 
 /// The player's largest visible top-level window; posted input goes here.
+///
+/// `None` means there is nothing to post to at all, which is a different failure from a key that is
+/// bound to nothing — and the one worth naming, because no amount of retrying fixes it.
 pub fn player_window(pid: u32) -> Option<isize> {
     let mut pick = WindowPick { pid, best: 0, area: 0 };
     unsafe { EnumWindows(Some(pick_window), &mut pick as *mut _ as isize) };
     (pick.best != 0).then_some(pick.best)
 }
 
-fn post_key(hwnd: isize, vk: usize, count: usize, gap: Duration) {
+/// Post `count` key presses to a window, with `gap` between them.
+///
+/// The delay is not decoration: posting a burst with no gap outruns the player's decryption, and
+/// the playhead lands past segments that never got decrypted — which is how gaps are made.
+pub fn post_key(hwnd: isize, vk: usize, count: usize, gap: Duration) {
     for _ in 0..count {
         unsafe {
             PostMessageW(hwnd, WM_KEYDOWN, vk, 0);
@@ -87,49 +93,4 @@ fn post_key(hwnd: isize, vk: usize, count: usize, gap: Duration) {
         }
         std::thread::sleep(gap);
     }
-}
-
-/// The range of segment indexes whose key is live right now.
-///
-/// Reading this from the *keys* rather than from every context the player holds is what makes a
-/// seek able to tell whether it has arrived; see the trait's note in `harvest::seek`.
-fn live_window(player: &Player) -> Option<(u32, u32)> {
-    let live = player.active_keys();
-    Some((*live.keys().next()?, *live.keys().next_back()?))
-}
-
-/// The real player, presented to the portable seek.
-struct LivePlayhead<'a>(&'a Player);
-
-impl Playhead for LivePlayhead<'_> {
-    fn window(&self) -> Option<(u32, u32)> {
-        live_window(self.0)
-    }
-
-    fn step(&self, back: bool, count: usize, gap: Duration) {
-        if let Some(hwnd) = player_window(self.0.pid()) {
-            post_key(hwnd, if back { VK_LEFT } else { VK_RIGHT }, count, gap);
-        }
-    }
-}
-
-/// Move the playhead so that `target` sits inside the live key window, which is what makes the
-/// player decrypt it. Returns false when the seek keys turn out to be unbound, so the caller can
-/// stop asking instead of looping forever.
-pub fn seek_window_to(
-    player: &Player,
-    target: u32,
-    press_gap: Duration,
-    reporter: &Reporter,
-) -> Result<bool> {
-    // Checked up front so the reason given is the specific one: with no window there is nothing
-    // to post to at all, and the seek's own "nothing to aim at" would blame the key window.
-    if player_window(player.pid()).is_none() {
-        reporter.info(format!(
-            "  no visible player window for pid {}; cannot sweep",
-            player.pid()
-        ));
-        return Ok(false);
-    }
-    seek::seek_window_to(&LivePlayhead(player), target, press_gap, reporter)
 }

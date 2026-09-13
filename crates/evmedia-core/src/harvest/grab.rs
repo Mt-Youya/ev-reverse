@@ -15,7 +15,7 @@
 //! The version before this asked the player for keys first and then fetched only the segments it
 //! already had keys for, so a segment whose key had not arrived yet was never downloaded at all.
 
-use super::{fetch, GrabOptions, Harvester, Segment, MAX_SWEEPS, SWEEP_AFTER};
+use super::{fetch, seek, GrabOptions, Harvester, Segment, MAX_SWEEPS, SWEEP_AFTER};
 use crate::{keyscan, keyscan::KeyEntry, keyscan::Library, media};
 use anyhow::Result;
 use evmedia_contract::{Event, Reporter, SegmentState, Stage, StageState, Status};
@@ -255,7 +255,7 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
                     "  stalled {idle} poll(s) with a gap behind the playhead; sweeping back to index {target}"
                 ));
                 sweeps_left -= 1;
-                match harvester.seek_to(target, options.press_gap, reporter) {
+                match seek::seek_window_to(harvester, target, options.press_gap, reporter) {
                     Ok(true) => {
                         reporter.info("  playhead is inside the gap; letting the player re-decrypt");
                         idle = 0;
