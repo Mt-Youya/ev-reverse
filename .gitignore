@@ -1,2 +1,25 @@
 /target/
 *.obj
+
+# Tauri regenerates these on every build from tauri.conf.json
+/crates/evmedia-gui/gen/
+
+tools/parser-tools/dump_contexts.json
+tools/parser-tools/strings_dump.txt
+tools/parser-tools/found_segments.txt
+tools/parser-tools/urls.log
+tools/parser-tools/capture_error.txt
+tools/parser-tools/evplayer2_manifest.json
+tools/parser-tools/decoded.ts
+tools/parser-tools/decoded.mp4
+# capture_all.py output (contains session tokens, JWT, tk, sign - do not commit)
+tools/parser-tools/captured/
+tools/parser-tools/ev2_out/
+tools/parser-tools/ctx_dump.json
+tools/parser-tools/triple.json
+
+rust_out/
+
+.idea
+.vscode
+__pycache__/

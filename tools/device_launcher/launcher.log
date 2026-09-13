@@ -12,3 +12,51 @@ SUCCESS pid=21684 identity getters installed before original entry; debugger det
 Exception code=80000003 rva=332c22239 first=1
 Exception code=80000003 rva=a332cc first=1
 ERROR Cannot detach startup debugger win32=5
+ERROR Cannot open EVPlayer2 executable win32=3
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=3136 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=23428 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=25740 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=1488 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=23748 identity getters installed before original entry; debugger detached
+ERROR EVPlayer2 is already running. Close it before using this launcher. win32=0
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=15004 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=18032 identity getters installed before original entry; debugger detached
+ERROR EVPlayer2 is already running. Close it before using this launcher. win32=0
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=5436 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=84bf82239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=12788 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=8e8292239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=8e8292239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=16132 identity getters installed before original entry; debugger detached

@@ -1,0 +1,20 @@
+[package]
+name = "evmedia"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "EVPlayer2 catalog, download and live-manifest CLI"
+
+[[bin]]
+name = "evmedia"
+path = "src/main.rs"
+
+[dependencies]
+evmedia-contract.workspace = true
+evmedia-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+evmedia-win.workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "evmedia-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Portable course-media logic: catalog, download, decode, crypto, harvest orchestration"
+
+[dependencies]
+evmedia-contract.workspace = true
+aes.workspace = true
+anyhow.workspace = true
+ecb.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+md-5.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+url.workspace = true
+zip.workspace = true

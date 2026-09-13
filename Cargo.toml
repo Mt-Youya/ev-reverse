@@ -1,11 +1,30 @@
-[package]
-name = "evmedia"
+[workspace]
+resolver = "2"
+members = [
+    "crates/evmedia-contract",
+    "crates/evmedia-core",
+    "crates/evmedia-win",
+    "crates/evmedia",
+    "crates/evmedia-gui",
+]
+# `cargo build --release` must keep producing target/release/evmedia.exe on its own: the GUI
+# pulls in a windowing stack, and a broken GL driver or a newer MSRV requirement in that stack
+# must never be able to block the CLI. Build the GUI explicitly with -p evmedia-gui.
+default-members = ["crates/evmedia"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
-description = "Cross-platform course-media catalog, download, and verified local conversion core"
 license = "MIT"
+description = "Course-media catalog, download, and verified local conversion core for EVPlayer2"
 
-[dependencies]
+[workspace.dependencies]
+# Internal
+evmedia-contract = { path = "crates/evmedia-contract" }
+evmedia-core = { path = "crates/evmedia-core" }
+evmedia-win = { path = "crates/evmedia-win" }
+
+# External. Versions are carried over verbatim from the pre-workspace manifest.
 aes = "0.8.3"
 anyhow = "1.0.75"
 clap = { version = "=4.4.11", features = ["derive"] }
@@ -15,7 +34,7 @@ futures-util = "0.3.29"
 hex = "0.4.3"
 indexmap = "=2.2.6"
 md-5 = "0.10.6"
-reqwest = { version = "=0.11.22", default-features = false, features = ["rustls-tls", "stream"] }
+reqwest = { version = "=0.11.22", default-features = false, features = ["rustls-tls", "stream", "blocking"] }
 serde = { version = "=1.0.193", features = ["derive"] }
 serde_json = "=1.0.108"
 sha2 = "0.10.8"
@@ -23,6 +42,19 @@ tokio = { version = "=1.35.1", features = ["fs", "io-util", "macros", "rt-multi-
 url = "=2.5.0"
 walkdir = "2.4.0"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+windows-sys = { version = "=0.48.0", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_JobObjects",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "=0.48.0", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_Threading"] }
+# GUI only. Tauri renders the shell in the system WebView2; the app logic on both sides of
+# the boundary stays Rust. The frontend is plain static files (no bundler), so `cargo build`
+# alone produces the binary.
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+rfd = "=0.14.1"
