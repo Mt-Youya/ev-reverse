@@ -23,8 +23,10 @@ tools/parser-tools/EVPlayer2_解密工具与参数/redis_segments.json
 tools/parser-tools/dump_contexts.json
 
 rust_out/
-# The output directory ticket 02's verification run uses. Run output, never a source file.
-verify_out/
+# The output directories ticket 02's verification runs use -- `verify_out/`, `verify_out2/`,
+# `verify_out3/`, one per grab run. Run output, never a source file, and the `*` is the point:
+# a rule pinned to one name lets the next run's directory straight into the index.
+verify_out*/
 
 .idea
 .vscode
