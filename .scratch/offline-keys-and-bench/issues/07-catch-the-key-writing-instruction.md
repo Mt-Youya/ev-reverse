@@ -85,6 +85,37 @@ and produces a call chain after both backtracers returned nothing.
 **It has still not caught a store from the real player** — the attempt above could not have, because
 the player was not decrypting.
 
+## A second instrument, and possibly the better one
+
+The page guard answers "which instruction wrote these 32 bytes". Static analysis suggests a more direct
+question with a better answer available: **`ctx+0x120` is an AES key schedule, filled in place by the
+app's own key setup at `0x20EC0`**, called from `hls_decode` as `(rcx = ctx+0x120, rdx = a
+std::string, r8d = 0x100, r9d = 1)`. If that is right, the field is not written by a bare store at all
+— it is written by the key expansion — and the interesting value is not the destination but the
+**source**: the `std::string` whose 32 hex characters are the key.
+
+So a one-line hook is worth running alongside the guard:
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x20ec0 20 0x600
+```
+
+and, at the entry hook rather than a round inside it, `AES_set_encrypt_key`:
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x791f90 20 0x600
+```
+
+`0x791F90` is the OpenSSL entry — `(rcx = userKey, edx = bits, r8 = AES_KEY *)` — and `hook_aes_key.py`
+already caught 2825 distinct keys there, so this is the place where key material is most likely to be
+readable. It is **not** `0x792c78`: that address is inside this same function, in the middle of its
+expansion loop, and the project's note that it "fires very rarely" came from `probe_at.py` de-duplicating
+repeated identical hits, not from measurement.
+
+Ticket 09 is what this is really for: the writer's instruction tells you *where* the key lands, but the
+string handed to the setup tells you *what the key is*, and that is the derivation the ticket asks to
+have stated.
+
 ## What was measured, and how
 
 The mechanism was then tested against stand-in target processes written for the purpose, because

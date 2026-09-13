@@ -39,13 +39,28 @@ version of this ticket said: "scan backwards from `0x792c78` for the nearest com
 (`cc cc cc`) and take the address after it". Checked against the DLL on disk, that recipe returns the
 **wrong function**:
 
-- The bytes at RVA `0x792c78` are `33 6e f8 33 68 0c` = `xor ebp,[rsi-8]; xor ebp,[rax+0xc]` — a
-  round-key XOR, **not** the inverse-S-box read this project has been describing. (The S-box reads are
-  at `0x792c59` and nearby.)
-- `.pdata` says the enclosing function is **`[0x792b1c, 0x792ec3)`**.
-- There are **no `cc cc cc` runs at all in `[0x792000, 0x792c78)`**. The nearest one is at `0x791f8d`,
-  which is the entry of `AES_set_encrypt_key` — a *different* function. The recipe would have returned
-  that one.
+- The bytes at RVA `0x792c78` are `33 6e f8 33 68 0c` = `xor ebp,[rsi-8]`, and `[rsi-8]` walks the
+  **Rcon** table — its bytes at RVA `0xB5FBA4` are `00 00 00 02 / 00 00 00 04 / 00 00 00 08 / …`, i.e.
+  `0x02000000, 0x04000000, 0x08000000, …`. So this is the Rcon XOR of **key expansion**, not a
+  round-key XOR of the block cipher, and not the inverse-S-box read this project has been describing.
+  (The S-box read is one instruction earlier, at `0x792c59`.)
+- `.pdata`'s entry for `0x792c78` is `[0x792b1c, 0x792ec3)` — but **that is only the last of six
+  contiguous chunks**, and reading one entry as "the enclosing function" is what produced a wrong
+  answer in the first version of this correction. The chunks are
+  `[0x791f90,0x791fd4) [0x791fd4,0x7925b5) [0x7925b5,0x792aa7) [0x792aa7,0x792abd) [0x792abd,0x792b1c) [0x792b1c,0x792ec3)`,
+  each ending exactly where the next begins. Contiguous chained ranges are **one function** with split
+  unwind info, so `0x792c78` lives in **`AES_set_encrypt_key`**, which runs `[0x791F90, 0x792EC3)`.
+  A `.pdata` lookup is only correct once the chain has been joined.
+- There are **no `cc cc cc` runs at all in `[0x792000, 0x792c78)`**; the nearest is at `0x791f8d`, three
+  bytes before `0x791f90`. So the `cc cc cc` recipe **returns the right entry here** — and the first
+  version of this correction, which said it returned "a different function", was wrong for the reason
+  above. It is right by luck rather than by principle: it found the padding in front of
+  `AES_set_encrypt_key`, and there is no padding in front of the function that actually contains
+  `0x792c78` because there is no such separate function. Use the joined `.pdata` chain, not padding.
+
+**That also means hooking `0x792c78` reads the key-*setup* calling convention, not the block cipher.**
+It is inside `AES_set_encrypt_key`, which `hook_aes_key.py` already hooked at its entry and caught 2825
+distinct keys from. If the goal is to see key material, the entry is the place, not this instruction.
 
 **The reliable way is `.pdata`, and the DLL has it.** `PlayerLibRender56_vs.dll` is not packed: six
 normal sections, `.pdata` at RVA `0x12a8000` with **19,488** function entries, each `(start, end,
@@ -183,35 +198,47 @@ that is the acceptance criterion, and it needs the player.
 ## The one thing still unknown, and the probe that answers it
 
 `0x20EC0`'s **second argument is undetermined from the file**, and the oracle cannot be written
-correctly without it. `hls_decode` calls it as `(rcx = ctx+0x120, rdx = a std::string's data pointer,
-r8d = 0x100, r9d = 1)` — and a file path is not a key. So either
+correctly without it. `hls_decode` calls it as `(rcx = ctx+0x120, rdx = <std::string>, r8d = 0x100,
+r9d = 1)`, and immediately before the call it does the standard `std::string` deref:
 
-- `rcx` is the key material and the init expands it in place at `ctx+0x120` (in which case the 32 bytes
-  the project calls "the schedule" *are* the key, and `schedule_to_key`'s MixColumns step is inverting
-  part of the expansion), or
-- `rdx` is the key and `rcx` is the AES_KEY being filled (in which case `hls_decode` is passing
-  something that only looks like a path, or the deref before the call is not what it appears).
+```
+0x040b09  cmp   qword [rdx+0x18], 0x10    ; capacity
+0x040b0e  jb    0x40b13
+0x040b10  mov   rdx, [rdx]                ; heap-backed string -> its data pointer
+```
 
-Writing the oracle against the wrong reading produces a script that runs, returns bytes, and is wrong —
-which is the exact failure this branch has already spent one round diagnosing, so it is not worth
-guessing at.
+So `rdx` is a `const std::string &`. **A 32-character hex key is exactly the kind of thing that gets
+passed as a `std::string`**, which makes "the string is the key" the leading reading, with the call
+being `(rcx = the AES_KEY to fill, rdx = the key, r8d = bits, r9d = mode)`.
 
-**The probe that settles it** is a runtime one, and it is short:
+The first version of this section rejected that: it read the deref as a *file path* and reasoned that a
+path cannot be a key. The reasoning was sound and the premise was not — nothing in those instructions
+says path, and the `.ts` filename that appears on the stack in the `0x792c78` run belongs to a
+different function entirely.
+
+What settles it is the bytes at `rdx` at runtime, and `probe_at.py` reports precisely that: per hit, the
+registers that point at printable strings, plus a 32-hex scan of the strings it finds.
 
 ```
 C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x20ec0 20 0x400
 ```
 
-`probe_at.py` already reports, per hit, the registers that point at printable strings, the strings on
-the stack, and a 32-hex scan. Run it with the player logged in and a lesson playing. What to read out
-of a hit:
+What to read out of a hit:
 
-- **`rcx`**: does it point into a playback context (an address whose vtable is in
-  `PlayerLibRender56_vs.dll + 0x802000..0x804000`, i.e. context-like), or at a bare 32-byte buffer?
-  And what are the 32 bytes there — ASCII hex, or raw bytes?
-- **`rdx`**: if it is a printable string, it is not a key and the first reading holds.
-- Whether a 32-hex string appears among the reported strings at all — if the key material is the
-  segment's own 32 hex characters, it will be there and recognisable.
+- **`rdx`**: is it a printable **32-character hex string**? If so that is the segment key, this call is
+  the consumer of the derivation, and the oracle is `(key, bits, mode) -> AES_KEY`.
+- **`rcx`**: it should be a context plus `0x120`, so `rcx - 0x120` should read as a context — a `.ts`
+  filename at `+0x18` and an index at `+0x8` — and its `+0x120` should still hold the heap fill.
+- **`r8d` / `r9d`**: `0x100` and `1` on the segment path.
 
-That turns ticket 06's first step from "write an oracle" into "read one call's arguments", which is a
-minute of work with the player already open — and it is the same sitting ticket 07 and 08 need.
+Two properties of this tool to know before reading its output, because both can mislead:
+
+- **It de-duplicates.** A hit prints only if `(rva, stack strings, 32-hex hits, registers)` differs from
+  every hit before it, and the JS side stops at `MAX_HITS`. An instruction firing thousands of times on
+  one repeating frame prints **once**. The note this project has been carrying — that `0x792c78` "fires
+  very rarely, so it is not the segment hot path" — was drawn from exactly that artefact.
+- **It prints no raw registers**, only ones that point at printable strings. A register holding a bare
+  buffer will not appear at all, and absence from the output is not evidence of disuse.
+
+That turns this ticket's first step from "write an oracle" into "read one call's arguments", which is a
+minute of work with the player already open — and it is the same sitting tickets 07 and 08 need.
