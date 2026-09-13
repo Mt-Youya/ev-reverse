@@ -4,7 +4,7 @@
 
 mod harvest_fixture;
 
-use evmedia_contract::Reporter;
+use evmedia_contract::{Event, Reporter, SegmentState};
 use evmedia_core::harvest::grab;
 use harvest_fixture::{options, scratch, segment_name, serve, stage};
 use std::collections::HashMap;
@@ -52,6 +52,10 @@ fn a_rerun_resumes_and_reproduces_the_same_bytes() {
     // Delete the ciphertext cache: if the rerun needed the network it would now fail, so this
     // also proves it resumed from `dec/` rather than re-downloading.
     std::fs::remove_dir_all(output.join("enc")).unwrap();
+    // And delete the merge output. Without this the assertion below reads the first run's file
+    // and passes even if the second run wrote nothing at all -- which it did not, before this
+    // line existed: the second read was of a stale file and the test proved nothing.
+    std::fs::remove_file(output.join("lesson.ts")).unwrap();
     grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap();
     let second = std::fs::read(output.join("lesson.ts")).unwrap();
 
@@ -78,9 +82,27 @@ fn a_segment_that_cannot_be_decrypted_is_given_up_on_rather_than_retried_forever
     std::fs::write(output.join("enc").join(&file), &broken).unwrap();
     fixture.restore_key(1, file, key);
 
+    // The idle limit is lifted out of the way so that the attempt cap is the only thing that can
+    // stop the loop retrying this segment. Left at its default the loop stops on idle after three
+    // idle polls, and the test passed with the cap removed -- it was pinning the idle limit, not
+    // the cap, under a name that claimed the opposite.
+    let (reporter, events) = Reporter::capturing();
+    let mut opts = options(&output);
+    opts.idle_limit = 40;
     let started = std::time::Instant::now();
-    grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap();
-    assert!(started.elapsed() < Duration::from_secs(10), "the loop must not spin on a bad segment");
+    grab::run(&fixture, &opts, &reporter).unwrap();
+    assert!(started.elapsed() < Duration::from_secs(30), "the loop must not spin on a bad segment");
+
+    let attempts: Vec<usize> = events
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(|event| match event {
+            Event::Segment { index: 1, state: SegmentState::Failed, attempt, .. } => Some(*attempt),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(attempts, vec![1, 2], "two attempts, then this segment is left alone");
     assert!(output.join("lesson.partial.ts").exists());
 }
 

@@ -83,8 +83,15 @@ From the user's perspective:
     harvest loop and the seek are both testable without Windows or a player.
 16. As a maintainer, I want `Harvester` to *be* the playhead rather than delegate to one, so that
     there is one seam instead of two that mean the same thing.
-17. As a maintainer, I want the seek asserted by the position it reaches rather than the calls it
-    makes, so that the test survives a change of stepping strategy.
+17. As a maintainer, I want the seek asserted by the position it reaches and the presses it took —
+    not by the index a seek was asked for — so that the assertion is about what the caller depends
+    on and its arithmetic is checkable by hand.
+    *Corrected.* This first read "by the position it reaches rather than the calls it makes, so that
+    the test survives a change of stepping strategy." That was wrong when it was written: the tests
+    still pin the press count (`fixture.steps() == vec![(false, 3)]` and `steps().len() == 1`), so a
+    change of batching does break them. What genuinely went away is the target-*index* assertion,
+    which is the part that had to change whenever the strategy did. Found by mutation-checking the
+    tests the first version of this line described.
 18. As the operator, I want `HANDOFF.md` in the repository with its tokens replaced by
     placeholders, so that the record of the early rounds survives without carrying live
     credentials.

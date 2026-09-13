@@ -69,9 +69,11 @@ the v6 successor to the former); both are kept, because pruning apparatus mid-ex
 this ticket exists to avoid.
 
 - **Ticket 06 (the API AES as an oracle):** `probe_at.py`, `hook_aes_key.py`, `find_aes_key.py`, `extract_bodies.py`.
-- **Ticket 07 (the instruction that writes a segment key):** `probe_at.py`, `probe_schedule_key.py`, `wait_ready.py`, `watch_key.py`.
+- **Ticket 07 (the instruction that writes a segment key):** `probe_at.py`, `probe_schedule_key.py`, `wait_ready.py`, and `watch_key.py` — the last of which cannot be run as it stands. **Added after this classification, not part of the thirteen:** `tools/parser-tools/probe_write.py`, written when ticket 07 was made ready to run. `watch_key.py` is the only survivor that can arm a memory write watch and it is the one that hangs the player, so waiting on it would have cost the session the ticket exists for. Ticket 07 records what replaced it and why.
 - **Ticket 08 (the `getDownEVSKey` plaintext):** `capture_all.py`, `sniff_plain.py`, `fish_api_plain.py`, `probe_urls.py`.
 - **Both / general:** `hook_caller.py`, `find_in_mem.py`.
+
+The count is therefore fourteen Python scripts on the bench today, not the thirteen this ticket left. The fourteenth arrived with ticket 07's preparation, after the classification was made.
 
 ### Dependency check
 

@@ -5,8 +5,11 @@
 //! the loop has to *notice* the gap, and the gap is invisible to anything that only looks at
 //! segments it already holds keys for.
 //!
-//! These tests assert where the playhead ended up, not which index a seek was asked for. That is
-//! what the caller depends on, and it survives a change of stepping strategy.
+//! These tests assert two things: where the playhead ended up, and how many presses it took to get
+//! there. They no longer assert which index a seek was asked for, which is the part that had to
+//! change whenever the stepping strategy did. The press count is still pinned — the fixture moves
+//! exactly one index per press, so the arithmetic is checkable by hand — and that does mean a
+//! change of batching will have to update these numbers rather than slide past them.
 
 mod harvest_fixture;
 

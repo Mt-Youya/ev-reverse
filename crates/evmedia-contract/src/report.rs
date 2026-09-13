@@ -10,6 +10,7 @@ use crate::event::Event;
 use std::{
     io::Write,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,11 +26,31 @@ pub enum ReporterMode {
 pub struct Reporter {
     mode: ReporterMode,
     stop: Option<PathBuf>,
+    /// Every event this reporter emitted, when a caller asked to see them.
+    ///
+    /// The machine channel is otherwise write-only stdout, which leaves behaviour whose only
+    /// effect is an event — the attempt cap on a segment that cannot be decrypted, for one —
+    /// observable to nobody, and therefore pinnable by no test.
+    sink: Option<Arc<Mutex<Vec<Event>>>>,
 }
 
 impl Reporter {
     pub fn new(mode: ReporterMode, stop: Option<PathBuf>) -> Self {
-        Self { mode, stop }
+        Self { mode, stop, sink: None }
+    }
+
+    /// A reporter that is silent on both channels and also records every event it was given.
+    ///
+    /// The returned handle sees events as they are emitted, so a test can assert on the machine
+    /// channel itself rather than on its side effects.
+    pub fn capturing() -> (Self, Arc<Mutex<Vec<Event>>>) {
+        let sink = Arc::new(Mutex::new(Vec::new()));
+        let reporter = Self {
+            mode: ReporterMode::Null,
+            stop: None,
+            sink: Some(Arc::clone(&sink)),
+        };
+        (reporter, sink)
     }
 
     /// The default: exactly the pre-workspace behaviour.
@@ -68,8 +89,13 @@ impl Reporter {
         }
     }
 
-    /// A structured event. No-op unless the machine channel is on.
+    /// A structured event. No-op unless the machine channel is on, or a sink was asked for.
     pub fn event(&self, event: &Event) {
+        if let Some(sink) = &self.sink {
+            if let Ok(mut events) = sink.lock() {
+                events.push(event.clone());
+            }
+        }
         if self.mode != ReporterMode::Json {
             return;
         }

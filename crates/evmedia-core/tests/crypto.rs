@@ -154,5 +154,12 @@ fn hashing_helpers_agree_with_their_own_definitions() {
         sha256_hex(b""),
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     );
+    // Non-empty vectors as well as empty ones. With only the empty string here, an `md5_hex` that
+    // ignored its argument entirely still passed -- mutation testing found exactly that.
+    assert_eq!(md5_hex(b"abc"), "900150983cd24fb0d6963f7d28e17f72");
+    assert_eq!(
+        sha256_hex(b"abc"),
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
     assert_eq!(hex_lower(&[0x00, 0xab, 0xff]), "00abff");
 }

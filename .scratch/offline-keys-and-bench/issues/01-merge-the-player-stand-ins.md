@@ -15,11 +15,17 @@
 
 ## Notes
 
-The claim the sweep tests make is now about where the playhead *arrived*, which survives any change of
-stepping strategy — the old assertion was about which index a seek was asked for, which a rewrite of
-the calibration could satisfy while the playhead still went nowhere. `seek_window_to` is generic over
+The claim the sweep tests make is now about where the playhead *arrived* plus the presses it took to
+get there — the old assertion was about which index a seek was asked for, which a rewrite of the
+calibration could satisfy while the playhead still went nowhere. `seek_window_to` is generic over
 `P: Playhead + ?Sized` so `&dyn Harvester` passes straight through, and `WinSource` implements both
 traits on the same object — nothing a test has to stand in for twice.
+
+**Corrected after the fact:** the first version of this note said the arrival assertion "survives any
+change of stepping strategy". It does not. The tests still pin `fixture.steps() == vec![(false, 3)]`
+and `steps().len() == 1`, so a change of batching breaks them. What actually went away is the
+target-*index* assertion, which is the part a strategy change always forced. Found while
+mutation-checking the tests, and corrected here and in the spec rather than left standing.
 
 **Mutation check** (revert the behaviour, confirm the test fails):
 
