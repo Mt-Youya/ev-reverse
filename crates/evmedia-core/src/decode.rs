@@ -1,11 +1,14 @@
 //! The `EvManifest` JSON contract: a verified, ordered set of encrypted segments plus the key
 //! material needed to turn each one into MPEG-TS.
 
-use crate::crypto::{decrypt, key_from_hex, mask_from_hex, sha256_hex};
+use crate::crypto::{
+    decrypt, hex_lower, key_from_hex, mask_from_filename, mask_from_hex, sha256_hex,
+};
 use anyhow::{anyhow, bail, Result};
 use evmedia_contract::Reporter;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     io::{Read, Write},
     path::Path,
 };
@@ -36,6 +39,68 @@ pub struct CaptureManifest {
     pub tool: String,
     pub segment_count: usize,
     pub segments: Vec<EvSegment>,
+}
+
+/// Assemble a capture manifest from a live player's key material.
+///
+/// `keys` maps segment filename -> (playback index, key text), as the player reported them. Two
+/// things make this fail rather than emit a manifest that looks fine and is not:
+///
+/// * a segment in `input` with no entry in `keys` — the player has not decrypted it, so no key
+///   for it exists anywhere and the manifest would silently omit it;
+/// * indexes that are not a contiguous `0..n` — `decode-ev` reassembles by position, so a gap
+///   would produce a file of the wrong length, and nothing downstream would notice.
+///
+/// This is the portable half of `capture-ev`. Everything here works from files on disk and a map,
+/// which is what makes the command testable without a player.
+pub fn build_manifest(
+    input: &Path,
+    keys: &HashMap<String, (u32, String)>,
+    tool: &str,
+) -> Result<CaptureManifest> {
+    let names: Vec<String> = list_input_names(input)?
+        .into_iter()
+        .filter(|name| name.ends_with(".ts"))
+        .collect();
+    if names.is_empty() {
+        bail!("input holds no .ts segments");
+    }
+
+    let mut found: Vec<(u32, String, String)> = Vec::new();
+    let mut missing: Vec<String> = Vec::new();
+    for name in names {
+        match keys.get(&name) {
+            Some((index, key)) => found.push((*index, name, key.clone())),
+            None => missing.push(name),
+        }
+    }
+    if !missing.is_empty() {
+        bail!(
+            "no key for {} of {} segment(s); the player derives a key only while it plays a \
+             segment, so play the lesson through and retry. First missing: {}",
+            missing.len(),
+            missing.len() + found.len(),
+            missing[0]
+        );
+    }
+
+    found.sort_by_key(|(index, _, _)| *index);
+    if found.iter().enumerate().any(|(position, (index, _, _))| *index != position as u32) {
+        bail!("segment indexes are not a contiguous 0..n range; the lesson is not fully decrypted");
+    }
+
+    let mut segments = Vec::with_capacity(found.len());
+    for (index, file, key) in found {
+        let bytes = find_input_bytes(input, &file)?;
+        segments.push(EvSegment {
+            index,
+            key_hex: hex_lower(key.as_bytes()),
+            xor_mask_hex: hex_lower(&mask_from_filename(&file)),
+            encrypted_sha256: sha256_hex(&bytes),
+            file,
+        });
+    }
+    Ok(CaptureManifest { tool: tool.to_string(), segment_count: segments.len(), segments })
 }
 
 /// Read one segment's encrypted bytes out of a directory or a ZIP.

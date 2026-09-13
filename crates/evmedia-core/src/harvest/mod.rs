@@ -11,6 +11,7 @@
 
 pub mod fetch;
 pub mod grab;
+pub mod seek;
 
 use anyhow::Result;
 use evmedia_contract::Reporter;

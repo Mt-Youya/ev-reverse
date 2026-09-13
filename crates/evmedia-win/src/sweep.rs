@@ -12,6 +12,13 @@
 //! faster than that — 60 presses moved 73 segments in 6 seconds, i.e. ~12/s against ~1.35/s — so
 //! a lesson that would take 75 minutes to watch is swept in well under 20.
 //!
+//! Two sources are read, and the order they are read in is what makes a round cheap. The live
+//! playback contexts answer first, because one read per context yields the index, the filename and
+//! the key together: nothing is searched for and nothing is tested. The heap-wide candidate scan
+//! answers second, and only when the first found nothing — it is the only way to reach a key whose
+//! context the player has already released, and paying for it every round would mean walking the
+//! whole heap and running AES trials to learn what the previous line already knew.
+//!
 //! Nothing here assumes a step size. Each round simply presses the key a fixed number of times and
 //! rescans; a press that moves the playhead further than the read-ahead window would leave a hole,
 //! and holes are what the idle counter detects.
@@ -21,9 +28,10 @@ use crate::process::Player;
 use anyhow::Result;
 use evmedia_contract::Reporter;
 use evmedia_core::keyscan::{KeyEntry, Library};
+use std::collections::btree_map::Entry;
 use std::collections::BTreeSet;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub struct SweepOptions {
     /// Step-forward presses posted per round.
@@ -42,6 +50,51 @@ impl Default for SweepOptions {
     }
 }
 
+/// Absorb every key the live contexts carry, returning how many files were new.
+///
+/// The cheap source: an entry arrives fully placed, so there is nothing to search for and nothing
+/// to test. A file already in the library is not replaced — its key cannot have changed — but an
+/// index it was missing is filled in, which is what a library built by the candidate path needs
+/// before it can be merged.
+fn absorb_live(player: &Player, library: &mut Library) -> usize {
+    let mut gained = 0usize;
+    for (index, (file, key)) in player.active_keys() {
+        match library.entry(file) {
+            Entry::Vacant(slot) => {
+                slot.insert(KeyEntry { key, index: Some(index), lesson: None });
+                gained += 1;
+            }
+            Entry::Occupied(mut slot) => {
+                let entry = slot.get_mut();
+                if entry.index.is_none() {
+                    entry.index = Some(index);
+                }
+            }
+        }
+    }
+    gained
+}
+
+/// Absorb whatever the heap still holds for segments whose context is gone.
+///
+/// Only candidates that have not been tried before are tested: a key already tried against a
+/// segment cannot start opening it later, so re-testing is pure cost — and it is the difference
+/// between a few hundred thousand AES calls per round and tens of millions.
+fn absorb_candidates(
+    player: &Player,
+    cache: &Path,
+    library: &mut Library,
+    tested: &mut BTreeSet<String>,
+) -> usize {
+    let fresh: BTreeSet<String> = player.hex_candidates().difference(tested).cloned().collect();
+    tested.extend(fresh.iter().cloned());
+    let before = library.len();
+    for (file, key) in player.recover_pairs(cache, &fresh, library) {
+        library.entry(file).or_insert(KeyEntry { key, index: None, lesson: None });
+    }
+    library.len() - before
+}
+
 /// Walk the playhead across the lesson, merging every key found along the way into `library`.
 ///
 /// Returns how many keys this sweep added. `library` is both the skip set and the output, so a
@@ -58,34 +111,34 @@ pub fn collect(
     let mut idle = 0usize;
 
     for round in 1..=options.max_rounds {
+        let round_started = Instant::now();
         let sent = playhead::press(player, playhead::STEP_FORWARD, options.batch, options.gap);
         if sent == 0 {
             reporter.info("  no visible player window; cannot sweep".to_string());
             break;
         }
 
-        // Only candidates that appeared since the previous round are worth testing. A key already
-        // tried against a segment cannot start opening it later, so re-testing is pure cost — and
-        // it is the difference between a few hundred thousand AES calls per round and tens of
-        // millions.
-        let fresh: BTreeSet<String> =
-            player.hex_candidates().difference(&tested).cloned().collect();
-        tested.extend(fresh.iter().cloned());
+        let mut gained = absorb_live(player, library);
 
-        let found = player.recover_pairs(cache, &fresh, library);
-        let before = library.len();
-        for (file, key) in found {
-            library.entry(file).or_insert(KeyEntry { key, index: None, lesson: None });
+        // The second chance, taken only when the first came up empty. A key outlives the context
+        // that carried it, and once the context is gone the key is a loose 32-hex string that the
+        // read above cannot see. This is expensive, so it is not paid every round — but it is
+        // paid before a round is called idle, because that is when missing it would cost a key.
+        if gained == 0 {
+            gained = absorb_candidates(player, cache, library, &mut tested);
         }
-        let gained = library.len() - before;
 
         // Placement is filled in per round, not at the end, so a sweep that is interrupted still
-        // leaves behind a library that can be merged rather than only decrypted.
-        player.fill_metadata(library);
+        // leaves behind a library that can be merged rather than only decrypted. It is a heap
+        // walk of its own, so it follows the keys rather than running regardless.
+        if gained > 0 {
+            player.fill_metadata(library);
+        }
 
         reporter.info(format!(
-            "  round {round}: {sent} press(es), {gained} new key(s), {} total",
-            library.len()
+            "  round {round}: {sent} press(es), {gained} new key(s), {} total, {}ms",
+            library.len(),
+            round_started.elapsed().as_millis()
         ));
 
         if gained == 0 {
@@ -102,5 +155,8 @@ pub fn collect(
         }
     }
 
+    // One last pass so entries that arrived with an index but no lesson are placed before the
+    // caller groups and merges them.
+    player.fill_metadata(library);
     Ok(library.len() - started_with)
 }
