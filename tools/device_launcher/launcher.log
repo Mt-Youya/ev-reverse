@@ -1,0 +1,14 @@
+ERROR Cannot launch EVPlayer2 win32=740
+ERROR EVPlayer2 exited before identity setup win32=6
+Exception code=80000003 rva=332c22239 first=1
+Exception code=c0000096 rva=149b49 first=1
+Exception code=80000003 rva=19204c first=1
+Exception code=80000003 rva=19204c first=0
+Child exit code=80000003 base=7ff671320000 armed=1
+ERROR EVPlayer2 exited before identity setup win32=6
+Exception code=80000003 rva=332c22239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=21684 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=332c22239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5

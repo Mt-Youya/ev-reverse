@@ -1,8 +1,2 @@
 /target/
 *.obj
-tools/device_analysis/*.exe
-tools/device_launcher/*.exe
-tools/device_launcher/device-profile.ini
-tools/device_launcher/launcher.log
-tools/device_analysis/*profile*.json
-tools/device_analysis/*inventory*.json
