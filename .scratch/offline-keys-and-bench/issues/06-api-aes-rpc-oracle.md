@@ -135,3 +135,47 @@ schedule" are the head of an expanded key schedule, which is consistent with the
 `schedule_to_key` inverts — but it means the field is written **by the AES setup**, expanded from a
 key handed to it. Whatever produces that input key is ticket 07's writer, and it is one call away
 rather than in the same instruction.
+
+## The trampoline's calling convention, read off its other caller
+
+`0x20EA0` reads its key from `rcx`, so the question was only what the remaining registers hold. The
+function `[0x39080, 0x39366)` answers it, and happens to be the segment-decryption routine itself:
+
+```
+0x039260  mov   rax, [rdi+0x268]        ; the 32-character XOR mask
+0x039267  movzx r8d, byte [rcx+rax]     ; one mask byte
+0x03926c  lea   rdx, [rcx+r10]
+0x039270  mov   rax, [rdi+0x240]
+0x039277  xor   byte [rdx+rax], r8b     ; dest ^= mask[i % 16]
+0x03927b  inc   rcx
+0x03927e  cmp   rcx, 0x10
+0x039282  jl    0x39242                 ; 16 bytes per pass
+0x039284  inc   r11
+0x039287  add   r10, 0x10
+0x03928b  cmp   r11, rbp
+0x03928e  jl    0x39240
+0x039290  mov   r9d, ebp                ; length
+0x039293  mov   r8, [rdi+0x240]         ; output buffer
+0x03929a  mov   rdx, [rdi+0x248]        ; input buffer
+0x0392a1  mov   rcx, rdi                ; the context
+0x0392a4  call  0x3f4c0                 ; -> add rcx,0x120 ; call 0x20EA0
+```
+
+That is the whole decryption algorithm in one place, and it confirms the shape this project derived
+empirically: mask-XOR first (`ctx+0x268` holds a pointer to the 32-character mask), then AES with the
+key at `ctx+0x120`.
+
+So the call is:
+
+```
+block(rcx = AES_KEY, rdx = in, r8 = out, r9 = length, [rsp+0x20] = 0, [rsp+0x28] = mode)
+```
+
+with `mode` 1 for decrypt and 0 for encrypt, the same flag `hls_decode` passes to the key setup. In
+frida that is `new NativeFunction(0x20EA0, 'void', ['pointer','pointer','pointer','size_t','pointer','int'])`.
+
+**What is still inferred rather than read.** The last two arguments are the ones `0x3f4c0` pushes
+(`[rsp+0x20] = 0`, `[rsp+0x28] = 1`); the fifth is passed as zero on this path, which is consistent
+with ECB and with a null IV, but this ticket establishes ECB from block reuse rather than from these
+instructions. A single block run through the oracle against a captured `params` blob will settle it —
+that is the acceptance criterion, and it needs the player.
