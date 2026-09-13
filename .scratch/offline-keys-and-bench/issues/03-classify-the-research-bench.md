@@ -98,6 +98,14 @@ this ticket exists to avoid.
 
 The count is therefore fourteen Python scripts on the bench today, not the thirteen this ticket left. The fourteenth arrived with ticket 07's preparation, after the classification was made.
 
+**Added still later, and it is not a bench script at all:** `tools/parser-tools/storm/` — `storm.rs`, a
+stand-in target, with `storm_test.py` and `interval_test.py` driving it. It is not an instrument aimed
+at the player and it says nothing about EVPlayer2. It exists because the measurements this bench had
+been quoting were taken against stand-ins too small to falsify them, and the only way to settle the
+question was to build one big enough. Its verdict is **instrument — kept**, and it earns that the hard
+way: `storm_test.py` extracts the JavaScript out of `probe_write.py` rather than copying it, so it
+cannot drift from the thing it measures. Its results are in ticket 07.
+
 ### Dependency check
 
 Nothing the product or the remaining experiments need was deleted. A repo-wide search for each

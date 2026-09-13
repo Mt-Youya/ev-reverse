@@ -217,29 +217,36 @@ a pid again.
 ## The page count was the real limit, and it was measured rather than guessed
 
 The instrument was rewritten and then re-measured against a stand-in built for the question: 24 pages
-read in tight loops by four threads, then 24 stores at `page+0x120`
-(`%TEMP%\watchprobe\src\storm.rs`, driven by `storm_test.py`, which extracts this file's JS and runs it
-unmodified so the thing tested is the thing that ships).
+read in tight loops by four threads, then 24 stores at `page+0x120`. It lives in the repo at
+`tools/parser-tools/storm/` — `storm.rs` is the target, `storm_test.py` drives it and **extracts this
+file's JS out of `probe_write.py` rather than copying it**, so what is measured is what ships.
 
-| Guarded pages | Heartbeats | Store caught | Target finished its own storm |
-| --- | --- | --- | --- |
-| 24 | 1 | no | no |
-| 8 | 1 | no | no |
-| 4 | 1 | no | no |
-| 2 | 4 | yes | yes |
-| 1 | 4 | yes | yes |
-| 2, re-arm floor removed | 1 | no | no |
+| Guarded pages | Runs | Heartbeats | Store caught | Target finished its own storm |
+| --- | --- | --- | --- | --- |
+| 24 | 1 | 1 | no | no |
+| 8 | 1 | 1 | no | no |
+| 4 | 1 | 1 | no | no |
+| 2 | 5 | 4 (four runs), 2 (one run) | yes in four, no in one | yes in four |
+| 1 | 3 | 4 | yes | yes |
+| 2, re-arm floor removed | 2 | 1 | no | no |
+| 1, re-arm floor removed | 1 | 4 | yes | yes |
 
 The ticket's earlier "re-arm is free, 100.4% throughput at 128 pages" measurement was taken on one
 page of a single-threaded target that slept between stores. On many hot pages the binding constraint
 is not the re-arm churn but the sheer volume of access callbacks, and it takes the instrument — and
-the target — down. Four pages is already too many. `MAX_PAGES` is now 2, the re-arm is rate-limited,
-and the last row is the mutation: with the floor removed, two pages fail as well.
+the target — down. Four pages is already too many and was never once watchable.
 
-The storm is harsher than the player, so 2 is a floor on the constraint, not a measurement of the
-player. It also means the aiming strategy needs rethinking: watching the 24 contexts of the frontier
-was never watchable, so the choice is a smaller, better-chosen window — or the `0x20EC0` hook below,
-which costs one hook instead of N guarded pages and is now the more promising of the two.
+**The edge is noisy and the numbers above are not all one run each.** Repeat sampling at 2 pages gave
+the full result four times out of five; a single earlier sample at 2 pages failed, and a single
+unthrottled sample at 1 page passed. So the direction is solid — more pages is worse, the rate limit
+helps — and the boundary is not. `MAX_PAGES` is 2 because 4 never worked and 1 always did, not because
+2 was shown to be the exact edge. Nobody should quote a tighter number than that without repeating it.
+
+The storm is harsher than the player, so this is a floor on the constraint rather than a measurement
+of the player; the player's own page count was never measured. It also means the aiming strategy needs
+rethinking: watching the 24 contexts of the frontier was never watchable, so the choice is a smaller,
+better-chosen window — or the `0x20EC0` hook below, which costs one hook instead of N guarded pages
+and is now the more promising of the two.
 
 ## The instrument as it now stands
 

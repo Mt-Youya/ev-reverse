@@ -73,21 +73,22 @@ this version looks the way it does:
      A page the player reads continuously is mostly blind under a timer, which is what the player's
      own run showed: 600 accesses seen and not one of them a store.
  11. **That 24-of-24 does not transfer to many hot pages, and the page count is the binding limit.**
-     The measurement above used ONE page of a sleeping target. Re-measured on a storm target -- 24
-     pages read in tight loops by four threads, then 24 stores at page+0x120
-     (`%TEMP%\\watchprobe\\src\\storm.rs`, driven by `storm_test.py` which extracts this file's JS and
-     runs it unmodified): at 24, 8 and 4 guarded pages the heartbeat fired once and no store was
-     caught, and the target did not even finish its own 12-second storm. At 2 and at 1 page the run
-     kept its heartbeat (4 beats) and caught the store. **MAX_PAGES is 2 for that reason** -- four is
-     already too many. The storm is harsher than the player, so 2 is a floor on the constraint rather
-     than a measurement of the player; the player's own count was never measured.
- 12. **The rate limit is load-bearing, and the heartbeat is not a reliable liveness signal.** At 2
-     pages, removing `REARM_FLOOR_MS` (back to one disable/enable per access) reproduced the failure:
-     one heartbeat, no catch, target wedged. So the floor stays. But note what that means -- the
-     heartbeat runs on the same event loop as the access callbacks and CAN be starved by them, which
-     is exactly what the player run of 2026-09-13 looks like. Liveness is therefore judged on the
-     Python side from ANY message, not from the heartbeat alone, and a run with a silent channel is
-     reported as VOID rather than as a negative about the player.
+     The measurement above used ONE page of a sleeping target. Re-measured against a storm target --
+     24 pages read in tight loops by four threads, then 24 stores at page+0x120, in
+     `tools/parser-tools/storm/`, whose driver extracts this file's own JS and runs it unmodified --
+     at 24, 8 and 4 guarded pages the heartbeat fired once, no store was caught, and the target did
+     not even finish its own twelve-second storm. At 2 pages the full result came back in four runs
+     of five, and at 1 page in every run. **MAX_PAGES is 2**; four is already too many.
+ 12. **The page count is reproducible and the rate limit is not, so do not state either as clean.**
+     At 2 pages, removing `REARM_FLOOR_MS` reproduced the failure in both attempts (one heartbeat, no
+     catch, target wedged) -- but at 1 page one unthrottled run passed, and one run of the shipped
+     2-page setting failed while its four repeats passed. Prefer the fewest pages that cover the
+     question; do not read a single passing or failing run as the boundary; repeat before quoting a
+     number. The direction is solid, the edge is noisy.
+     What that means for the heartbeat: it runs on the same event loop as the access callbacks and CAN
+     be starved by them, which is what the player run of 2026-09-13 looks like. Liveness is therefore
+     judged on the Python side from ANY message, not from the heartbeat alone, and a run with a silent
+     channel is reported as VOID rather than as a negative about the player.
 
 `watch_key.py`, the instrument this replaces, is not slow because of its 96 pages -- 128 guarded
 pages at a 100 ms re-arm measured free. It hangs the player because it also hooks the AES site and
