@@ -179,3 +179,39 @@ frida that is `new NativeFunction(0x20EA0, 'void', ['pointer','pointer','pointer
 with ECB and with a null IV, but this ticket establishes ECB from block reuse rather than from these
 instructions. A single block run through the oracle against a captured `params` blob will settle it —
 that is the acceptance criterion, and it needs the player.
+
+## The one thing still unknown, and the probe that answers it
+
+`0x20EC0`'s **second argument is undetermined from the file**, and the oracle cannot be written
+correctly without it. `hls_decode` calls it as `(rcx = ctx+0x120, rdx = a std::string's data pointer,
+r8d = 0x100, r9d = 1)` — and a file path is not a key. So either
+
+- `rcx` is the key material and the init expands it in place at `ctx+0x120` (in which case the 32 bytes
+  the project calls "the schedule" *are* the key, and `schedule_to_key`'s MixColumns step is inverting
+  part of the expansion), or
+- `rdx` is the key and `rcx` is the AES_KEY being filled (in which case `hls_decode` is passing
+  something that only looks like a path, or the deref before the call is not what it appears).
+
+Writing the oracle against the wrong reading produces a script that runs, returns bytes, and is wrong —
+which is the exact failure this branch has already spent one round diagnosing, so it is not worth
+guessing at.
+
+**The probe that settles it** is a runtime one, and it is short:
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x20ec0 20 0x400
+```
+
+`probe_at.py` already reports, per hit, the registers that point at printable strings, the strings on
+the stack, and a 32-hex scan. Run it with the player logged in and a lesson playing. What to read out
+of a hit:
+
+- **`rcx`**: does it point into a playback context (an address whose vtable is in
+  `PlayerLibRender56_vs.dll + 0x802000..0x804000`, i.e. context-like), or at a bare 32-byte buffer?
+  And what are the 32 bytes there — ASCII hex, or raw bytes?
+- **`rdx`**: if it is a printable string, it is not a key and the first reading holds.
+- Whether a 32-hex string appears among the reported strings at all — if the key material is the
+  segment's own 32 hex characters, it will be there and recognisable.
+
+That turns ticket 06's first step from "write an oracle" into "read one call's arguments", which is a
+minute of work with the player already open — and it is the same sitting ticket 07 and 08 need.
