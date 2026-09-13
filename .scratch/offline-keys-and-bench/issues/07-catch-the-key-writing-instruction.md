@@ -11,58 +11,90 @@
 - [ ] The command used and its output are recorded as the evidence.
 - [ ] The player is left running, or is restarted and the already-recovered keys are confirmed intact.
 
-## The instrument had to be replaced before this ticket could be run
+## Progress: the first attempt ran, caught nothing, and the cause is now known
 
-Found while preparing the human session, and fixed here so the session is not spent on a script that
-cannot work.
+Two runs of the first version of `probe_write.py` armed successfully and reported no write at all:
 
-**`watch_key.py` was the only surviving instrument that could arm a memory write watch, and it is the
-one the bench marks "do not run this directly"** — it watches up to 96 pages, re-arms the monitor every
-1.2 s, and attaches an `Interceptor` from inside the access callback. On a live player that is enough
-to hang it. Handing this ticket that script would have cost the session it exists for.
+```
+found 491 context(s), 438 with an empty key field
+empty context: 119354-5c18a0bd-40a8-4402-bf21-15d17e38cb87.ts at 0x1ad4fb504e0 (ready=0)
+armed on 0x1ad4fb50000 (... field 0x1ad4fb50600)
+done.                                  <- nothing in between, 240 seconds
+```
 
-**The ticket's own fallback is not available either.** It names "a per-thread breakpoint across
-sixteen threads" as the thing that might miss the writer. Frida 17.18.0 has no hardware watchpoints:
-`typeof Thread.setHardwareWatchpoint` is `undefined`, checked by loading a probe script against a live
-process. `MemoryAccessMonitor` — page guards — is the only mechanism that exists on this build, so the
-miss to worry about is a guard-page one, not a hardware-slot one.
+A second run found 938 contexts with 872 empty, armed, and again reported nothing.
 
-**So this ticket now runs on a new, deliberately light instrument:** `tools/parser-tools/probe_write.py`.
-It finds the playback contexts, picks **one** whose key field still holds the heap fill (`0xBAADF00D`
-at `+0x120`, i.e. not yet decrypted), guards that single page, reports the first write to the field,
-and disables the monitor immediately — one page, no re-arm loop, no `Interceptor` inside the callback.
-The instruction it names is then hooked once, after the fact, to dump registers, stack strings and a
-backtrace the next time that instruction runs.
+The guard had fired. Frida's `MemoryAccessMonitor` works with `PAGE_GUARD`, and **the guard is consumed
+by the first access — read or write — and is not restored.** The player reads these context objects
+constantly. The first read of the guarded page hit the callback, the callback saw
+`d.operation !== 'write'` and returned, and the page was unguarded from that moment on. The run was
+blind for the remaining 240 seconds. It was never "the player did not write"; it was "nothing was
+reported".
 
-The script is syntax-checked (the JS loads cleanly; the only error is the expected missing-DLL one in a
-throwaway process). **It has not been run against the player** — that is what this ticket's session is
-for. It is a small script precisely so that it can be corrected live if the mechanism behaves
-differently than expected.
+The first version also guarded an arbitrary empty context, chosen by scan order, which is very likely
+one the player will never touch again.
+
+## What was measured, and how
+
+The mechanism was then tested against stand-in target processes written for the purpose, because
+guessing about `PAGE_GUARD` semantics is what produced the silent failure in the first place.
+
+| Question | Measurement |
+| --- | --- |
+| Does a target-thread write reach the callback at all? | Yes. A stand-in process's own stores reported normally. |
+| How often does the callback fire? | Once. 27 target memory operations produced 1 report. The guard is consumed and not restored. |
+| Is re-arming from inside the callback safe? | **No.** 200 reports and the target performed *zero* operations for 8 seconds — it wedged. |
+| Is re-arming from a timer cheap? | Yes. A target hammering guarded pages kept 100.4% of its unguarded throughput at 64 and 128 pages, 100 ms re-arm. |
+| Is a page guard free of a *store* of a different width? | The reported address is the **faulting byte**, not the write's first byte. A 32-byte store at page+0x120 reported as page+0x130. |
+| Is there a hardware watchpoint to fall back on? | **No.** `typeof Thread.setHardwareWatchpoint` and `...Breakpoint` are both `undefined` on frida 17.18.0; `Thread` exposes only `backtrace`. |
+| Does a guard fault before or after the store runs? | **Before.** Reading the field inside the callback returns the old contents; the value has to be read on a later turn. |
+| Does `Thread.backtrace(..., ACCURATE)` work? | It raises `invalid operation` where unwind data is unusable, and did on a plain Rust target. FUZZY returned an empty list there. |
+| `NativePointer.toNumber()` | Does not exist — only `UInt64` has it. Calling it inside the callback raised once per access. |
+
+**This also corrects what the bench believed about `watch_key.py`.** It is not the 96 pages that hang
+the player; 128 guarded pages measured free. It hangs because it *also* hooks the AES site and takes an
+`ACCURATE` backtrace on every hit, and that site fires once per AES round. The ticket's own fallback —
+"a per-thread breakpoint across sixteen threads may simply miss the writer" — describes a mechanism
+this frida build does not have at all.
+
+## The instrument now
+
+`tools/parser-tools/probe_write.py` was rewritten around those measurements: it aims at the contexts
+just past the highest decrypted index (the ones about to be filled, rather than an arbitrary one),
+guards up to 24 pages, re-arms from a 100 ms timer and never from inside the callback, reports every
+access with the offset it faulted at, reads the value after the store has completed, and prints a
+call chain assembled from module pointers found on the stack when the unwind-based backtrace comes back
+empty.
+
+It was run end to end against a stand-in target: six reads of the guarded page (the exact sequence that
+silenced the first version), then a 32-byte store into the watched field. It survived the reads, caught
+the store, named the instruction, dumped the registers, read `3df51fd02753d5605cc3139e66a3561e` back
+correctly, and produced a call chain after both backtracers returned nothing.
+
+**It still has not been run against EVPlayer2 itself.** The stand-in proves the mechanism; only the real
+player can answer this ticket.
 
 ### How to run it
 
 ```
-C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_write.py 240
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_write.py 300
 ```
 
 Preconditions, all load-bearing:
 
-- EVPlayer2 running, logged in through `tools/device_launcher/run-evplayer.cmd`.
+- EVPlayer2 running, logged in through `tools\device_launcher\run-evplayer.cmd`.
 - A lesson open **that still has segments the player has not decrypted on this machine.** The writer
-  only runs while the player is decrypting something for the first time, so a lesson already played to
-  the end produces nothing. Open a lesson never opened here, or jump the playhead somewhere it has not
-  been.
+  only runs while the player is decrypting something for the first time. Open a lesson never opened
+  here, and start the script *before* the segment is reached.
 - Keep it playing. Do not pause.
 
 The PATH `python` is a Microsoft Store placeholder and does not work; use the conda path above.
 
-**Success** is a `WRITE to the key field of a context` line naming the writing instruction as a module
-offset or as heap code, followed by `the writer, with context`.
-
-**A named negative is also a success** for this ticket, and the two most likely ones both have a
-diagnosis attached:
+**Success** is `WRITE into a key field` naming the instruction, followed by `the writer, with context`.
+**A named negative is also a result** for this ticket, and both likely ones now have a diagnosis:
 
 - `no context with an empty key field` — every context on this machine has been decrypted, so there is
   no store left to catch. The remedy is a lesson that has not been played here.
-- The monitor arms and nothing is ever written — the store lands outside the guarded page's window, or
-  the field is filled by a bulk copy whose instruction touches the page before the field itself.
+- `still watching N page(s); 0 access(es) seen so far` repeating — the guarded pages are genuinely not
+  being touched, which would mean the contexts chosen are not the ones being decrypted. Say so, and say
+  which indexes were being watched.

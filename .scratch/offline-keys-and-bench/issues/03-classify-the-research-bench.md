@@ -43,13 +43,36 @@ the 752-byte probe alignment fix, so their "0 hits" readings were artefacts of t
 | `hunt_salt.py` | Searches for the `tk + filename + salt` concatenation in memory. The decisive negative is that this build never builds that string. |
 | `compare_tk.py` | Exists only to feed the tk-derivation family, which is the same disproven formula. |
 | `find_b64.py` | Locates the base64 decoder by watching alphabet tables; repeated full-memory runs found nothing, and ticket 06 no longer needs the decoder. |
-| `aes_map.py` | Static function-boundary mapping of the AES region — needs a disassembler the bench does not have, and the entry points it sought (`0x791F90`, `0x792c78`) are already known. |
-| `aes_disasm.py` | Same static route to the same already-known RVA. |
+| `aes_map.py` | Static function-boundary mapping of the AES region. **Deleted on a false premise — see the correction below.** |
+| `aes_disasm.py` | Same static route to the same RVA. **Deleted on a false premise — see the correction below.** |
 | `disas.py` | Same static route again, against a live module; it times out. |
 | `walk_aes.py` | Hooks the AES T-table site and walks up to its caller. The callers live in heap-generated code, so the walk reaches nothing — that is the finding, not a bug in the script. |
 | `hexdiff.py` | The differential scan is broken (returns in 0.1 s with zero rows, i.e. it never scanned), and its question is now asked directly by ticket 07's write breakpoint, which needs no diff. |
 | `_extract.py` | A one-off that pulled text out of a single, long-superseded session transcript into a log. It is not apparatus for anything pending. |
 | `find_segments.ps1` | Its RVAs point at this build's M3U8 parser, not at key derivation. It has failed every time it was run. |
+
+### Correction: two of those deletions rested on a premise that is false
+
+`aes_map.py` and `aes_disasm.py` were deleted here as "cannot work against this build", because the
+note this project was carrying said static analysis was unavailable: *"静态分析不可用：无
+capstone/pefile/dumpbin"*. **That is wrong.** Both `capstone` (5.0.7) and `pefile` (2024.8.26) are
+installed in `C:\Users\Yonjay\.conda\envs\subgen`, and `PlayerLibRender56_vs.dll` is **not packed** —
+six normal sections and a `.pdata` table with 19,488 function entries. The whole DLL is statically
+analysable from the file, and was, in the course of preparing ticket 06: the app's AES key setup
+(`0x20EC0`), its block-call trampoline (`0x20EA0`) and the two consumers of the segment-key field were
+all located that way without a player.
+
+The likely origin of the false note is the interpreter. The PATH `python` on this machine is the
+Microsoft Store placeholder and has neither package; the conda one has both. A note written after
+running the wrong `python` reads exactly like an absence of the tool.
+
+The second half of the original reasoning was wrong too: it said the entry points those scripts sought
+were "already known", but `0x792c78` is an instruction in the middle of a function, not an entry, and
+the correct way to get the entry is `.pdata` — not the `cc cc cc` scan this ticket's sibling suggested.
+
+Both files are recoverable from git (`git show de68f47:tools/parser-tools/aes_map.py`). They were not
+restored, because what they did is now done better and directly by `.pdata` plus capstone. But the
+verdict recorded against them here was wrong, and the reason above is the record of how.
 
 ### Wrappers on the dead offline path — deleted
 

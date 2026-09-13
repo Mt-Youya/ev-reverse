@@ -34,15 +34,34 @@ whether a third argument points at an `AES_KEY`. That is what a callable oracle 
 oracle itself is a script that has to be written, and it cannot be written honestly until the
 calling convention above is known.
 
-**A second gap, inherited from ticket 03.** `0x792c78` is an instruction in the middle of the routine,
-not its entry point, and the entry for the *encrypt/decrypt* half has never been confirmed — only
-`0x791F90` is known, which is `AES_set_encrypt_key` (OpenSSL signature, and `hook_aes_key.py` caught
-2825 keys there, so it is a real entry). To call the AES you need the enclosing entry of `0x792c78`.
-Two scripts that were hunting exactly that — `aes_disasm.py` and `aes_map.py` — were deleted by ticket
-03, correctly: they needed a disassembler this machine does not have and could not run. Their approach
-is recoverable without one, at runtime: scan backwards from `0x792c78` for the nearest compiler
-alignment padding (`cc cc cc`) or prologue, and take the address after it. That is a small addition to
-the probe, not a new investigation, and it should be done in the same sitting.
+**A second gap, inherited from ticket 03 — and the recipe written here for it was wrong.** The first
+version of this ticket said: "scan backwards from `0x792c78` for the nearest compiler alignment padding
+(`cc cc cc`) and take the address after it". Checked against the DLL on disk, that recipe returns the
+**wrong function**:
+
+- The bytes at RVA `0x792c78` are `33 6e f8 33 68 0c` = `xor ebp,[rsi-8]; xor ebp,[rax+0xc]` — a
+  round-key XOR, **not** the inverse-S-box read this project has been describing. (The S-box reads are
+  at `0x792c59` and nearby.)
+- `.pdata` says the enclosing function is **`[0x792b1c, 0x792ec3)`**.
+- There are **no `cc cc cc` runs at all in `[0x792000, 0x792c78)`**. The nearest one is at `0x791f8d`,
+  which is the entry of `AES_set_encrypt_key` — a *different* function. The recipe would have returned
+  that one.
+
+**The reliable way is `.pdata`, and the DLL has it.** `PlayerLibRender56_vs.dll` is not packed: six
+normal sections, `.pdata` at RVA `0x12a8000` with **19,488** function entries, each `(start, end,
+unwind)`. A function's entry is a lookup, not a scan. The same is true of `.text` in general — this
+DLL is fully statically analysable from the file.
+
+**And the disassembler this project believed it did not have is installed.** `capstone 5.0.7` and
+`pefile 2024.8.26` are both present in `C:\Users\Yonjay\.conda\envs\subgen`. The old note "静态分析不可用：
+无 capstone/pefile/dumpbin" is wrong — most likely it was run against the PATH `python`, which is the
+Microsoft Store placeholder and has neither. Two scripts were deleted by ticket 03 on that false
+premise; see the correction recorded there.
+
+One practical note for anyone writing a disassembly loop: `capstone.Cs.disasm` **stops at the first
+undecodable byte** and silently returns a short iteration. Over this DLL it yielded 448 `call`
+instructions instead of tens of thousands until `md.skipdata = True` was set. A scan that "found
+nothing" is more likely to have stopped early than to have proved an absence.
 
 ## Why this ticket matters more than its size suggests
 
@@ -50,3 +69,69 @@ This is one of the two routes to the thing the project actually wants. If the pl
 called, then `POST /student/getPlayTimeKeySignEVS*` can be replayed from outside for any lesson in the
 catalogue, and the segment manifests can be pulled without a human opening anything. That is the
 "no play-this-one-fetch-this-one" goal, minus the per-lesson playback that blocks it today.
+
+## The oracle's entry points, located statically
+
+Found by disassembling the DLL from the file — no player needed for this part. All RVAs, image base
+`0x180000000`.
+
+**`0x20EC0` — the app's AES key setup.** `(rcx = the AES_KEY to fill, rdx = ?, r8d = bits, r9d = mode)`.
+It selects a block function by mode and stores it, then expands the key:
+
+```
+0x020ef0  mov   rdi, rcx
+0x020ef3  mov   [rsp+0x28], r9d        ; mode
+0x020ef8  mov   ebx, r8d               ; bits
+0x020f00  sar   ebx, 5                 ; nk = bits / 32
+0x020f03  lea   rax, [rip-0x63a]       ; encrypt block function
+0x020f12  lea   rcx, [rip-0xbd9]       ; decrypt block function
+0x020f1c  cmovne rax, rcx              ; mode != 0 -> decrypt
+0x020f27  mov   [rdi+0x118], rax       ; the chosen block function
+0x020f2e  lea   r12d, [rbx+6]          ; rounds = nk + 6
+```
+
+The loop that follows (`0x11b`, a `0..0xff` byte table) is the GF(2^8) inverse table — a
+constant-time AES, not OpenSSL's T-table version.
+
+**`0x20EA0` — the block-call trampoline.** Call it with `rcx = ctx`:
+
+```
+0x020ea0  mov   eax, [rcx+0x110]       ; the round count
+0x020ea6  mov   [rsp+0x30], eax
+0x020eaa  jmp   qword [rcx+0x118]      ; tail-call the block function
+```
+
+So the minimum oracle is two calls and one allocation: allocate ~0x200 bytes for the AES_KEY, call
+`0x20EC0` with the key you want to use (mode 0 to encrypt, nonzero to decrypt), then call `0x20EA0`
+with that buffer. Nothing has to be recovered from the process, and nothing is hard-coded to one
+captured message — which is what the acceptance criteria ask for.
+
+**`AES_set_encrypt_key` at `0x791F90` and `AES_set_decrypt_key` at `0x791D10`** are the OpenSSL T-table
+versions, called from 8 and 4 functions respectively, and they are on the *segment* path rather than
+this one. `AES_set_encrypt_key` even appears among its own callers, which is the OpenSSL structure
+(the decrypt-key routine calls the encrypt-key one).
+
+**`0x3F4C0` — the second consumer of a context's key field.**
+
+```
+0x3f4c0  sub   rsp, 0x38
+0x3f4c4  cmp   byte [rcx+0x264], 0      ; the ready byte
+0x3f4cb  je    0x3f4ea
+0x3f4cd  add   rcx, 0x120               ; the key field
+0x3f4d4  mov   dword [rsp+0x28], 1
+0x3f4dc  mov   qword [rsp+0x20], 0
+0x3f4e5  call  0x20EA0                  ; the trampoline above
+0x3f4ea  add   rsp, 0x38
+0x3f4ee  ret
+```
+
+Called from `0x392A4`. With `hls_decode`, that makes **two and only two** places in the whole `.text`
+that use `add rcx,0x120` — the segment-key field has exactly two consumers, and both pass it to the
+app's AES. That is worth knowing for ticket 09: the field really is an AES key, and the AES is this one.
+
+**A note on what `+0x120` is.** `hls_decode` passes `ctx+0x120` as the *first* argument to the key
+setup, i.e. as the AES_KEY to be filled in place. So the 32 bytes this project has been calling "the
+schedule" are the head of an expanded key schedule, which is consistent with the empirical relation
+`schedule_to_key` inverts — but it means the field is written **by the AES setup**, expanded from a
+key handed to it. Whatever produces that input key is ticket 07's writer, and it is one call away
+rather than in the same instruction.
