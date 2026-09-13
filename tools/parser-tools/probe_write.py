@@ -13,12 +13,18 @@ Preconditions, all of them load-bearing:
     the player is decrypting something for the first time, so a lesson already played to the end on
     this machine produces nothing. Open a lesson never opened here.
   * Keep it playing. Do not pause.
+  * Nothing else may be reading the same process. An `evmedia grab` against the same pid reads
+    `ctx+0x120` itself on every poll, and a cross-process read can consume a PAGE_GUARD without ever
+    calling back here. Run the two instruments in separate phases, never together.
 
 What the output means:
-  "watching N page(s)"            -- the guards are on and being re-armed
-  "access ... field=<file>"       -- an access landed inside a watched key field; if op=write, that
-                                     is the answer to ticket 07 and the instruction is named
+  "hb #N reports=..."             -- the run is alive. This is the line that decides whether the run
+                                     means anything: heartbeats that keep coming are a measurement,
+                                     heartbeats that stop make the run VOID
+  "access ... <<< lands on a key field" -- an access landed inside a watched key field; if op=write,
+                                     that is the answer to ticket 07 and the instruction is named
   "the writer, with context"      -- that instruction ran again; registers, stack and backtrace follow
+  "no heartbeat was ever seen"    -- the instrument observed nothing. NOT a negative about the player.
   "no context with an empty key field"  -- nothing left to catch on this machine
 
 --------------------------------------------------------------------------------------------------
@@ -66,6 +72,22 @@ this version looks the way it does:
      one; `setTimeout(..., 0)` from inside the callback caught **24 of 24** with the target healthy.
      A page the player reads continuously is mostly blind under a timer, which is what the player's
      own run showed: 600 accesses seen and not one of them a store.
+ 11. **That 24-of-24 does not transfer to many hot pages, and the page count is the binding limit.**
+     The measurement above used ONE page of a sleeping target. Re-measured on a storm target -- 24
+     pages read in tight loops by four threads, then 24 stores at page+0x120
+     (`%TEMP%\\watchprobe\\src\\storm.rs`, driven by `storm_test.py` which extracts this file's JS and
+     runs it unmodified): at 24, 8 and 4 guarded pages the heartbeat fired once and no store was
+     caught, and the target did not even finish its own 12-second storm. At 2 and at 1 page the run
+     kept its heartbeat (4 beats) and caught the store. **MAX_PAGES is 2 for that reason** -- four is
+     already too many. The storm is harsher than the player, so 2 is a floor on the constraint rather
+     than a measurement of the player; the player's own count was never measured.
+ 12. **The rate limit is load-bearing, and the heartbeat is not a reliable liveness signal.** At 2
+     pages, removing `REARM_FLOOR_MS` (back to one disable/enable per access) reproduced the failure:
+     one heartbeat, no catch, target wedged. So the floor stays. But note what that means -- the
+     heartbeat runs on the same event loop as the access callbacks and CAN be starved by them, which
+     is exactly what the player run of 2026-09-13 looks like. Liveness is therefore judged on the
+     Python side from ANY message, not from the heartbeat alone, and a run with a silent channel is
+     reported as VOID rather than as a negative about the player.
 
 `watch_key.py`, the instrument this replaces, is not slow because of its 96 pages -- 128 guarded
 pages at a 100 ms re-arm measured free. It hangs the player because it also hooks the AES site and
@@ -80,6 +102,7 @@ both backtracers came back empty. It has still not been run against EVPlayer2 it
 """
 import frida
 import sys
+import threading
 import time
 
 JS = r"""
@@ -88,8 +111,9 @@ var DLL = 'PlayerLibRender56_vs.dll';
 var dll = Process.getModuleByName(DLL);
 var EMPTY = 0xBAADF00D;      // what sits at +0x120 until a key is derived
 var KEY_FIELD = 0x120;
-var MAX_PAGES = 24;          // measured free up to 128; 24 keeps the log readable
-var TICK_MS = 1000;          // safety-net re-arm only; the real re-arm is deferred per access
+var MAX_PAGES = 2;           // measured: see below. 4 is already too many on a contended process.
+var HEARTBEAT_MS = 5000;     // proves the run is alive; carries the totals that say whether it worked
+var REARM_FLOOR_MS = 2;      // rate limit on disable/enable -- see scheduleRearm
 var INDIVIDUAL_CAP = 40;     // individual access lines stop after this many; hits always print
 
 function modOff(a) {
@@ -183,6 +207,10 @@ var timer = null;
 var instrHooked = false;
 var writerDumps = 0;
 var ticks = 0;
+var rearms = 0;       // how many disable/enable pairs have actually run
+var lastRearmAt = 0;  // when the last one ran, for the rate limit
+var announcedCap = false;
+var focus = null;     // the lowest empty index's watched entry; printed uncapped
 
 function chooseTargets() {
   var objs = findContexts();
@@ -224,6 +252,18 @@ function chooseTargets() {
   });
   watched = Object.keys(pages).map(function (k) { return pages[k]; });
   ranges = Object.keys(pages).map(function (k) { return { base: ptr(k), size: 0x1000 }; });
+  // The map is keyed by page, so two chosen contexts sharing a page collapse into one entry and only
+  // one of the pair is guarded. Say it rather than let the aiming line imply full coverage.
+  if (watched.length < chosen.length) {
+    send({t: 'log', msg: '  ' + chosen.length + ' context(s) collapse to ' + watched.length +
+          ' page(s): ' + (chosen.length - watched.length) + ' share a page with another and are not ' +
+          'individually watched'});
+  }
+  focus = watched.slice().sort(function (a, b) { return a.index - b.index; })[0] || null;
+  if (focus) {
+    send({t: 'log', msg: '  focus page: index ' + focus.index + ' (' + focus.file +
+          '), its writes print uncapped'});
+  }
   return ranges;
 }
 
@@ -248,14 +288,29 @@ function onAccess(d) {
   var off = parseInt(d.address.and(ptr('0xfff')).toString(), 16);
   var hit = fieldAt(pg, off);
 
-  if (hit || reports <= INDIVIDUAL_CAP) {
+  // A focus page is printed uncapped on WRITES only. Printing every read uncapped on a page the
+  // player reads thousands of times a second floods the message channel and starves the very
+  // heartbeat that is supposed to prove the run is alive -- measured on the storm stand-in, where it
+  // held the heartbeat to a single beat. Writes there are rare, which is the point of watching them.
+  var focusWrite = !!(focus && focus.page === pg && d.operation === 'write');
+  if (hit || focusWrite || reports <= INDIVIDUAL_CAP) {
     send({t: 'access', op: d.operation, off: '0x' + off.toString(16), page: pg,
-          from: modOff(d.from), field: hit ? hit.file : null});
+          from: modOff(d.from), field: hit ? hit.file : null, focus: focusWrite});
+  } else if (!announcedCap) {
+    // The stopping at INDIVIDUAL_CAP lines is cosmetic. Say so once, or the operator reads the
+    // sudden silence as "the accesses ended" -- which is the misreading this script exists to stop.
+    announcedCap = true;
+    send({t: 'log', msg: 'individual access lines suppressed after ' + INDIVIDUAL_CAP +
+          '; the heartbeat carries the running total, and writes to the focus page still print'});
   }
 
   if (d.operation === 'write' && hit) {
     found = true;
     if (timer) { clearInterval(timer); timer = null; }
+    // Flush the totals before going quiet -- the last numbers are what say how much of the window
+    // was actually watched, and they are the one thing a caught store does not otherwise report.
+    send({t: 'totals', ticks: ticks, reports: reports, rearms: rearms, pages: ranges.length,
+          reason: 'key field written'});
     // Release every guard before reading: a read from the agent's own thread into a guarded page
     // raises `guard page was hit` instead of calling back. Measured, not assumed.
     try { MemoryAccessMonitor.disable(); } catch (e) {}
@@ -306,14 +361,18 @@ function onAccess(d) {
     return;
   }
 
-  // Re-arm with a deferred turn, not synchronously here and not only on a timer.
+  // Re-arm with a deferred turn, rate-limited. Not synchronously here and not only on a timer.
   //
   // Synchronously re-enabling inside the callback WEDGES the target -- measured: 200 reports and
-  // zero target operations for 8 seconds. Re-arming only on a 100 ms timer leaves a blind window in
-  // which a store is simply not seen: on a target doing 24 stores with reads in between, the timer
-  // caught 23 and missed one, and a page the player reads continuously is mostly blind. A deferred
-  // re-arm caught 24 of 24 on the same target while the target stayed healthy, which is why it is
-  // the primary mechanism and the timer below is only a safety net.
+  // zero target operations for 8 seconds. Deferring one turn caught 24 of 24 stores on a stand-in,
+  // so it is the primary mechanism and the timer below is the safety net.
+  //
+  // That 24-of-24 was measured on ONE page of a single-threaded target that slept between stores.
+  // Against the real player -- 24 hot pages, Qt and ntdll reading them, and a second instrument
+  // scanning the same memory -- a re-arm per access is one disable/enable pair per access, and the
+  // run of 2026-09-13 went silent after 40 accesses with its heartbeat never once firing. The
+  // heartbeat runs on this same event loop, so churn here can starve the very line that would
+  // report the run is alive. The floor bounds it rather than removing it.
   scheduleRearm();
 }
 
@@ -321,30 +380,45 @@ var rearmPending = false;
 function scheduleRearm() {
   if (rearmPending || found) return;
   rearmPending = true;
+  // The floor is what keeps the event loop turning. Do not set it to 0 without re-measuring the
+  // heartbeat against a many-page storm target: at 0 this is one disable/enable per access again,
+  // and the heartbeat stops -- which is the failure that produced this line.
+  var wait = Math.max(0, REARM_FLOOR_MS - (Date.now() - lastRearmAt));
   setTimeout(function () {
     rearmPending = false;
     if (found) return;
+    lastRearmAt = Date.now();
+    rearms++;
     try { MemoryAccessMonitor.disable(); } catch (e) {}
     try { MemoryAccessMonitor.enable(ranges, { onAccess: onAccess }); }
     catch (e) { send({t: 'err', where: 're-arm', e: String(e)}); }
-  }, 0);
+  }, wait);
+}
+
+function beat() {
+  if (found) return;
+  send({t: 'hb', ticks: ticks, reports: reports, rearms: rearms, pages: ranges.length,
+        pending: rearmPending, at: Date.now()});
+  ticks++;
+  // The safety-net re-arm. On a healthy run the deferred path above gets there first.
+  try { MemoryAccessMonitor.disable(); } catch (e) {}
+  try { MemoryAccessMonitor.enable(ranges, { onAccess: onAccess }); }
+  catch (e) { send({t: 'err', where: 're-arm', e: String(e)}); }
 }
 
 function arm() {
   try {
     MemoryAccessMonitor.enable(ranges, { onAccess: onAccess });
-    // The safety net: if a deferred re-arm is ever lost, this restores the guard within a second.
-    timer = setInterval(function () {
-      if (found) { if (timer) { clearInterval(timer); timer = null; } return; }
-      ticks++;
-      try { MemoryAccessMonitor.disable(); } catch (e) {}
-      try { MemoryAccessMonitor.enable(ranges, { onAccess: onAccess }); }
-      catch (e) { send({t: 'err', where: 're-arm', e: String(e)}); }
-      if (ticks % 20 === 0) {
-        send({t: 'log', msg: 'still watching ' + ranges.length + ' page(s); ' + reports +
-              ' access(es) seen so far'});
-      }
-    }, 1000);
+    // One beat NOW, before the interval's first period elapses. A run that is killed, wedged or
+    // starved within its first few seconds is exactly the run whose silence is ambiguous, and a
+    // heartbeat that only starts at t=5s cannot speak for that window.
+    beat();
+    // This interval is both the safety-net re-arm and the only proof the run is alive. It fires on
+    // its FIRST period and carries the running totals, so "capped but alive" is distinguishable
+    // from "the agent stopped": a heartbeat with reports climbing and no key-field hit is a real
+    // negative, while a heartbeat that never arrives makes the run void rather than a statement
+    // about the player. Nothing here may be gated on reports or on a write.
+    timer = setInterval(beat, HEARTBEAT_MS);
   } catch (e) {
     send({t: 'err', where: 'arm', e: String(e)});
   }
@@ -374,18 +448,42 @@ def main():
         return 1
     print("attaching to EVPlayer2.exe pid=%d for %ds" % (pid, secs), flush=True)
 
+    # Liveness is judged on ANY message, not only the heartbeat. The heartbeat runs on the agent's
+    # event loop, and a storm of access callbacks can hold it off for the whole run -- measured on the
+    # storm stand-in, where access traffic starved the interval to a single beat while the agent was
+    # demonstrably alive and catching stores. A silent channel means the run is void; a busy one means
+    # it is alive even when no heartbeat arrives.
+    live = {'last': 0.0, 'hb_seen': 0, 'msgs': 0, 'stop': False}
+    # The JS heartbeat is every 5 s (`var HEARTBEAT_MS = 5000`); this is the ceiling for ANY message.
+    WATCHDOG_S = 18
+
     session = frida.attach(pid)
     script = session.create_script(JS)
 
     def on_message(msg, data):
+        live['last'] = time.monotonic()
+        live['msgs'] += 1
         p = msg.get('payload') or {}
         t = p.get('t')
         if t == 'log':
             print("[*] " + p['msg'], flush=True)
+        elif t == 'hb':
+            live['hb_seen'] += 1
+            print("    [hb #%-4s] reports=%-7s rearms=%-7s pages=%s%s" % (
+                p['ticks'], p['reports'], p['rearms'], p['pages'],
+                '  re-arm pending' if p.get('pending') else ''), flush=True)
+        elif t == 'totals':
+            print("    [totals] reports=%s rearms=%s pages=%s (%s)" % (
+                p['reports'], p['rearms'], p['pages'], p['reason']), flush=True)
         elif t == 'access':
-            mark = '  <<< lands on a key field' if p.get('field') else ''
-            print("[access] %-5s page+%-6s from %s%s" % (p['op'], p['off'], p['from'], mark),
-                  flush=True)
+            marks = []
+            if p.get('field'):
+                marks.append('<<< lands on a key field')
+            if p.get('focus'):
+                marks.append('(focus page)')
+            print("[access] %-5s page+%-6s from %s%s" % (
+                p['op'], p['off'], p['from'], ('  ' + ' '.join(marks)) if marks else ''),
+                flush=True)
         elif t == 'write':
             print("\n=== WRITE into a key field ===", flush=True)
             print("   instruction : %s" % p['by'], flush=True)
@@ -415,16 +513,39 @@ def main():
         elif t == 'ready':
             print("[*] guards armed. 请保持播放。", flush=True)
 
+    def watchdog():
+        while not live['stop']:
+            time.sleep(1)
+            if live['last'] and time.monotonic() - live['last'] > WATCHDOG_S:
+                print("\n[!] nothing from the agent for %.0fs -- it is no longer reporting. " %
+                      (time.monotonic() - live['last']), flush=True)
+                print("    This run is VOID: it says nothing about whether the player wrote a key. "
+                      "Do not read it as a negative.", flush=True)
+                live['last'] = time.monotonic()  # one warning per silence, not one per second
+
     script.on('message', on_message)
+    script.on('destroyed', lambda *_: print(
+        "\n[!] the agent was destroyed -- script unloaded or the target exited. Run is VOID.",
+        flush=True))
+    session.on('detached', lambda *_: print(
+        "\n[!] the frida session detached -- the agent is gone. Run is VOID.", flush=True))
     script.load()
+    threading.Thread(target=watchdog, daemon=True).start()
     try:
         time.sleep(secs)
     except KeyboardInterrupt:
         pass
+    live['stop'] = True
     try:
         session.detach()
     except Exception:
         pass
+    if live['msgs'] == 0:
+        print("[!] nothing was ever received from the agent: this run observed nothing rather than "
+              "observing a player that did not write. VOID, not a negative.", flush=True)
+    else:
+        print("    %d message(s) received, %d heartbeat(s): the agent was reporting."
+              % (live['msgs'], live['hb_seen']), flush=True)
     print("done.", flush=True)
     return 0
 

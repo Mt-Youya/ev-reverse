@@ -177,6 +177,86 @@ The PATH `python` is a Microsoft Store placeholder and does not work; use the co
 
 - `no context with an empty key field` — every context on this machine has been decrypted, so there is
   no store left to catch. The remedy is a lesson that has not been played here.
-- `still watching N page(s); 0 access(es) seen so far` repeating — the guarded pages are genuinely not
-  being touched, which would mean the contexts chosen are not the ones being decrypted. Say so, and say
-  which indexes were being watched.
+- heartbeats arriving with `reports` climbing and no key-field hit — the guards are on pages the player
+  is touching, and it is not writing a key into them. That is a real negative.
+- **no heartbeat, and no message of any kind** — the instrument is no longer reporting. That is NOT a
+  negative about the player; it is a void run, and the script now says so in those words.
+
+## Run 3: the precondition was met for the first time, and the instrument went dark
+
+The run of 2026-09-13 is the first one that was not the benign "already decrypted" case:
+
+```
+[*] found 611 context(s), 541 with an empty key field
+[*] 70 of 611 context(s) hold a key; the highest decrypted index is 165
+[*] aiming at 24 context(s), index 166..177
+[*] guards armed. 请保持播放。
+[access] read  page+0x240  from Qt5Gui.dll+0x23def3
+... about 40 access lines, five of them:
+[access] write page+0x250  from PlayerLibRender56_vs.dll+0x5d39d3
+... and then nothing at all for the remaining minutes.
+```
+
+What that does establish: `0x5d39d3` really is storing into a watched page and the guard really does
+catch stores, so the mechanism is sound. `page+0x250` is not a watched key field, so those five are
+not the answer.
+
+What it does **not** establish: anything about whether the player wrote a key. The line count is
+exactly `INDIVIDUAL_CAP`, and the heartbeat is emitted every 20 ticks of a 1000 ms timer independently
+of the cap and independently of any write — so a player that merely abstained could not have
+suppressed it. **The silence is instrument-side.** The run is VOID, not a negative.
+
+A second instrument was attached to the same pid throughout: `evmedia grab --pid 6684`. It reads
+`ctx+0x120` itself on every poll (`crates/evmedia-win/src/scan.rs`, `active_keys` reads the whole
+0x2a8-byte object; `OFF_SCHEDULE` is 0x120), so it was reading the exact field under guard, and its
+`regions()` walk (`crates/evmedia-win/src/process.rs`) skips pages that show `PAGE_GUARD` at the
+moment it enumerates and is re-enumerated per poll. It cannot explain the missing heartbeat, which is
+independent of the pages — but it is an unexcluded confounder and the two instruments must not share
+a pid again.
+
+## The page count was the real limit, and it was measured rather than guessed
+
+The instrument was rewritten and then re-measured against a stand-in built for the question: 24 pages
+read in tight loops by four threads, then 24 stores at `page+0x120`
+(`%TEMP%\watchprobe\src\storm.rs`, driven by `storm_test.py`, which extracts this file's JS and runs it
+unmodified so the thing tested is the thing that ships).
+
+| Guarded pages | Heartbeats | Store caught | Target finished its own storm |
+| --- | --- | --- | --- |
+| 24 | 1 | no | no |
+| 8 | 1 | no | no |
+| 4 | 1 | no | no |
+| 2 | 4 | yes | yes |
+| 1 | 4 | yes | yes |
+| 2, re-arm floor removed | 1 | no | no |
+
+The ticket's earlier "re-arm is free, 100.4% throughput at 128 pages" measurement was taken on one
+page of a single-threaded target that slept between stores. On many hot pages the binding constraint
+is not the re-arm churn but the sheer volume of access callbacks, and it takes the instrument — and
+the target — down. Four pages is already too many. `MAX_PAGES` is now 2, the re-arm is rate-limited,
+and the last row is the mutation: with the floor removed, two pages fail as well.
+
+The storm is harsher than the player, so 2 is a floor on the constraint, not a measurement of the
+player. It also means the aiming strategy needs rethinking: watching the 24 contexts of the frontier
+was never watchable, so the choice is a smaller, better-chosen window — or the `0x20EC0` hook below,
+which costs one hook instead of N guarded pages and is now the more promising of the two.
+
+## The instrument as it now stands
+
+- `MAX_PAGES = 2`, and the aiming line says how many chosen contexts collapsed onto one page.
+- The re-arm is rate-limited to one `disable`/`enable` pair per `REARM_FLOOR_MS` (2 ms). Removing that
+  floor reintroduces the failure, measured.
+- A heartbeat fires once at arm time and then every 5 s, carrying `reports`, `rearms`, `pages` and
+  whether a re-arm is pending. It is the only place those totals appear.
+- A focus page — the lowest empty index — prints its **writes** uncapped. Printing every access
+  uncapped was tried and is itself a flood: it held the heartbeat to a single beat on the storm
+  target, so the flood was removed rather than the heartbeat explained away.
+- Liveness is judged Python-side on **any** message, not on the heartbeat alone, because the heartbeat
+  shares an event loop with the access callbacks and can be starved by them. Nothing from the agent
+  for 18 s prints a VOID warning; the run ends with a message count and says outright that a silent
+  run is not a negative about the player.
+- `script.on('destroyed')` and `session.on('detached')` both print VOID.
+- The script's docstring now states that the grab must not share the pid.
+
+**Still not run against the player.** The next run is the one that answers this ticket, and it must
+have the player to itself.
