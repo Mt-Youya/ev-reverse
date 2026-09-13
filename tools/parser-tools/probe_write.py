@@ -58,6 +58,14 @@ this version looks the way it does:
   8. **`NativePointer` has no `toNumber()`** -- only `UInt64` does. The first version called it on
      the result of `.and()`, which raised inside the callback once per access: armed, apparently
      healthy, reporting nothing. `parseInt(....toString(), 16)` is the fix.
+  9. **A reporting cap must not short-circuit the catch.** The second version stopped processing
+     accesses once it had printed 600 of them, which on the player's pages happened within seconds
+     -- so it sat armed, re-arming and permanently deaf. The cap now suppresses only the printing.
+ 10. **Re-arm by deferring a turn, not on a timer and never synchronously.** Against a target doing
+     24 stores with reads in between: not re-arming caught 0; a 100 ms timer caught 23 and missed
+     one; `setTimeout(..., 0)` from inside the callback caught **24 of 24** with the target healthy.
+     A page the player reads continuously is mostly blind under a timer, which is what the player's
+     own run showed: 600 accesses seen and not one of them a store.
 
 `watch_key.py`, the instrument this replaces, is not slow because of its 96 pages -- 128 guarded
 pages at a 100 ms re-arm measured free. It hangs the player because it also hooks the AES site and
@@ -81,9 +89,8 @@ var dll = Process.getModuleByName(DLL);
 var EMPTY = 0xBAADF00D;      // what sits at +0x120 until a key is derived
 var KEY_FIELD = 0x120;
 var MAX_PAGES = 24;          // measured free up to 128; 24 keeps the log readable
-var TICK_MS = 100;           // re-arm interval; the guard is consumed by the first access
-var REPORT_CAP = 600;
-var INDIVIDUAL_CAP = 40;     // after this many, only accesses that land on a field are printed
+var TICK_MS = 1000;          // safety-net re-arm only; the real re-arm is deferred per access
+var INDIVIDUAL_CAP = 40;     // individual access lines stop after this many; hits always print
 
 function modOff(a) {
   try {
@@ -174,6 +181,7 @@ var reports = 0;
 var found = false;
 var timer = null;
 var instrHooked = false;
+var writerDumps = 0;
 var ticks = 0;
 
 function chooseTargets() {
@@ -193,11 +201,19 @@ function chooseTargets() {
   var keyed = objs.filter(function (o) { return !o.empty; })
                   .map(function (o) { return o.index; });
   var frontier = keyed.length ? Math.max.apply(null, keyed) : -1;
+  send({t: 'log', msg: keyed.length + ' of ' + objs.length + ' context(s) hold a key; the highest ' +
+        'decrypted index is ' + frontier});
+  if (keyed.length <= 2) {
+    send({t: 'log', msg: '  that is very few. The writer only runs while the player decrypts a ' +
+          'segment it has not decrypted on this machine before -- if this lesson has already been ' +
+          'played here, nothing will be written and this run cannot catch anything. Open a lesson ' +
+          'never played on this machine and keep it playing.'});
+  }
   var byIndex = function (a, b) { return a.index - b.index; };
   var ahead = empty.filter(function (o) { return o.index > frontier; }).sort(byIndex);
   var chosen = (ahead.length ? ahead : empty.sort(byIndex)).slice(0, MAX_PAGES);
-  send({t: 'log', msg: 'highest decrypted index is ' + frontier + '; aiming at ' +
-        chosen.length + ' context(s) from index ' + chosen[0].index + ' upward'});
+  send({t: 'log', msg: 'aiming at ' + chosen.length + ' context(s), index ' +
+        chosen[0].index + '..' + chosen[chosen.length - 1].index});
 
   var pages = {};
   chosen.forEach(function (o) {
@@ -205,7 +221,6 @@ function chooseTargets() {
     var pg = field.and(ptr('0xfffffffffffff000')).toString();
     pages[pg] = { page: pg, fieldOff: parseInt(field.and(ptr('0xfff')).toString(), 16),
                   file: o.file, index: o.index, ctx: o.obj.toString() };
-    send({t: 'log', msg: '  watching index ' + o.index + '  ' + o.file});
   });
   watched = Object.keys(pages).map(function (k) { return pages[k]; });
   ranges = Object.keys(pages).map(function (k) { return { base: ptr(k), size: 0x1000 }; });
@@ -221,7 +236,10 @@ function fieldAt(pageStr, off) {
 }
 
 function onAccess(d) {
-  if (found || reports >= REPORT_CAP) return;
+  // The reporting cap must NOT short-circuit the catch below. The first version returned here once
+  // the cap was reached, which on a busy page happened within seconds and left the watch armed,
+  // re-arming and permanently deaf -- the same silent failure this script exists to avoid.
+  if (found) return;
   reports++;
   var pg = d.address.and(ptr('0xfffffffffffff000')).toString();
   // parseInt, not .toNumber(): `.and()` yields a NativePointer, and NativePointer has no
@@ -254,13 +272,15 @@ function onAccess(d) {
     }, 0);
     // The access callback has the address but no thread context, so the registers and the backtrace
     // have to come from the instruction itself. Attaching once, after the fact, catches the next
-    // store by the same instruction -- which is why it is guarded, and why it is done OUTSIDE the
-    // callback's own bookkeeping rather than as a re-arm.
+    // store by the same instruction -- which is why it is guarded.
     if (!instrHooked) {
       instrHooked = true;
       try {
         Interceptor.attach(d.from, {
           onEnter: function () {
+            // The instruction keeps running for every other context, so dump it a few times and
+            // stop; the first one is the answer and the rest is noise.
+            if (writerDumps++ >= 3) return;
             var ctx = this.context;
             var regs = {};
             ['rax','rbx','rcx','rdx','rsi','rdi','r8','r9','r10','r11'].forEach(function (rn) {
@@ -283,24 +303,48 @@ function onAccess(d) {
               'registers will follow on the next run.'});
       } catch (e) { send({t: 'err', where: 'hook-writer', e: String(e)}); }
     }
+    return;
   }
+
+  // Re-arm with a deferred turn, not synchronously here and not only on a timer.
+  //
+  // Synchronously re-enabling inside the callback WEDGES the target -- measured: 200 reports and
+  // zero target operations for 8 seconds. Re-arming only on a 100 ms timer leaves a blind window in
+  // which a store is simply not seen: on a target doing 24 stores with reads in between, the timer
+  // caught 23 and missed one, and a page the player reads continuously is mostly blind. A deferred
+  // re-arm caught 24 of 24 on the same target while the target stayed healthy, which is why it is
+  // the primary mechanism and the timer below is only a safety net.
+  scheduleRearm();
+}
+
+var rearmPending = false;
+function scheduleRearm() {
+  if (rearmPending || found) return;
+  rearmPending = true;
+  setTimeout(function () {
+    rearmPending = false;
+    if (found) return;
+    try { MemoryAccessMonitor.disable(); } catch (e) {}
+    try { MemoryAccessMonitor.enable(ranges, { onAccess: onAccess }); }
+    catch (e) { send({t: 'err', where: 're-arm', e: String(e)}); }
+  }, 0);
 }
 
 function arm() {
   try {
     MemoryAccessMonitor.enable(ranges, { onAccess: onAccess });
-    // Re-armed from here, on a timer -- never from inside onAccess, which wedges the target.
+    // The safety net: if a deferred re-arm is ever lost, this restores the guard within a second.
     timer = setInterval(function () {
       if (found) { if (timer) { clearInterval(timer); timer = null; } return; }
       ticks++;
       try { MemoryAccessMonitor.disable(); } catch (e) {}
       try { MemoryAccessMonitor.enable(ranges, { onAccess: onAccess }); }
       catch (e) { send({t: 'err', where: 're-arm', e: String(e)}); }
-      if (ticks % 50 === 0) {
+      if (ticks % 20 === 0) {
         send({t: 'log', msg: 'still watching ' + ranges.length + ' page(s); ' + reports +
               ' access(es) seen so far'});
       }
-    }, TICK_MS);
+    }, 1000);
   } catch (e) {
     send({t: 'err', where: 'arm', e: String(e)});
   }

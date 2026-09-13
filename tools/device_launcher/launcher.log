@@ -60,3 +60,15 @@ ERROR Cannot detach startup debugger win32=5
 Exception code=80000003 rva=8e8292239 first=1
 Exception code=80000003 rva=a332cc first=1
 SUCCESS pid=16132 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=804032239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=804032239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=23704 identity getters installed before original entry; debugger detached
+Exception code=80000003 rva=804032239 first=1
+Exception code=80000003 rva=a332cc first=1
+ERROR Cannot detach startup debugger win32=5
+Exception code=80000003 rva=804032239 first=1
+Exception code=80000003 rva=a332cc first=1
+SUCCESS pid=6684 identity getters installed before original entry; debugger detached

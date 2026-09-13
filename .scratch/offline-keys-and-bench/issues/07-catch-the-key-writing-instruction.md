@@ -34,6 +34,57 @@ reported".
 The first version also guarded an arbitrary empty context, chosen by scan order, which is very likely
 one the player will never touch again.
 
+## Second attempt: the mechanism worked, and the script blinded itself
+
+The rewritten version ran against the player and **did see the pages** — 600 accesses in the first few
+seconds — but none of them a store, and then it went quiet:
+
+```
+found 140 context(s), 139 with an empty key field
+1 of 140 context(s) hold a key; the highest decrypted index is 0
+aiming at 24 context(s), index 1..24
+guards armed.
+[access] read page+0x674  from Qt5Gui.dll+0x20ccbe
+[access] read page+0x270  from ntdll.dll+0xbefa1
+[access] read page+0x4d8  from PlayerLibRender56_vs.dll+0x9ae2
+... 600 of these, then:
+[*] still watching 20 page(s); 600 access(es) seen so far     (repeating)
+```
+
+Two separate defects, both in the script rather than the mechanism:
+
+1. **The reporting cap short-circuited the catch.** `if (found || reports >= REPORT_CAP) return;`
+   stopped *processing* accesses once 600 had been printed, and on pages this busy that took about
+   three seconds. The watch stayed armed and re-arming and was permanently deaf. Fixed: the cap now
+   suppresses only the printing.
+2. **A 100 ms timer is too slow to catch a single store on a page that is read constantly.** With the
+   guard consumed by the first access after each tick, the sample is whichever access came first, and
+   a store can sit in the blind window indefinitely. Measured against a target doing 24 stores with
+   reads in between: no re-arm caught **0**, a 100 ms timer caught **23 of 24**, and re-arming with
+   `setTimeout(..., 0)` from inside the callback caught **24 of 24** with the target healthy.
+   Synchronous re-enabling inside the callback wedges the target — that is what the earlier attempt
+   measured — but deferring one turn does not. The timer is now only a one-second safety net.
+
+**The run also shows why nothing was decrypted, which is the more important half of the story.**
+`139 of 140 contexts empty` and `the highest decrypted index is 0` means the player was decrypting
+essentially nothing during those 300 seconds. The writer only runs while the player decrypts a segment
+it has not decrypted on this machine before, so **no script can catch it on a lesson that has already
+been played here**. The rewritten script now says so in as many words when it finds fewer than three
+keyed contexts, because that condition is indistinguishable from a broken tool until you know to look
+for it.
+
+### The instrument as it now stands
+
+Aim just past the highest decrypted index, guard up to 24 pages, report every access with the offset
+it faulted at, re-arm by deferring a turn, read the value after the store has completed, and print a
+call chain from module pointers found on the stack when the unwind-based backtrace comes back empty.
+Verified against a stand-in target end to end: it survives reads of the guarded page, catches a store
+into the watched field, names the instruction, dumps the registers, reads the value back correctly,
+and produces a call chain after both backtracers returned nothing.
+
+**It has still not caught a store from the real player** — the attempt above could not have, because
+the player was not decrypting.
+
 ## What was measured, and how
 
 The mechanism was then tested against stand-in target processes written for the purpose, because
