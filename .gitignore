@@ -23,6 +23,8 @@ tools/parser-tools/EVPlayer2_解密工具与参数/redis_segments.json
 tools/parser-tools/dump_contexts.json
 
 rust_out/
+# The output directory ticket 02's verification run uses. Run output, never a source file.
+verify_out/
 
 .idea
 .vscode
