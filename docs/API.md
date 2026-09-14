@@ -51,8 +51,40 @@ So a packet capture of this player reads **nothing** on its own, and that is a p
 envelope rather than of any one endpoint. What made the catalog and the segment lists readable was
 hooking `inflate` inside the process (`capture_all.py`) — the player decrypts a response and then
 inflates it, and the hook catches the plaintext between the two steps. That is the origin of
-`captured/inflated/`, and it is also the reason `getDownEVSKey` (ticket 08) has never been read:
-its plaintext is not inflated, so no hook has stood between the two steps yet.
+`captured/inflated/`.
+
+## The scheme, read off the decryption itself
+
+A proxy cannot answer this one. The response body is encrypted *before* it reaches the socket, so a
+proxy — even a trusted-certificate MITM — hands back the same ciphertext the capture already holds.
+The plaintext exists for one instruction inside the process, and `0x1EA10` is it: five call sites,
+one per family of endpoint, each asking the Bridge layer for a key first.
+`tools/parser-tools/capture_plaintext.py` hooks that function and records, for every response, the
+base64 input, the key and the plaintext.
+
+What comes out:
+
+```
+result (base64)  ->  AES-128-ECB  ->  gzip  ->  JSON
+                        ^
+                        |
+   per-request key, delivered in a request descriptor that is itself encrypted:
+   {"host": "https://en2v4.ieway.cn", "req": "/student/getPlayTimeKeySignEVS20260515",
+    "dkey": "x!@#y.cn_xnk0506", "dkey_ver": 202, "cache_key": "...", "base_key": "9299133a...",
+    "ext": ".evs", "tiku": 0, "water_ts": "", "evc_val": 0}
+   that descriptor decrypts under a second constant, "11585ec1b1f8f30e"
+```
+
+* **ECB, not CBC.** Measured, not assumed: against a live `(ciphertext, key, plaintext)` triple,
+  ECB reproduces all 500 bytes and CBC diverges at byte 16. The decrypted buffer is a fixed-size
+  allocation with a stale tail, so `gzip.decompress` on the whole thing fails a few hundred bytes
+  in — which reads exactly like a wrong key.
+* **The data key rotates with `dkey_ver`.** Today's is `x!@#y.cn_xnk0506` (ver 202) and it opens
+  the segment lists. The responses captured on 2026-09-13 do **not** open under it, which is why
+  `captured/bodies.bin` still holds unread envelopes: those were taken under an earlier key, and
+  the list payloads from that session were read through the inflate hook instead.
+* `tools/parser-tools/decrypt_response.py` decrypts what today's keys can, offline, and reports per
+  endpoint which key worked.
 
 ## The one response shape that matters for a capture
 
