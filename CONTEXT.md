@@ -24,8 +24,9 @@ _Avoid_: position, order, seq
 ### Where the keys come from
 
 **Segment key**:
-The 32-character lowercase hex string that opens one segment. It is not derived from anything
-locally visible — it exists only after the player decrypts that segment for playback.
+The 32-character lowercase hex string that opens one segment. It is `MD5_hex(tk + filename +
+extra)`, and all three inputs are obtainable without a player, so it no longer has to be read out
+of the player's memory.
 _Avoid_: salt, password, secret
 
 **Playback context**:
@@ -49,9 +50,9 @@ playback proceeds; a gap *behind* the playhead never will.
 _Avoid_: hole, missing, hole in the lesson
 
 **Extra**:
-The third input of the key derivation, after the *tk* and the filename. The player reads it from a
-Bridge interface at the moment it decrypts a segment; it is on no wire and in no file, which is why a
-*segment key* cannot be computed from a capture. See `docs/KEY-DERIVATION.md`.
+The third input of the key derivation, after the *tk* and the filename. It is a constant
+(`20220507`) that the player's Bridge layer returns for an obfuscated name; it appears in no file,
+which is why it had to be caught against a running player. See `docs/KEY-DERIVATION.md`.
 _Avoid_: salt, param, runtime parameter
 
 ### Getting the keys

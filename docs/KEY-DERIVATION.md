@@ -7,13 +7,56 @@ Static, no player required. Everything below is an RVA in
 The result, in one line:
 
 ```
-segment key (32 lowercase hex characters) = MD5_hex( tk + filename + extra )
+segment key (32 lowercase hex characters) = MD5_hex( tk + filename + "20220507" )
 ```
 
-`tk` and `filename` are both visible on the wire — `tk` is the M3U8-list response's `tk` field, and
-`filename` is the segment's `119354-<uuid>.ts`. **`extra` is not.** It is read out of a Bridge
-interface inside the player at the moment the segment is decrypted, which is the whole reason the
-key cannot be computed from a capture.
+`tk` is the segment-list response's `tk` field, `filename` is the segment's `119354-<uuid>.ts`, and
+the third input is a **constant**. All three are knowable without a player: the list response
+carries `tk` next to the signed URL it belongs to, which is what makes `evmedia derive` possible
+and what retires the "one playback pass per lesson" limit this project was built around.
+
+## How the third input was caught
+
+It is not in any file — `20220507` appears nowhere in the DLL, Bridge.dll, MetaLib.dll or the
+executable — because the player's Bridge layer returns it for an obfuscated name. So it was read
+off a running player instead:
+
+```
+python tools\parser-tools\probe_kdf.py --pid <pid> --seconds 60
+  md5_input = 251a42ee1984284be5f7a11a191c5369119354-de1ed8af-40d3-491f-8d12-f0e759280190.ts20220507
+    tk      = 251a42ee1984284be5f7a11a191c5369
+    file    = 119354-de1ed8af-40d3-491f-8d12-f0e759280190.ts
+    EXTRA   = '20220507'
+```
+
+`0x1FD60` is the `std::string = MD5_hex(input)` wrapper, and its second argument is the whole
+concatenation, so one hook yields `extra` for every segment the player decrypts. Six derivations
+in sixty seconds, all with the same third input.
+
+Then, against data that predates the hook:
+
+| Evidence | How those keys were obtained | Result |
+| --- | --- | --- |
+| 258 triples (`ev2_out/keys.json` × `manifests.capture`) | harvested by the earlier pipeline, a different session | 258/258 |
+| 42 triples (`ctx_dump.json`) | rebuilt from each context's AES schedule | 42/42 |
+| `triple.json` | context schedule and manifest entry read at the same moment | match |
+| 56 contexts of the player that was playing | rebuilt from its live schedules while it played | 56/56 |
+
+`crates/evmedia-core/tests/derivation.rs` pins thirteen of those triples, and refuses to pass if the
+extra is dropped.
+
+## The offline path, end to end
+
+```
+evmedia derive --playlist list.json --input <segments> --output manifest.json
+evmedia decode-ev <segments> manifest.json lesson.ts
+```
+
+Verified on a real lesson: a list response captured from the wire, the ciphertext already in the
+player's download directory, no player running and no memory read. The merge came out as 18,854
+MPEG-TS packets with 18,854 sync bytes, and `ffprobe` reads H.264 2992×1682 plus AAC from it.
+`tools/parser-tools/cached_lessons.py` reports which captured lists a download directory can
+already satisfy.
 
 ## The three functions
 
@@ -90,16 +133,18 @@ value = *(char**)(out2 + 0x30)
 
 ## What was measured against real data
 
+The candidates below were tested *before* the value was caught live, and they are kept here because
+they are the reason the answer had to come from the player rather than from a capture: nothing on
+the wire is the third input, and no amount of guessing the shape finds a value that is not there.
+
 | Check | Data | Result |
 | --- | --- | --- |
+| `key = MD5_hex(tk + filename + "20220507")` | 258 + 42 + 1 + 56 triples, four independent sources | all of them |
 | Mask = `MD5(filename)[:16]` | `ctx_dump.json`, 50 contexts | 50/50 |
-| `key = MD5_hex(tk + filename)` and 7 variants (`+sign`, `+t`, `+sid`, `+bid`, `+v`, `+idx`, `+sf`, `+d_p`) | 258 same-session `(tk, filename, key)` triples | 0/258 each |
-| Permutations of `{tk, file, sf, path, sign, t, bid, sid, v}` in 2- and 3-part orders with 8 separators | `triple.json`, one simultaneously-read record | 0 hits |
-| `extra` drawn from `captured/keys.txt` (2,825 strings harvested from the player's memory), in 4 orders | 258 triples | 0 hits |
-| `extra` a short constant: hex ≤ 6, alphanumeric ≤ 4, digits ≤ 5 | 1 triple, then verified across the rest | 0 hits |
-
-So `extra` is neither a wire field nor a short constant nor anything that happens to be lying
-around as a 32-hex string in memory. It is produced on demand by the module.
+| `key = MD5_hex(tk + filename)` and 7 variants (`+sign`, `+t`, `+sid`, `+bid`, `+v`, `+idx`, `+sf`, `+d_p`) | 258 same-session triples | 0/258 each |
+| Permutations of `{tk, file, sf, path, sign, t, bid, sid, v}` in 2- and 3-part orders with 8 separators | `triple.json` | 0 hits |
+| `extra` drawn from `captured/keys.txt` (2,825 strings harvested from memory), in 4 orders | 258 triples | 0 hits |
+| `extra` a short constant: hex ≤ 6, alphanumeric ≤ 4, digits ≤ 5 | one triple, then the rest | 0 hits (it is 8 digits, in a different position) |
 
 ## Reproducing any of this
 
@@ -126,20 +171,13 @@ this" conclusion gets made by accident.
 
 ## What is left
 
-One question, sharply stated: **what does the module behind `vtable[+0x40](..., 0xA6)` return for
-the name at `0x803550`?** Three ways in, none of them requiring a full playback:
+Nothing blocks a key anymore. What remains is plumbing rather than reverse engineering:
 
-1. Find the `bg::Interface` implementation that PlayerLib registers (its constructor stores a
-   vtable; `0xBF26C8` is the array `__Init_CD_Later__` fills) and read the getter. Start from
-   `Bridge.dll!?__Init_CD_Later__@@YAHPEAPEAVInterface@bg@@@Z` at `0x38E0`, which stores its first
-   entry from `Bridge.dll:0x71818`; note that slot holds two 32-bit RVAs (`0x5BEA4`, `0x228B0`)
-   rather than a relocated pointer, so the "first interface" is assembled at runtime and the
-   `+0x78` member behind the lookup is not in the file.
-2. Decode the pool. If the names are obfuscated rather than opaque, the decode routine is in the
-   module and the `0x42A30` path — where the value is used as an AES key for a captured response —
-   is a checkable oracle for it.
-3. Watch the lookup once with the player running (`probe_at.py` on the `+0xD0` target) and read the
-   value directly. One segment is enough; this does not need the whole lesson.
-
-Until one of those lands, ticket 10's answer stands as: **there is no offline path to a segment
-key**, and the cost of a lesson is one playback pass.
+1. **Fetching the list without the player.** `derive` consumes a list that something else obtained.
+   The player gets it from `en2v4.ieway.cn` with a bearer token, and every response body on that
+   wire is encrypted (`docs/API.md`) — so a tool that fetches lists for itself still needs the
+   response decryption, which is ticket 06. Until then the list comes from
+   `tools/parser-tools/capture_all.py`, which reads it inside the player.
+2. **The other Bridge values.** The same mechanism returns a 32-character value that `0x42A30`
+   uses as an AES key for an API response. That value is a constant too, and the hook that caught
+   `20220507` catches it the same way — which is the shortest route to closing ticket 06.
