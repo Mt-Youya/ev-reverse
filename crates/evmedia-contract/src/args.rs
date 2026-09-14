@@ -52,6 +52,8 @@ pub enum Command {
     DecodeEv(DecodeEvArgs),
     /// Create a video-specific EVPlayer2 5.0.5 manifest from an active Windows process.
     CaptureEv(CaptureEvArgs),
+    /// Derive a manifest from a captured segment list, with no player involved.
+    Derive(DeriveArgs),
     /// Harvest segment keys and signed URLs from a live player, then download, decrypt and merge.
     Grab(GrabArgs),
     /// Recover segment keys from a live player's memory and decrypt the segments it already
@@ -87,6 +89,23 @@ pub struct CaptureEvArgs {
     #[arg(long)]
     pub pid: u32,
     /// Directory or ZIP holding the encrypted segments for this lesson.
+    #[arg(long)]
+    pub input: PathBuf,
+    #[arg(long)]
+    pub output: PathBuf,
+}
+
+/// Build a manifest from a segment list, then download and decrypt — the path that needs the
+/// player to have *fetched* a lesson but never to have played it.
+///
+/// A segment key is `MD5_hex(tk + filename + extra)`: `tk` and the signed URL both come from the
+/// list response, and `extra` is a constant, so one API response is the whole requirement.
+#[derive(clap::Args, Debug, Clone, PartialEq, Eq)]
+pub struct DeriveArgs {
+    /// The segment-list response, as JSON: `{"d_p": host, "k_l": [{"idx", "sf", "tk"}, ...]}`.
+    #[arg(long)]
+    pub playlist: PathBuf,
+    /// Directory or ZIP holding the encrypted segments the list names.
     #[arg(long)]
     pub input: PathBuf,
     #[arg(long)]
@@ -211,6 +230,7 @@ impl ToArgv for Command {
             Command::Download(args) => args.to_argv(),
             Command::DecodeEv(args) => args.to_argv(),
             Command::CaptureEv(args) => args.to_argv(),
+            Command::Derive(args) => args.to_argv(),
             Command::Grab(args) => args.to_argv(),
             Command::Recover(args) => args.to_argv(),
             Command::Adapters(args) => args.to_argv(),
@@ -250,6 +270,16 @@ impl ToArgv for CaptureEvArgs {
     fn to_argv(&self) -> Vec<String> {
         let mut argv = vec!["capture-ev".to_string()];
         push_num(&mut argv, "--pid", self.pid);
+        push_path(&mut argv, "--input", &self.input);
+        push_path(&mut argv, "--output", &self.output);
+        argv
+    }
+}
+
+impl ToArgv for DeriveArgs {
+    fn to_argv(&self) -> Vec<String> {
+        let mut argv = vec!["derive".to_string()];
+        push_path(&mut argv, "--playlist", &self.playlist);
         push_path(&mut argv, "--input", &self.input);
         push_path(&mut argv, "--output", &self.output);
         argv

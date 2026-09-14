@@ -12,6 +12,7 @@ pub mod harvest;
 pub mod keyscan;
 pub mod media;
 pub mod paths;
+pub mod playlist;
 
 use anyhow::{Context, Result};
 use std::path::Path;

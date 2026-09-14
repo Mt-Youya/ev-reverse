@@ -66,6 +66,28 @@ pub fn schedule_to_key(schedule: &[u8; 32]) -> Option<String> {
     is_hex32(&text).then_some(text)
 }
 
+/// The third input of the derivation, and the reason a *segment key* needs no player.
+///
+/// The player computes `MD5_hex(tk + filename + extra)` and gets `extra` from its Bridge layer
+/// under an obfuscated name (`m4OEgjo4nU`, `.rdata:0x803550` in `PlayerLibRender56_vs.dll`). That
+/// lookup returns this constant. It was read live off a running player with
+/// `tools/parser-tools/probe_kdf.py`, and then confirmed against every recording this repository
+/// has: 258 segment triples captured in one session, 42 keys rebuilt from playback contexts'
+/// schedules, and 56 contexts keyed by the very player that was playing at the time.
+pub const DERIVATION_EXTRA: &str = "20220507";
+
+/// Derive a segment key the way the player does: `MD5_hex(tk + filename + extra)`.
+///
+/// This is the whole offline path. `tk` is the per-segment token in the segment-list response —
+/// the same response that carries the signed URL — so no playback, no memory reading and no
+/// player are involved. See `docs/KEY-DERIVATION.md`.
+pub fn key_from_tk(tk: &str, filename: &str) -> Result<String> {
+    if !is_hex32(tk) {
+        bail!("segment token is not 32 hex characters");
+    }
+    Ok(md5_hex(format!("{tk}{filename}{DERIVATION_EXTRA}").as_bytes()))
+}
+
 /// Key as it exists in the live path: 32 hex characters used directly as 32 bytes.
 pub fn key_from_text(text: &str) -> Result<[u8; 32]> {
     if !is_hex32(text) {

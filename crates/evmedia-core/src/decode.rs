@@ -65,7 +65,21 @@ pub fn build_manifest(
     if names.is_empty() {
         bail!("input holds no .ts segments");
     }
+    build_manifest_of(input, names, keys, tool)
+}
 
+/// The same, for a caller that already knows which segments belong to the lesson.
+///
+/// `derive` is that caller: a segment list names exactly its own files, and those files usually
+/// sit in one directory with every other lesson the player has ever downloaded. Scanning that
+/// directory and demanding a key for each of its thousands of files is how a corpus gets mistaken
+/// for a lesson.
+pub fn build_manifest_of(
+    input: &Path,
+    names: Vec<String>,
+    keys: &HashMap<String, (u32, String)>,
+    tool: &str,
+) -> Result<CaptureManifest> {
     let mut found: Vec<(u32, String, String)> = Vec::new();
     let mut missing: Vec<String> = Vec::new();
     for name in names {

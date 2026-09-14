@@ -7,7 +7,7 @@ use anyhow::bail;
 use evmedia_contract::{
     CaptureEvArgs, Command, Event, GrabArgs, RecoverArgs, Reporter, Stage, StageState,
 };
-use evmedia_core::{catalog, decode, download, harvest, keyscan, media, read_json};
+use evmedia_core::{catalog, decode, download, harvest, keyscan, media, playlist, read_json};
 use evmedia_core::keyscan::KeyEntry;
 use std::time::Duration;
 
@@ -25,6 +25,9 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
             decode::decode_ev(&args.input, manifest, &args.output, reporter)
         }
         Command::CaptureEv(args) => capture_ev(args, reporter),
+        Command::Derive(args) => {
+            playlist::run(&args.playlist, &args.input, &args.output, reporter)
+        }
         Command::Grab(args) => grab(args, reporter),
         Command::Recover(args) => recover(args, reporter),
         Command::Adapters(_) => {
