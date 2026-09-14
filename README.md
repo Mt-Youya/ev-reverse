@@ -86,3 +86,7 @@ core, and that the GUI's argv construction stays the exact inverse of clap's par
 `HANDOFF.md` is the project's working notes, including the device-identity launcher that lets
 EVPlayer2 run outside Windows Sandbox, and the documented decryption scheme that this build
 turned out **not** to use.
+
+`docs/KEY-DERIVATION.md` is the key derivation as read off `PlayerLibRender56_vs.dll`: the whole
+chain from the context's `tk` and filename to the AES schedule, and the one input that is not on
+the wire — which is why a lesson still costs one playback pass.

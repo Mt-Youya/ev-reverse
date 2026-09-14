@@ -106,6 +106,22 @@ question was to build one big enough. Its verdict is **instrument — kept**, an
 way: `storm_test.py` extracts the JavaScript out of `probe_write.py` rather than copying it, so it
 cannot drift from the thing it measures. Its results are in ticket 07.
 
+**Added with ticket 09's static pass — nine scripts, all instruments, none of them aimed at a running
+process.** They read the DLL instead, which is why they were written when the player was closed:
+`static_xref.py` (the `.pdata` function containing an RVA, and every direct caller of it),
+`annotate.py` (disassembly with RIP-relative operands resolved to imports, strings and functions),
+`field_refs.py` (every instruction touching `[reg+disp]`, or whose RIP-relative operand is one
+address or one range), `vtable.py` (a virtual call followed to its slot, through the base
+relocation), `bridge_values.py` (every bridge value lookup with the name and length it asks for),
+`registrations.py` (`bg::regist_value_type` call sites), and three that score candidates against
+captured data rather than against code: `key_formula.py`, `pair_capture.py`, `search_third.py`.
+
+Verdict **instrument — kept**. Two of them earned their place by being wrong first and being fixed:
+`field_refs.py` initially stopped its linear sweep at the first undecodable byte and so reported *no*
+references to a field that is referenced forty times, and `vtable.py` initially read export addresses
+as virtual addresses rather than RVAs. Both produced confident, silent negatives — the same failure
+mode this bench has already been bitten by twice.
+
 ### Dependency check
 
 Nothing the product or the remaining experiments need was deleted. A repo-wide search for each

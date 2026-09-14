@@ -48,6 +48,12 @@ A lesson index that is not decrypted yet. A gap *ahead of* the playhead fills it
 playback proceeds; a gap *behind* the playhead never will.
 _Avoid_: hole, missing, hole in the lesson
 
+**Extra**:
+The third input of the key derivation, after the *tk* and the filename. The player reads it from a
+Bridge interface at the moment it decrypts a segment; it is on no wire and in no file, which is why a
+*segment key* cannot be computed from a capture. See `docs/KEY-DERIVATION.md`.
+_Avoid_: salt, param, runtime parameter
+
 ### Getting the keys
 
 **Harvest**:
