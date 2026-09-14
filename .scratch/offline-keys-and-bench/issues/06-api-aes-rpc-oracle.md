@@ -11,6 +11,22 @@
 - [ ] The oracle accepts an arbitrary input, not one captured message.
 - [ ] The command used and its output are recorded as the evidence.
 
+## A shorter route, opened by ticket 09
+
+The oracle exists to stop needing the key. Ticket 09 then showed the key may not need recovering
+either: the segment-key path obtains a *constant* from the player's Bridge layer, and `0x42A30`
+obtains a 32-character value the same way and hands it to `0x1EA10` as
+`(out, input, const std::string* key, bool* ok)` — a response decryption.
+
+`tools/parser-tools/probe_bridge_value.py` hooks `0x1EA10` and reads that `std::string`. It armed
+against a playing player (hook at `0x7ffe165bea10`, module base `0x7ffe165a0000`) and saw **no calls
+in 45 seconds**: the player was replaying a lesson it had already downloaded and was not decrypting
+any response in that window. That is a void run, not a negative — it needs a moment when the player
+talks to `en2v4.ieway.cn`, which is what opening a lesson or pressing download does.
+
+If the value turns out to be a constant like `20220507`, this ticket closes without an oracle and
+the tool can fetch its own segment lists, which is the last step between `derive` and a capture.
+
 ## What is already in place, and the one gap
 
 Written up while preparing the human session, because the second half of this ticket turns out not to
