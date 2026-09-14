@@ -54,10 +54,18 @@ class Image:
         return []
 
     def read(self, rva, size):
+        """Bytes at an RVA. A section's virtual size can exceed its raw size, and the tail the
+        loader zero-fills is *not* in the file: reading past `SizeOfRawData` would return whatever
+        bytes happen to follow, which reads as data and is how a null pointer becomes a plausible
+        address."""
         for name, va, vsize, raw, rawsize, _ in self.sections:
             if va <= rva < va + max(vsize, rawsize):
-                off = raw + (rva - va)
-                return self.pe.__data__[off:off + size]
+                offset = rva - va
+                if offset >= rawsize:
+                    return b"\0" * size
+                available = min(size, rawsize - offset)
+                data = self.pe.__data__[raw + offset:raw + offset + available]
+                return data + b"\0" * (size - len(data))
         return b""
 
     def section_of(self, rva):

@@ -20,6 +20,21 @@ import annotate
 
 REGIST = "?regist_value_type@bg@@YAXHPEBDP6A"
 
+QT_IDS = {hex(v) for v in range(0x1F, 0x29)}  # qstr/point/rect/size/color/font, per-thread
+
+
+def utf16_at(img, rva, limit=128):
+    raw = img.read(rva, limit)
+    out = []
+    for i in range(0, len(raw) - 1, 2):
+        unit = raw[i] | (raw[i + 1] << 8)
+        if unit == 0:
+            break
+        if unit < 0x20 or unit > 0x7E:
+            return None
+        out.append(chr(unit))
+    return "".join(out) if out else None
+
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
@@ -53,8 +68,10 @@ def main(argv=None):
 
     rows = []
     for call in calls:
-        # walk backwards far enough to collect the four arguments
-        start = max(call - 0x40, 0)
+        # Decode from the function's own entry, not from call-0x40: starting mid-instruction
+        # desyncs the sweep and silently loses the arguments of the first call in each group.
+        fn = img.containing(call)
+        start = fn[0] if fn and call - fn[0] < 0x400 else max(call - 0x40, 0)
         window = img.read(start, call - start)
         args_found = {}
         for ins in annotate.md.disasm(window, img.base + start):
@@ -63,7 +80,8 @@ def main(argv=None):
                 args_found["id_at"] = ins.address - img.base
             if ins.mnemonic == "lea" and ins.op_str.startswith("rdx, [rip"):
                 target = ins.address + ins.size + ins.operands[1].mem.disp - img.base
-                text = annotate.cstring(img, target, 64)
+                # names registered by this player live in a UTF-16 pool, not in ASCII strings
+                text = utf16_at(img, target, 64) or annotate.cstring(img, target, 64)
                 if text:
                     args_found["name"] = text
             if ins.mnemonic == "lea" and ins.op_str.startswith("r8, [rip"):
