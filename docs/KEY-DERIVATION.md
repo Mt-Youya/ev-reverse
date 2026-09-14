@@ -130,7 +130,11 @@ One question, sharply stated: **what does the module behind `vtable[+0x40](..., 
 the name at `0x803550`?** Three ways in, none of them requiring a full playback:
 
 1. Find the `bg::Interface` implementation that PlayerLib registers (its constructor stores a
-   vtable; `0xBF26C8` is the array `__Init_CD_Later__` fills) and read the getter.
+   vtable; `0xBF26C8` is the array `__Init_CD_Later__` fills) and read the getter. Start from
+   `Bridge.dll!?__Init_CD_Later__@@YAHPEAPEAVInterface@bg@@@Z` at `0x38E0`, which stores its first
+   entry from `Bridge.dll:0x71818`; note that slot holds two 32-bit RVAs (`0x5BEA4`, `0x228B0`)
+   rather than a relocated pointer, so the "first interface" is assembled at runtime and the
+   `+0x78` member behind the lookup is not in the file.
 2. Decode the pool. If the names are obfuscated rather than opaque, the decode routine is in the
    module and the `0x42A30` path — where the value is used as an AES key for a captured response —
    is a checkable oracle for it.
