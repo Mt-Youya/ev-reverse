@@ -37,6 +37,15 @@ pub struct KeyEntry {
 /// stays valid when the player is restarted or moved to a different lesson.
 pub type Library = BTreeMap<String, KeyEntry>;
 
+/// A lesson is the segment URL's parent directory; `sid` identifies the student, not the lesson.
+pub fn lesson_from_url(text: &str) -> Option<String> {
+    let parsed = url::Url::parse(text).ok()?;
+    let mut parts = parsed.path_segments()?;
+    if !parts.next_back()?.ends_with(".ts") { return None; }
+    let lesson = parts.next_back()?;
+    (!lesson.is_empty()).then(|| lesson.to_string())
+}
+
 /// Reads either the current entry shape or the older `filename -> "key"` one, so a library
 /// written by an earlier build still loads instead of being silently thrown away.
 #[derive(Deserialize)]

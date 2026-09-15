@@ -3,5 +3,5 @@
 pub mod mux;
 pub mod remux;
 
-pub use mux::{merge_lesson, MergeOutcome};
+pub use mux::{merge_lesson, merge_lesson_known, MergeOutcome};
 pub use remux::{remux_mp4, RemuxOutcome};

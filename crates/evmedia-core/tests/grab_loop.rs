@@ -27,6 +27,70 @@ fn a_complete_lesson_merges_to_lesson_ts() {
 }
 
 #[test]
+fn a_known_tail_without_keys_must_not_be_reported_as_complete() {
+    let output = scratch("missing-tail");
+    let (fixture, plains) = stage(&output, 6);
+    fixture.forget_key(5);
+    let (reporter, events) = Reporter::capturing();
+    grab::run(&fixture, &options(&output), &reporter).unwrap();
+
+    assert!(!output.join("lesson.ts").exists());
+    assert_eq!(std::fs::read(output.join("lesson.partial.ts")).unwrap(), plains[..5].concat());
+    assert!(events.lock().unwrap().iter().any(|event| matches!(
+        event, Event::Finished { status: evmedia_contract::Status::Partial, .. }
+    )));
+    // The URL disappears on a later run; the previously observed tail must survive on disk.
+    fixture.forget_url(&segment_name(5));
+    grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap();
+    assert!(!output.join("lesson.ts").exists());
+}
+
+#[test]
+fn a_saved_key_and_index_survive_the_player_releasing_the_context() {
+    let output = scratch("persist-key");
+    let (fixture, plains) = stage(&output, 1);
+    fixture.use_only_live_contexts();
+    let file = fixture.file_of(0);
+    let cipher = std::fs::read(output.join("enc").join(&file)).unwrap();
+    std::fs::remove_file(output.join("enc").join(&file)).unwrap();
+    fixture.forget_url(&file);
+    grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap();
+    assert!(!output.join("lesson.ts").exists());
+
+    fixture.forget_key(0);
+    std::fs::write(output.join("enc").join(&file), cipher).unwrap();
+    grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap();
+    assert_eq!(std::fs::read(output.join("lesson.ts")).unwrap(), plains.concat());
+}
+
+#[test]
+fn conflicting_filenames_at_one_index_are_rejected_before_decryption() {
+    let output = scratch("mixed-lessons");
+    let (fixture, _) = stage(&output, 2);
+    fixture.use_only_live_contexts();
+    fixture.restore_key(0, segment_name(99), "0123456789abcdef0123456789abcdef".to_string());
+    let error = grab::run(&fixture, &options(&output), &Reporter::silent()).unwrap_err();
+    assert!(error.to_string().contains("conflicting files at index 0"));
+    assert!(!output.join("lesson.ts").exists());
+    assert_eq!(std::fs::read_dir(output.join("dec")).unwrap().count(), 0);
+}
+
+#[test]
+fn the_player_cache_is_used_without_requesting_expired_urls() {
+    let output = scratch("player-cache");
+    let (fixture, plains) = stage(&output, 3);
+    fixture.use_only_live_contexts();
+    let cache = output.join("player-cache");
+    std::fs::rename(output.join("enc"), &cache).unwrap();
+    let original = std::fs::read(cache.join(segment_name(0))).unwrap();
+    let mut opts = options(&output);
+    opts.cache = Some(cache.clone());
+    grab::run(&fixture, &opts, &Reporter::silent()).unwrap();
+    assert_eq!(std::fs::read(output.join("lesson.ts")).unwrap(), plains.concat());
+    assert_eq!(std::fs::read(cache.join(segment_name(0))).unwrap(), original);
+}
+
+#[test]
 fn a_lesson_with_a_hole_stays_partial_and_is_never_called_lesson_ts() {
     let output = scratch("hole");
     let (fixture, plains) = stage(&output, 6);

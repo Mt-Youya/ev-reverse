@@ -30,6 +30,21 @@ fn cached_cipher(path: &Path) -> Option<Vec<u8>> {
     }
 }
 
+/// Copy complete local ciphertext without modifying the player's download cache.
+pub fn import_cache(cache: &Path, enc_dir: &Path, files: &HashMap<String, u32>) -> Result<()> {
+    for file in files.keys() {
+        let target = enc_dir.join(file);
+        if fs::metadata(&target).is_ok_and(|meta| meta.len() >= MIN_SEGMENT && meta.len() % 16 == 0) {
+            continue;
+        }
+        let Some(bytes) = cached_cipher(&cache.join(file)) else { continue };
+        let temporary = target.with_extension("ts.tmp");
+        fs::write(&temporary, bytes)?;
+        fs::rename(&temporary, &target)?;
+    }
+    Ok(())
+}
+
 /// Fetch one segment's ciphertext, rejecting a body that cannot be segment ciphertext.
 fn download(client: &reqwest::blocking::Client, url: &str) -> Result<Vec<u8>> {
     let blob = client

@@ -34,6 +34,8 @@ fn sample(name: &str) -> Command {
         }),
         "grab" => Command::Grab(GrabArgs {
             pid: 4242,
+            lesson: Some("a5806965-1269-44ff-8cf3".to_string()),
+            cache: Some(path("player-cache")),
             output: path("grab_out"),
             jobs: 4,
             poll: 2,

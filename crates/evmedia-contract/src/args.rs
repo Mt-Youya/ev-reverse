@@ -98,6 +98,12 @@ pub struct GrabArgs {
     /// PID of the running EVPlayer2 process.
     #[arg(long)]
     pub pid: u32,
+    /// Lesson directory UUID from the signed segment URLs. Required when several lessons are visible.
+    #[arg(long)]
+    pub lesson: Option<String>,
+    /// Reuse encrypted segments from the player's download directory before requesting URLs.
+    #[arg(long)]
+    pub cache: Option<PathBuf>,
     #[arg(long, default_value = DEFAULT_OUTPUT)]
     pub output: PathBuf,
     #[arg(long, default_value_t = DEFAULT_JOBS)]
@@ -116,7 +122,7 @@ pub struct GrabArgs {
     /// Delay between posted seek keystrokes, in milliseconds.
     #[arg(long, default_value_t = DEFAULT_SWEEP_GAP_MS)]
     pub sweep_gap_ms: u64,
-    /// Remux the finished lesson to MP4 with ffmpeg.
+    /// Export H.264/AAC MP4 with ffmpeg and verify full decoding (also requires ffprobe).
     #[arg(long)]
     pub mp4: bool,
 }
@@ -135,7 +141,7 @@ pub struct RecoverArgs {
     pub cache: PathBuf,
     #[arg(long)]
     pub output: PathBuf,
-    /// Remux the finished lesson to MP4 with ffmpeg.
+    /// Export H.264/AAC MP4 with ffmpeg and verify full decoding (also requires ffprobe).
     #[arg(long)]
     pub mp4: bool,
     /// Walk the playhead across the lesson with the step-forward key, collecting keys as it goes.
@@ -260,6 +266,10 @@ impl ToArgv for GrabArgs {
     fn to_argv(&self) -> Vec<String> {
         let mut argv = vec!["grab".to_string()];
         push_num(&mut argv, "--pid", self.pid);
+        if let Some(lesson) = &self.lesson {
+            argv.extend(["--lesson".to_string(), lesson.clone()]);
+        }
+        if let Some(cache) = &self.cache { push_path(&mut argv, "--cache", cache); }
         push_path(&mut argv, "--output", &self.output);
         push_num(&mut argv, "--jobs", self.jobs);
         push_num(&mut argv, "--poll", self.poll);

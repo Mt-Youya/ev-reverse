@@ -4,21 +4,47 @@
 //! it through the same one.
 
 use crate::{playhead, process::Player};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use evmedia_core::harvest::{seek::Playhead, Harvester};
+use evmedia_core::keyscan::lesson_from_url;
 use std::{
+    cell::RefCell,
     collections::{BTreeMap, BTreeSet, HashMap},
     time::Duration,
 };
 
 pub struct WinSource {
     player: Player,
+    lesson: Option<String>,
+    files: RefCell<BTreeSet<String>>,
 }
 
 impl WinSource {
     pub fn open(pid: u32) -> Result<Self> {
-        Ok(Self { player: Player::open(pid)? })
+        Ok(Self { player: Player::open(pid)?, lesson: None, files: RefCell::default() })
     }
+
+    pub fn open_lesson(pid: u32, requested: Option<String>, saved_files: BTreeSet<String>) -> Result<Self> {
+        let mut source = Self::open(pid)?;
+        source.files.borrow_mut().extend(saved_files);
+        let urls = source.player.segment_urls();
+        let mut counts = BTreeMap::<String, usize>::new();
+        for lesson in urls.values().filter_map(|url| lesson_from_url(url)) {
+            *counts.entry(lesson).or_default() += 1;
+        }
+        let lesson = match requested {
+            Some(lesson) => lesson,
+            None if counts.len() == 1 => counts.keys().next().unwrap().clone(),
+            None => bail!("select a lesson with --lesson <UUID>; visible lesson directories (segment URLs): {:?}", counts),
+        };
+        source.files.borrow_mut().extend(urls.into_iter().filter_map(|(file, url)| {
+            (lesson_from_url(&url).as_ref() == Some(&lesson)).then_some(file)
+        }));
+        source.lesson = Some(lesson);
+        Ok(source)
+    }
+
+    pub fn lesson(&self) -> Option<&str> { self.lesson.as_deref() }
 
     pub fn player(&self) -> &Player {
         &self.player
@@ -31,7 +57,9 @@ impl Harvester for WinSource {
     }
 
     fn keys(&self) -> BTreeMap<u32, (String, String)> {
-        self.player.active_keys()
+        if self.lesson.is_some() {
+            self.player.active_keys_for(Some(&self.files.borrow()))
+        } else { self.player.active_keys() }
     }
 
     fn candidates(&self) -> BTreeSet<String> {
@@ -39,11 +67,18 @@ impl Harvester for WinSource {
     }
 
     fn indexes(&self) -> HashMap<String, u32> {
-        self.player.segment_indexes()
+        let mut indexes = self.player.segment_indexes();
+        if self.lesson.is_some() { indexes.retain(|file, _| self.files.borrow().contains(file)); }
+        indexes
     }
 
     fn urls(&self) -> HashMap<String, String> {
-        self.player.segment_urls()
+        let mut urls = self.player.segment_urls();
+        if let Some(lesson) = &self.lesson {
+            urls.retain(|_, url| lesson_from_url(url).as_ref() == Some(lesson));
+            self.files.borrow_mut().extend(urls.keys().cloned());
+        }
+        urls
     }
 
     fn diagnose(&self) -> String {
@@ -62,7 +97,7 @@ impl Playhead for WinSource {
     /// A missing player window is not checked here. With nothing to post to, stepping changes
     /// nothing, and the seek reports that the steps had no effect — which is what happened.
     fn window(&self) -> Option<(u32, u32)> {
-        let live = self.player.active_keys();
+        let live = self.keys();
         Some((*live.keys().next()?, *live.keys().next_back()?))
     }
 

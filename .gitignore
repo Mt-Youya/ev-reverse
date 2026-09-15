@@ -28,6 +28,9 @@ rust_out/
 # a rule pinned to one name lets the next run's directory straight into the index.
 verify_out*/
 
+# Live segment keys persisted by the Rust harvest loop.
+grab-state.json
+
 .idea
 .vscode
 __pycache__/

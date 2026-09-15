@@ -1,5 +1,3 @@
 Starting EVPlayer2 with spoofed sandbox identity...
 
-[OK] Identity getters installed and debugger detached.
-Check launcher.log for the SUCCESS line, then verify with:
-  tools\device_analysis\DeviceSnapshot.exe <EVPlayer2 PID> snapshot.json
+[FAILED] See launcher.log in this folder for details.

@@ -80,7 +80,7 @@ ten-second summary line is a separate `info` call, exactly as before.
 
 ## 5. Exit codes
 
-Frozen at the values the CLI returned before the workspace split:
+The command exit codes are:
 
 | Code | Meaning |
 |---|---|
@@ -91,6 +91,10 @@ Frozen at the values the CLI returned before the workspace split:
 "No exit code was invented for an incomplete capture" is deliberate: scripts already branch on
 `0`, and `finished.status` expresses the same thing with more detail and room to grow. In JSON
 mode a runtime error additionally emits `finished{status:"failed"}` before exiting `1`.
+
+When `--mp4` is requested, missing ffmpeg/ffprobe, conversion errors and full-stream decode
+verification errors are runtime failures (exit `1`). MP4 artifacts are emitted only after
+verification; an incomplete capture still exits `0` with `finished.status = partial`.
 
 ## 6. Cancelling
 

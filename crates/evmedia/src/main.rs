@@ -12,8 +12,7 @@ use evmedia_contract::{
     Status,
 };
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let cli = Cli::parse();
     let reporter = Reporter::from_cli(cli.json_events, cli.stop_file.clone());
 
@@ -23,7 +22,7 @@ async fn main() {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
     });
 
-    if let Err(error) = commands::dispatch(cli.command, &reporter).await {
+    if let Err(error) = commands::dispatch(cli.command, &reporter) {
         // Matches what `fn main() -> Result<()>` produced before: anyhow's Debug on stderr.
         eprintln!("Error: {error:?}");
         reporter.event(&Event::Finished {

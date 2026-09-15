@@ -339,6 +339,7 @@ pub fn scratch(name: &str) -> PathBuf {
 pub fn options(output: &Path) -> GrabOptions {
     GrabOptions {
         output: output.to_path_buf(),
+        cache: None,
         jobs: 4,
         poll: Duration::from_millis(5),
         idle_limit: 3,

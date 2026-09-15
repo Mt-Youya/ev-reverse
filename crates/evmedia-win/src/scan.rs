@@ -103,6 +103,11 @@ impl Player {
     /// holds a context for. A key outlives its context, and once the context is gone the key is a
     /// bare 32-hex string that [`Player::hex_candidates`] and `keyscan` have to find instead.
     pub fn active_keys(&self) -> BTreeMap<u32, (String, String)> {
+        self.active_keys_for(None)
+    }
+
+    /// Filter by filename before inserting into the index map: indexes repeat across lessons.
+    pub(crate) fn active_keys_for(&self, files: Option<&BTreeSet<String>>) -> BTreeMap<u32, (String, String)> {
         let Some(base) = self.module_base(RENDER_DLL) else {
             return BTreeMap::new();
         };
@@ -120,6 +125,7 @@ impl Player {
                 if !file.ends_with(".ts") {
                     continue;
                 }
+                if files.is_some_and(|files| !files.contains(&file)) { continue; }
                 let schedule: [u8; 32] =
                     object[OFF_SCHEDULE..OFF_SCHEDULE + 32].try_into().unwrap();
                 let Some(key) = schedule_to_key(&schedule) else { continue };
@@ -215,7 +221,7 @@ impl Player {
                 // The URL starts at the nearest "http" before the name and runs to the first
                 // byte that cannot appear in a query string.
                 let search_from = name_start.saturating_sub(256);
-                let Some(scheme) = find(&bytes[search_from..name_start], b"http://") else {
+                let Some(scheme) = bytes[search_from..name_start].windows(7).rposition(|value| value == b"http://") else {
                     continue;
                 };
                 let url_start = search_from + scheme;
@@ -280,7 +286,7 @@ fn looks_like_segment(name: &str) -> bool {
         && name[..name.len() - 3].bytes().all(|byte| byte.is_ascii_hexdigit() || byte == b'-')
 }
 
-/// Pull `<name>.ts?…&sid=<lesson>&…` pairs out of one chunk of memory.
+/// Associate segment filenames with their URL directory, independently of the student ID.
 fn collect_lessons(bytes: &[u8], out: &mut HashMap<String, String>) {
     let mut from = 0usize;
     while let Some(hit) = find(&bytes[from..], URL_NEEDLE) {
@@ -288,13 +294,13 @@ fn collect_lessons(bytes: &[u8], out: &mut HashMap<String, String>) {
         let at = from + hit + 3;
         from = at;
         let Some(name) = name_before(bytes, at) else { continue };
-        // Lossy, not strict: the URL is immediately followed by arbitrary heap bytes that are not
-        // valid UTF-8, and a strict decode fails on them -- which silently discards every lesson
-        // while still counting every needle hit. The `sid=` parameter is ASCII and always comes
-        // before that trailing garbage, so replacing the garbage loses nothing.
-        let tail = String::from_utf8_lossy(&bytes[at..(at + URL_MAX).min(bytes.len())]);
-        if let Some(sid) = sid_of(&tail) {
-            out.insert(name, sid);
+        let search = at.saturating_sub(256);
+        let Some(scheme) = bytes[search..at].windows(7).rposition(|value| value == b"http://") else { continue };
+        let start = search + scheme;
+        let length = bytes[start..].iter().take(URL_MAX).take_while(|byte| is_url_byte(**byte)).count();
+        let Ok(url) = std::str::from_utf8(&bytes[start..start + length]) else { continue };
+        if let Some(lesson) = keyscan::lesson_from_url(url) {
+            out.insert(name, lesson);
         }
     }
 }
@@ -305,16 +311,6 @@ fn name_before(bytes: &[u8], end: usize) -> Option<String> {
     let slash = bytes[search_from..end].iter().rposition(|byte| *byte == b'/')?;
     let name = std::str::from_utf8(&bytes[search_from + slash + 1..end]).ok()?;
     looks_like_segment(name).then(|| name.to_string())
-}
-
-/// The `sid` query parameter — the lesson a segment belongs to.
-///
-/// These bytes come straight out of the heap, so they are raw text and `&` may appear escaped as
-/// `&`; looking for `sid=` finds the parameter either way.
-fn sid_of(text: &str) -> Option<String> {
-    let at = text.find("sid=")? + 4;
-    let digits: String = text[at..].chars().take_while(char::is_ascii_digit).collect();
-    (!digits.is_empty()).then_some(digits)
 }
 
 #[cfg(test)]
@@ -331,17 +327,17 @@ mod tests {
         collect_lessons(SIGNED, &mut out);
         assert_eq!(
             out.get("119354-333c99e0-4045-4224-8c40-fb511d8450d6.ts").map(String::as_str),
-            Some("1113723"),
+            Some("a5806965-1269-44ff-8cf3"),
             "heap bytes were {:?}",
             String::from_utf8_lossy(SIGNED)
         );
     }
 
     #[test]
-    fn a_lesson_id_stops_at_the_next_separator() {
-        assert_eq!(sid_of("?bid=1&sid=1113723&t=x").as_deref(), Some("1113723"));
-        assert_eq!(sid_of("?sid=42").as_deref(), Some("42"));
-        assert_eq!(sid_of("?bid=1").as_deref(), None);
+    fn a_student_id_does_not_identify_a_lesson() {
+        assert_eq!(keyscan::lesson_from_url("http://cdn/lesson-a/file.ts?sid=42").as_deref(), Some("lesson-a"));
+        assert_eq!(keyscan::lesson_from_url("http://cdn/lesson-b/file.ts?sid=42").as_deref(), Some("lesson-b"));
+        assert_eq!(keyscan::lesson_from_url("http://cdn/file.ts?sid=42"), None);
     }
 
     /// The heap puts the URL hard against arbitrary bytes. A strict `from_utf8` over that tail
@@ -355,7 +351,7 @@ mod tests {
         collect_lessons(&raw, &mut out);
         assert_eq!(
             out.get("119354-333c99e0-4045-4224-8c40-fb511d8450d6.ts").map(String::as_str),
-            Some("1113723")
+            Some("a5806965-1269-44ff-8cf3")
         );
     }
 }

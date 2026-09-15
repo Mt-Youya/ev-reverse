@@ -43,6 +43,9 @@ evmedia decode-ev segments.zip manifest.json lesson.ts
 evmedia adapters
 ```
 
+中文导出流程、课时选择、管理员权限与成品验证见 [CLI-EXPORT.md](docs/CLI-EXPORT.md)；
+实机发现的问题、根因与修复见 [CLI-INCIDENTS.md](docs/CLI-INCIDENTS.md)。
+
 Then either double-click `evmedia-gui.exe` and pick `grab`, or use the command line directly.
 The window and the terminal run the same code: the GUI's forms are generated from the CLI's own
 argument definitions, so they cannot drift apart.

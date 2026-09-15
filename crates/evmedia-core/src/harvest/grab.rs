@@ -15,7 +15,7 @@
 //! The version before this asked the player for keys first and then fetched only the segments it
 //! already had keys for, so a segment whose key had not arrived yet was never downloaded at all.
 
-use super::{fetch, seek, GrabOptions, Harvester, Segment, MAX_SWEEPS, SWEEP_AFTER};
+use super::{fetch, seek, state::State, GrabOptions, Harvester, Segment, MAX_SWEEPS, SWEEP_AFTER};
 use crate::{keyscan, keyscan::KeyEntry, keyscan::Library, media};
 use anyhow::Result;
 use evmedia_contract::{Event, Reporter, SegmentState, Stage, StageState, Status};
@@ -52,20 +52,10 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
     let mut failed: HashMap<u32, (usize, String)> = HashMap::new();
     let mut idle = 0usize;
     let mut last_report = Instant::now();
-    // Every segment index the player has ever exposed. The live window slides, so without this
-    // a gap would be invisible the moment the playhead moved on -- and the sweep would have
-    // nothing to aim at.
-    let mut seen: BTreeSet<u32> = BTreeSet::new();
+    // Keys, filename-to-index mappings and known gaps must outlive the playback contexts.
+    let mut state = State::load(&options.output)?;
     let mut sweeps_left = MAX_SWEEPS;
     let mut cancelled = false;
-    // Filename -> key, accumulating across polls. A segment solved on an earlier poll is handed
-    // back as the skip set so it is not re-derived, which means this poll's `recover` returns
-    // only what is new — the accumulated result has to live here or it would be lost.
-    let mut known: BTreeMap<String, String> = BTreeMap::new();
-    // Filename -> playback index, also sticky. The player releases contexts as playback moves
-    // on, so an index read once has to outlive the object it was read from, or a segment already
-    // downloaded could never be placed afterwards.
-    let mut places: HashMap<String, u32> = HashMap::new();
 
     reporter.event(&Event::Stage {
         name: Stage::Scan,
@@ -80,6 +70,7 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
             break;
         }
 
+        let State { known, places, seen } = &mut state;
         let urls = harvester.urls();
         places.extend(harvester.indexes());
         // The live contexts come first: index, filename and key arrive together, so this is both
@@ -89,6 +80,12 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
             places.insert(file.clone(), index);
             known.insert(file, key);
         }
+        // An exposed index without a key still belongs in the gap set.
+        seen.extend(places.iter().filter(|(file, _)| urls.contains_key(*file)).map(|(_, index)| *index));
+        // Save live keys before a slow network request can delay the next poll or the run stops.
+        state.save(&options.output)?;
+        let State { known, places, seen } = &mut state;
+        if let Some(cache) = &options.cache { fetch::import_cache(cache, &enc_dir, places)?; }
         // Ciphertext first, keys second — though the order of these two lines is not what
         // carries the weight. What carries it is that the download is never gated on already
         // holding a key, which is circular. Segments already decrypted are left out of the
@@ -127,20 +124,11 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
         }
 
         let mut progressed = false;
-        // Every index the player has revealed that this lesson owns. It has to come from `places`
-        // and not only from `jobs`: a segment the playhead skipped never gets a key, so it never
-        // becomes a job — and a gap the loop cannot see is a gap `--sweep` cannot aim at, which
-        // is precisely the case the sweep exists for.
-        seen.extend(
-            places
-                .iter()
-                .filter(|(file, _)| urls.contains_key(*file))
-                .map(|(_, index)| *index),
-        );
-        // Only indexes that joined a signed URL of this lesson count: the player can hold
-        // contexts from more than one lesson, and a stray index would send the sweep chasing a
-        // gap that does not belong to the lesson being captured.
+        // Cached segments can be placed even after their signed URLs have been released.
         seen.extend(jobs.iter().map(|segment| segment.index));
+        state.save(&options.output)?;
+        let seen = &state.seen;
+        let known = &state.known;
 
         let pending: Vec<&Segment> = jobs
             .iter()
@@ -191,6 +179,7 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
                         let entry = failed.entry(index).or_insert((0, String::new()));
                         entry.0 += 1;
                         entry.1 = error.to_string();
+                        reporter.info(format!("  segment {index} ({file}) failed, attempt {}: {error:#}", entry.0));
                         reporter.event(&Event::Segment {
                             index,
                             file,
@@ -286,13 +275,14 @@ pub fn run(harvester: &dyn Harvester, options: &GrabOptions, reporter: &Reporter
         detail: String::new(),
     });
 
-    finish(&dec_dir, options, &ok, cancelled, reporter)
+    finish(&dec_dir, options, &ok, state.seen.last().copied(), cancelled, reporter)
 }
 
 fn finish(
     dec_dir: &std::path::Path,
     options: &GrabOptions,
     ok: &BTreeMap<u32, String>,
+    last_seen: Option<u32>,
     cancelled: bool,
     reporter: &Reporter,
 ) -> Result<()> {
@@ -307,7 +297,7 @@ fn finish(
     }
 
     let indexes: Vec<u32> = ok.keys().copied().collect();
-    let outcome = media::merge_lesson(dec_dir, &options.output, &indexes, reporter)?;
+    let outcome = media::merge_lesson_known(dec_dir, &options.output, &indexes, last_seen, reporter)?;
 
     let status = if cancelled {
         Status::Cancelled

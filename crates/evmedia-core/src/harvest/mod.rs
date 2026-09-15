@@ -12,6 +12,7 @@
 pub mod fetch;
 pub mod grab;
 pub mod seek;
+mod state;
 
 use crate::harvest::seek::Playhead;
 use std::{
@@ -19,6 +20,11 @@ use std::{
     path::PathBuf,
     time::Duration,
 };
+
+/// Filenames already associated with the output's lesson, including URLs since released.
+pub fn saved_files(output: &std::path::Path) -> anyhow::Result<BTreeSet<String>> {
+    Ok(state::State::load(output)?.places.into_keys().collect())
+}
 
 /// One segment as the loop needs it: what to fetch, and what opens it.
 pub struct Segment {
@@ -81,6 +87,7 @@ pub const MAX_SWEEPS: usize = 20;
 
 pub struct GrabOptions {
     pub output: PathBuf,
+    pub cache: Option<PathBuf>,
     pub jobs: usize,
     pub poll: Duration,
     pub idle_limit: usize,
@@ -96,6 +103,7 @@ impl Default for GrabOptions {
     fn default() -> Self {
         Self {
             output: PathBuf::from(evmedia_contract::args::DEFAULT_OUTPUT),
+            cache: None,
             jobs: evmedia_contract::args::DEFAULT_JOBS,
             poll: Duration::from_secs(evmedia_contract::args::DEFAULT_POLL_SECS),
             idle_limit: evmedia_contract::args::DEFAULT_IDLE_LIMIT,

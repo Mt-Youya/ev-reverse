@@ -13,12 +13,15 @@ use std::time::Duration;
 
 const ADAPTERS: &str = "evplayer2-5.0.5/windows-live-manifest\ngeneric/http-segment-manifest\nandroid-agent-protocol (planned)\nmacos-agent-protocol (planned)\nios-companion-app-protocol (planned)";
 
-pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
+pub fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
     match command {
         Command::Tree(args) => catalog::run(&args.catalog, reporter),
         Command::Download(args) => {
             let manifest: download::DownloadManifest = read_json(&args.manifest)?;
-            download::download_all(manifest, args.output, args.parallel, reporter).await
+            // The live commands use reqwest::blocking and must run outside a Tokio runtime.
+            tokio::runtime::Runtime::new()?.block_on(
+                download::download_all(manifest, args.output, args.parallel, reporter)
+            )
         }
         Command::DecodeEv(args) => {
             let manifest: decode::EvManifest = read_json(&args.manifest)?;
@@ -47,9 +50,26 @@ fn capture_ev(args: CaptureEvArgs, reporter: &Reporter) -> Result<()> {
 
 #[cfg(windows)]
 fn grab(args: GrabArgs, reporter: &Reporter) -> Result<()> {
-    let source = evmedia_win::WinSource::open(args.pid)?;
+    let scope_path = args.output.join("capture-lesson.txt");
+    let saved = match std::fs::read_to_string(&scope_path) {
+        Ok(value) => Some(value.trim().to_string()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if let (Some(saved), Some(requested)) = (&saved, &args.lesson) {
+        if saved != requested { anyhow::bail!("output belongs to lesson {saved}; use a separate output directory"); }
+    }
+    if saved.is_none() && (args.output.join("grab-state.json").exists()
+        || std::fs::read_dir(args.output.join("dec")).is_ok_and(|mut entries| entries.next().is_some())) {
+        anyhow::bail!("existing output has no lesson identity; use a new output directory and copy only its enc cache");
+    }
+    let source = evmedia_win::WinSource::open_lesson(args.pid, args.lesson.or(saved), harvest::saved_files(&args.output)?)?;
+    std::fs::create_dir_all(&args.output)?;
+    std::fs::write(scope_path, source.lesson().expect("scoped source"))?;
+    reporter.info(format!("capturing lesson {}", source.lesson().unwrap()));
     let options = harvest::GrabOptions {
         output: args.output,
+        cache: args.cache,
         jobs: args.jobs,
         poll: Duration::from_secs(args.poll),
         idle_limit: args.idle_limit,
@@ -159,10 +179,14 @@ fn recover(args: RecoverArgs, reporter: &Reporter) -> Result<()> {
 
         // `entries` is a BTreeMap, so indexes arrive sorted — which the merge depends on, since it
         // concatenates in the order given and decides completeness from the highest index.
-        let indexes: Vec<u32> = group.entries.keys().copied().collect();
-        let merged = media::merge_lesson(&dec_dir, &lesson_dir, &indexes, reporter)?;
-        if args.mp4 {
+        let last_seen = group.entries.keys().next_back().copied();
+        let indexes: Vec<u32> = group.entries.keys().copied()
+            .filter(|index| harvest::fetch::valid_dec_file(&dec_dir, *index)).collect();
+        let merged = media::merge_lesson_known(&dec_dir, &lesson_dir, &indexes, last_seen, reporter)?;
+        if args.mp4 && merged.complete {
             media::remux_mp4(&merged.path, &lesson_dir.join("lesson.mp4"), reporter)?;
+        } else if args.mp4 {
+            reporter.info("refusing to remux an incomplete merge; play the rest and rerun");
         }
     }
     Ok(())
