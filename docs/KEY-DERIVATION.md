@@ -58,6 +58,37 @@ MPEG-TS packets with 18,854 sync bytes, and `ffprobe` reads H.264 2992×1682 plu
 `tools/parser-tools/cached_lessons.py` reports which captured lists a download directory can
 already satisfy.
 
+### What those checks do not prove, and what does
+
+The paragraph above was read as "the export works" for a while, and it is not enough to say that.
+**Sync bytes and `ffprobe` metadata are satisfied by a decryption that produces structurally valid
+but visually worthless video.** Measured: decode `verify_out5/lesson.ts` and `verify_out4/
+live2_lesson.ts` all the way through instead of probing them, and both report ~1,500 decoder
+errors; extract frames and they are flat grey with faint vertical banding, which is the decoder's
+error concealment, not a picture.
+
+What the layers actually check out as, on a decrypted segment:
+
+| Check | Result |
+| --- | --- |
+| TS sync byte at every 188-byte boundary | 100% |
+| NAL structure (AUD, SPS 26 B, PPS 6 B, IDR slice 74,224 B) | intact |
+| Stream parameters (`ffprobe`) | H.264 High@4.0, yuv420p, 1920×1080, 30 fps |
+| **Audio decode** | **clean** (8 warnings over the same file) |
+| **Video decode** | **1,874 error lines, frames grey** |
+
+The audio is the point: it travels in the same ciphertext, on its own PID, and decodes cleanly. A
+wrong key or a wrong mask would destroy it along with the transport headers. So the AES-256-ECB
+layer and the `MD5(filename)[:16]` mask are right, and **the video slice payloads carry a second
+scrambling that this project has not undone** — which is what the DLL's `DecryptFilterMgr`,
+`DecryptFilter@ev` and `release DecryptFilter start!` strings describe, and why the player can
+render a lesson whose segments, decrypted this way, decode to grey.
+
+Until that filter is understood, the honest status of the offline path is: keys, ordering and the
+container are solved; the picture is not. Frames are the only oracle worth trusting —
+`ffmpeg -v error -i out.ts -f null -` and an extracted PNG say more than any sync count.
+
+
 ## The three functions
 
 | RVA | What it is | How it was confirmed |
