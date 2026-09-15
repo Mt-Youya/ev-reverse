@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the evmedia window is allowed to do. It only listens to job events the Rust side emits and calls the app's own commands (which need no permission); it has no filesystem, shell or network access of its own, because every one of those goes through the CLI process instead.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:event:default"]
+}

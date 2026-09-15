@@ -1,0 +1,269 @@
+# 07 — Catch the instruction that writes a segment key into a playback context
+
+**What to build:** A hardware write breakpoint on one empty *schedule*, caught the moment the player fills it. What comes out is the writing instruction and its backtrace — the trail to the derivation. If it cannot be caught, the reason is named rather than left open: a per-thread breakpoint across sixteen threads may simply miss the writer, and that is a result too.
+
+**Blocked by:** None — can start immediately
+
+**Status:** ready-for-human
+
+- [ ] An empty schedule is found and a write breakpoint is armed on it, or the reason no empty one exists is stated.
+- [ ] A write is caught, with the instruction pointer and a backtrace — or a named reason it was not caught.
+- [ ] The command used and its output are recorded as the evidence.
+- [ ] The player is left running, or is restarted and the already-recovered keys are confirmed intact.
+
+## Progress: the first attempt ran, caught nothing, and the cause is now known
+
+Two runs of the first version of `probe_write.py` armed successfully and reported no write at all:
+
+```
+found 491 context(s), 438 with an empty key field
+empty context: 119354-5c18a0bd-40a8-4402-bf21-15d17e38cb87.ts at 0x1ad4fb504e0 (ready=0)
+armed on 0x1ad4fb50000 (... field 0x1ad4fb50600)
+done.                                  <- nothing in between, 240 seconds
+```
+
+A second run found 938 contexts with 872 empty, armed, and again reported nothing.
+
+The guard had fired. Frida's `MemoryAccessMonitor` works with `PAGE_GUARD`, and **the guard is consumed
+by the first access — read or write — and is not restored.** The player reads these context objects
+constantly. The first read of the guarded page hit the callback, the callback saw
+`d.operation !== 'write'` and returned, and the page was unguarded from that moment on. The run was
+blind for the remaining 240 seconds. It was never "the player did not write"; it was "nothing was
+reported".
+
+The first version also guarded an arbitrary empty context, chosen by scan order, which is very likely
+one the player will never touch again.
+
+## Second attempt: the mechanism worked, and the script blinded itself
+
+The rewritten version ran against the player and **did see the pages** — 600 accesses in the first few
+seconds — but none of them a store, and then it went quiet:
+
+```
+found 140 context(s), 139 with an empty key field
+1 of 140 context(s) hold a key; the highest decrypted index is 0
+aiming at 24 context(s), index 1..24
+guards armed.
+[access] read page+0x674  from Qt5Gui.dll+0x20ccbe
+[access] read page+0x270  from ntdll.dll+0xbefa1
+[access] read page+0x4d8  from PlayerLibRender56_vs.dll+0x9ae2
+... 600 of these, then:
+[*] still watching 20 page(s); 600 access(es) seen so far     (repeating)
+```
+
+Two separate defects, both in the script rather than the mechanism:
+
+1. **The reporting cap short-circuited the catch.** `if (found || reports >= REPORT_CAP) return;`
+   stopped *processing* accesses once 600 had been printed, and on pages this busy that took about
+   three seconds. The watch stayed armed and re-arming and was permanently deaf. Fixed: the cap now
+   suppresses only the printing.
+2. **A 100 ms timer is too slow to catch a single store on a page that is read constantly.** With the
+   guard consumed by the first access after each tick, the sample is whichever access came first, and
+   a store can sit in the blind window indefinitely. Measured against a target doing 24 stores with
+   reads in between: no re-arm caught **0**, a 100 ms timer caught **23 of 24**, and re-arming with
+   `setTimeout(..., 0)` from inside the callback caught **24 of 24** with the target healthy.
+   Synchronous re-enabling inside the callback wedges the target — that is what the earlier attempt
+   measured — but deferring one turn does not. The timer is now only a one-second safety net.
+
+**The run also shows why nothing was decrypted, which is the more important half of the story.**
+`139 of 140 contexts empty` and `the highest decrypted index is 0` means the player was decrypting
+essentially nothing during those 300 seconds. The writer only runs while the player decrypts a segment
+it has not decrypted on this machine before, so **no script can catch it on a lesson that has already
+been played here**. The rewritten script now says so in as many words when it finds fewer than three
+keyed contexts, because that condition is indistinguishable from a broken tool until you know to look
+for it.
+
+### The instrument as it now stands
+
+Aim just past the highest decrypted index, guard up to 24 pages, report every access with the offset
+it faulted at, re-arm by deferring a turn, read the value after the store has completed, and print a
+call chain from module pointers found on the stack when the unwind-based backtrace comes back empty.
+Verified against a stand-in target end to end: it survives reads of the guarded page, catches a store
+into the watched field, names the instruction, dumps the registers, reads the value back correctly,
+and produces a call chain after both backtracers returned nothing.
+
+**It has still not caught a store from the real player** — the attempt above could not have, because
+the player was not decrypting.
+
+## A second instrument, and possibly the better one
+
+The page guard answers "which instruction wrote these 32 bytes". Static analysis suggests a more direct
+question with a better answer available: **`ctx+0x120` is an AES key schedule, filled in place by the
+app's own key setup at `0x20EC0`**, called from `hls_decode` as `(rcx = ctx+0x120, rdx = a
+std::string, r8d = 0x100, r9d = 1)`. If that is right, the field is not written by a bare store at all
+— it is written by the key expansion — and the interesting value is not the destination but the
+**source**: the `std::string` whose 32 hex characters are the key.
+
+So a one-line hook is worth running alongside the guard:
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x20ec0 20 0x600
+```
+
+and, at the entry hook rather than a round inside it, `AES_set_encrypt_key`:
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_at.py PlayerLibRender56_vs.dll 0x791f90 20 0x600
+```
+
+`0x791F90` is the OpenSSL entry — `(rcx = userKey, edx = bits, r8 = AES_KEY *)` — and `hook_aes_key.py`
+already caught 2825 distinct keys there, so this is the place where key material is most likely to be
+readable. It is **not** `0x792c78`: that address is inside this same function, in the middle of its
+expansion loop, and the project's note that it "fires very rarely" came from `probe_at.py` de-duplicating
+repeated identical hits, not from measurement.
+
+Ticket 09 is what this is really for: the writer's instruction tells you *where* the key lands, but the
+string handed to the setup tells you *what the key is*, and that is the derivation the ticket asks to
+have stated.
+
+## What was measured, and how
+
+The mechanism was then tested against stand-in target processes written for the purpose, because
+guessing about `PAGE_GUARD` semantics is what produced the silent failure in the first place.
+
+| Question | Measurement |
+| --- | --- |
+| Does a target-thread write reach the callback at all? | Yes. A stand-in process's own stores reported normally. |
+| How often does the callback fire? | Once. 27 target memory operations produced 1 report. The guard is consumed and not restored. |
+| Is re-arming from inside the callback safe? | **No.** 200 reports and the target performed *zero* operations for 8 seconds — it wedged. |
+| Is re-arming from a timer cheap? | Yes. A target hammering guarded pages kept 100.4% of its unguarded throughput at 64 and 128 pages, 100 ms re-arm. |
+| Is a page guard free of a *store* of a different width? | The reported address is the **faulting byte**, not the write's first byte. A 32-byte store at page+0x120 reported as page+0x130. |
+| Is there a hardware watchpoint to fall back on? | **No.** `typeof Thread.setHardwareWatchpoint` and `...Breakpoint` are both `undefined` on frida 17.18.0; `Thread` exposes only `backtrace`. |
+| Does a guard fault before or after the store runs? | **Before.** Reading the field inside the callback returns the old contents; the value has to be read on a later turn. |
+| Does `Thread.backtrace(..., ACCURATE)` work? | It raises `invalid operation` where unwind data is unusable, and did on a plain Rust target. FUZZY returned an empty list there. |
+| `NativePointer.toNumber()` | Does not exist — only `UInt64` has it. Calling it inside the callback raised once per access. |
+
+**This also corrects what the bench believed about `watch_key.py`.** It is not the 96 pages that hang
+the player; 128 guarded pages measured free. It hangs because it *also* hooks the AES site and takes an
+`ACCURATE` backtrace on every hit, and that site fires once per AES round. The ticket's own fallback —
+"a per-thread breakpoint across sixteen threads may simply miss the writer" — describes a mechanism
+this frida build does not have at all.
+
+## The instrument now
+
+`tools/parser-tools/probe_write.py` was rewritten around those measurements: it aims at the contexts
+just past the highest decrypted index (the ones about to be filled, rather than an arbitrary one),
+guards up to 24 pages, re-arms from a 100 ms timer and never from inside the callback, reports every
+access with the offset it faulted at, reads the value after the store has completed, and prints a
+call chain assembled from module pointers found on the stack when the unwind-based backtrace comes back
+empty.
+
+It was run end to end against a stand-in target: six reads of the guarded page (the exact sequence that
+silenced the first version), then a 32-byte store into the watched field. It survived the reads, caught
+the store, named the instruction, dumped the registers, read `3df51fd02753d5605cc3139e66a3561e` back
+correctly, and produced a call chain after both backtracers returned nothing.
+
+**It still has not been run against EVPlayer2 itself.** The stand-in proves the mechanism; only the real
+player can answer this ticket.
+
+### How to run it
+
+```
+C:\Users\Yonjay\.conda\envs\subgen\python.exe -u tools\parser-tools\probe_write.py 300
+```
+
+Preconditions, all load-bearing:
+
+- EVPlayer2 running, logged in through `tools\device_launcher\run-evplayer.cmd`.
+- A lesson open **that still has segments the player has not decrypted on this machine.** The writer
+  only runs while the player is decrypting something for the first time. Open a lesson never opened
+  here, and start the script *before* the segment is reached.
+- Keep it playing. Do not pause.
+
+The PATH `python` is a Microsoft Store placeholder and does not work; use the conda path above.
+
+**Success** is `WRITE into a key field` naming the instruction, followed by `the writer, with context`.
+**A named negative is also a result** for this ticket, and both likely ones now have a diagnosis:
+
+- `no context with an empty key field` — every context on this machine has been decrypted, so there is
+  no store left to catch. The remedy is a lesson that has not been played here.
+- heartbeats arriving with `reports` climbing and no key-field hit — the guards are on pages the player
+  is touching, and it is not writing a key into them. That is a real negative.
+- **no heartbeat, and no message of any kind** — the instrument is no longer reporting. That is NOT a
+  negative about the player; it is a void run, and the script now says so in those words.
+
+## Run 3: the precondition was met for the first time, and the instrument went dark
+
+The run of 2026-09-13 is the first one that was not the benign "already decrypted" case:
+
+```
+[*] found 611 context(s), 541 with an empty key field
+[*] 70 of 611 context(s) hold a key; the highest decrypted index is 165
+[*] aiming at 24 context(s), index 166..177
+[*] guards armed. 请保持播放。
+[access] read  page+0x240  from Qt5Gui.dll+0x23def3
+... about 40 access lines, five of them:
+[access] write page+0x250  from PlayerLibRender56_vs.dll+0x5d39d3
+... and then nothing at all for the remaining minutes.
+```
+
+What that does establish: `0x5d39d3` really is storing into a watched page and the guard really does
+catch stores, so the mechanism is sound. `page+0x250` is not a watched key field, so those five are
+not the answer.
+
+What it does **not** establish: anything about whether the player wrote a key. The line count is
+exactly `INDIVIDUAL_CAP`, and the heartbeat is emitted every 20 ticks of a 1000 ms timer independently
+of the cap and independently of any write — so a player that merely abstained could not have
+suppressed it. **The silence is instrument-side.** The run is VOID, not a negative.
+
+A second instrument was attached to the same pid throughout: `evmedia grab --pid 6684`. It reads
+`ctx+0x120` itself on every poll (`crates/evmedia-win/src/scan.rs`, `active_keys` reads the whole
+0x2a8-byte object; `OFF_SCHEDULE` is 0x120), so it was reading the exact field under guard, and its
+`regions()` walk (`crates/evmedia-win/src/process.rs`) skips pages that show `PAGE_GUARD` at the
+moment it enumerates and is re-enumerated per poll. It cannot explain the missing heartbeat, which is
+independent of the pages — but it is an unexcluded confounder and the two instruments must not share
+a pid again.
+
+## The page count was the real limit, and it was measured rather than guessed
+
+The instrument was rewritten and then re-measured against a stand-in built for the question: 24 pages
+read in tight loops by four threads, then 24 stores at `page+0x120`. It lives in the repo at
+`tools/parser-tools/storm/` — `storm.rs` is the target, `storm_test.py` drives it and **extracts this
+file's JS out of `probe_write.py` rather than copying it**, so what is measured is what ships.
+
+| Guarded pages | Runs | Heartbeats | Store caught | Target finished its own storm |
+| --- | --- | --- | --- | --- |
+| 24 | 1 | 1 | no | no |
+| 8 | 1 | 1 | no | no |
+| 4 | 1 | 1 | no | no |
+| 2 | 5 | 4 (four runs), 2 (one run) | yes in four, no in one | yes in four |
+| 1 | 3 | 4 | yes | yes |
+| 2, re-arm floor removed | 2 | 1 | no | no |
+| 1, re-arm floor removed | 1 | 4 | yes | yes |
+
+The ticket's earlier "re-arm is free, 100.4% throughput at 128 pages" measurement was taken on one
+page of a single-threaded target that slept between stores. On many hot pages the binding constraint
+is not the re-arm churn but the sheer volume of access callbacks, and it takes the instrument — and
+the target — down. Four pages is already too many and was never once watchable.
+
+**The edge is noisy and the numbers above are not all one run each.** Repeat sampling at 2 pages gave
+the full result four times out of five; a single earlier sample at 2 pages failed, and a single
+unthrottled sample at 1 page passed. So the direction is solid — more pages is worse, the rate limit
+helps — and the boundary is not. `MAX_PAGES` is 2 because 4 never worked and 1 always did, not because
+2 was shown to be the exact edge. Nobody should quote a tighter number than that without repeating it.
+
+The storm is harsher than the player, so this is a floor on the constraint rather than a measurement
+of the player; the player's own page count was never measured. It also means the aiming strategy needs
+rethinking: watching the 24 contexts of the frontier was never watchable, so the choice is a smaller,
+better-chosen window — or the `0x20EC0` hook below, which costs one hook instead of N guarded pages
+and is now the more promising of the two.
+
+## The instrument as it now stands
+
+- `MAX_PAGES = 2`, and the aiming line says how many chosen contexts collapsed onto one page.
+- The re-arm is rate-limited to one `disable`/`enable` pair per `REARM_FLOOR_MS` (2 ms). Removing that
+  floor reintroduces the failure, measured.
+- A heartbeat fires once at arm time and then every 5 s, carrying `reports`, `rearms`, `pages` and
+  whether a re-arm is pending. It is the only place those totals appear.
+- A focus page — the lowest empty index — prints its **writes** uncapped. Printing every access
+  uncapped was tried and is itself a flood: it held the heartbeat to a single beat on the storm
+  target, so the flood was removed rather than the heartbeat explained away.
+- Liveness is judged Python-side on **any** message, not on the heartbeat alone, because the heartbeat
+  shares an event loop with the access callbacks and can be starved by them. Nothing from the agent
+  for 18 s prints a VOID warning; the run ends with a message count and says outright that a silent
+  run is not a negative about the player.
+- `script.on('destroyed')` and `session.on('detached')` both print VOID.
+- The script's docstring now states that the grab must not share the pid.
+
+**Still not run against the player.** The next run is the one that answers this ticket, and it must
+have the player to itself.

@@ -1,19 +1,96 @@
-# evmedia-platform
+# evmedia
 
-Rust core for a portable course-video library. It currently implements a compiled command-line core, rather than pretending every platform adapter already exists.
+Turns a lesson in the Chinese course-video player **EVPlayer2** into a playable file.
 
-## What works now
+Two binaries ship from one workspace:
 
-- Print catalog trees matching the folder/video hierarchy in the supplied screenshot.
-- Download generic HTTP segment manifests concurrently, with per-segment SHA-256 verification and atomic `.part` files.
-- Convert EVPlayer2 5.0.5 Windows segment sets using a live-captured manifest from the companion collector already delivered in `../EVPlayer2通用解密工具`.
+| | |
+|---|---|
+| `evmedia` | the CLI — the product |
+| `evmedia-gui` | a desktop window whose every interaction is an `evmedia` CLI invocation |
 
-Build on Windows:
+`evmedia-gui` does not link the engine. It shells out to `evmedia.exe`, streams that process's
+JSON events into a progress bar, and shows its stderr in a log pane. See
+[`docs/CLI-CONTRACT.md`](docs/CLI-CONTRACT.md).
 
-```powershell
-$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
+## Build
+
+```bash
 cargo build --release
-.\target\release\evmedia.exe tree .\examples\catalog.json
 ```
 
-The same core targets macOS, Linux, Android, and iOS. Each native player requires a dedicated adapter that produces an authorized `Catalog` and `DownloadManifest`; the core does not rely on Sandbox.
+That produces `target/release/evmedia.exe` and nothing else — the GUI pulls in a windowing stack
+and is deliberately kept out of the default build, so a problem there can never block the CLI.
+
+```bash
+cargo build --release -p evmedia-gui
+```
+
+Produces `target/release/evmedia-gui.exe`. Put both in the same folder (or run from
+`target/release`) and the GUI finds the CLI by itself. No Node, no bundler: the window's frontend
+is plain static HTML/CSS/JS and `cargo` alone builds it.
+
+## Use
+
+```bash
+# capture a lesson: harvest keys from the running player, download, decrypt, merge
+evmedia grab --pid <EVPlayer2 pid> --output lesson_out --mp4
+
+# the same lesson without the player: ask the API to sign the segments, then derive and decode
+evmedia fetch --from-body captured.params --token <bearer> --output list.json
+evmedia derive --playlist list.json --input <segments> --output manifest.json
+evmedia decode-ev <segments> manifest.json lesson.ts
+
+# the portable commands
+evmedia tree examples/catalog.json
+evmedia download manifest.json out --parallel 8
+evmedia adapters
+```
+
+Then either double-click `evmedia-gui.exe` and pick `grab`, or use the command line directly.
+The window and the terminal run the same code: the GUI's forms are generated from the CLI's own
+argument definitions, so they cannot drift apart.
+
+### What `grab` needs from you
+
+The player must have the lesson **open**, and it has to play through it. A segment's decryption
+key is computed when the player decrypts that segment for playback and nowhere else, so a part
+of the lesson the player never reached has no key to find. `grab` watches the player, harvests
+keys as they appear, and — if the playhead has already run past a gap — walks the playhead back
+over it on its own. Segments already decrypted are cached, so rerunning resumes instead of
+starting over.
+
+## Layout
+
+```
+crates/
+  evmedia-contract/   argv + event schema + exit codes; the only thing the GUI shares
+  evmedia-core/       catalog, download, decode, crypto, harvest loop — no Windows API at all
+  evmedia-win/        process memory scanning, key derivation, playhead control
+  evmedia/            the CLI
+  evmedia-gui/        the desktop window (Tauri + static frontend)
+tools/                Python reverse-engineering helpers and the device-identity launcher
+docs/                 architecture and the CLI contract
+```
+
+No source file exceeds 500 lines, and `cargo test` fails if that changes.
+
+## Tests
+
+```bash
+cargo test --workspace
+```
+
+The suite includes the harvest loop driven by a fixture — no player, no Windows, no network —
+plus checks that the portable core never reaches for a Windows API, that the GUI cannot link the
+core, and that the GUI's argv construction stays the exact inverse of clap's parsing.
+
+## Background
+
+`HANDOFF.md` is the project's working notes, including the device-identity launcher that lets
+EVPlayer2 run outside Windows Sandbox, and the documented decryption scheme that this build
+turned out **not** to use.
+
+`docs/KEY-DERIVATION.md` is the key derivation as read off `PlayerLibRender56_vs.dll`: the whole
+chain from the context's `tk` and filename to the AES schedule, and the one input that is not on
+the wire — which is why a lesson still costs one playback pass.
