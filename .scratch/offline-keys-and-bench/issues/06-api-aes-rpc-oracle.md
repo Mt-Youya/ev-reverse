@@ -27,6 +27,40 @@ talks to `en2v4.ieway.cn`, which is what opening a lesson or pressing download d
 If the value turns out to be a constant like `20220507`, this ticket closes without an oracle and
 the tool can fetch its own segment lists, which is the last step between `derive` and a capture.
 
+## The list endpoint is closed, and the others are keyed per play key
+
+`evmedia fetch` now signs and sends the segment-list request itself, and the answer decrypts with
+the constant this ticket went looking for. What that leaves is the *other* endpoints, and their
+shape is now measured rather than guessed:
+
+* **A captured request body can be replayed verbatim and the server accepts it.** All seven
+  endpoints replayed with a fresh token came back `errcode: 0` —
+  `tools/parser-tools/replay_bodies.py` does it. The token is what the server checks, not the age of
+  the body.
+* **Their responses still do not open, and the reason is the play key.** A response is encrypted
+  under the data key its request descriptor names, and that descriptor is keyed to the *play key*
+  the request carried (`cache_key` in the descriptor is the play key; `dkey_ver: 202`). A body
+  captured under an old play key gets an answer under that same old key, which nothing today can
+  read — so replaying old bodies cannot unlock old endpoints. Reading them needs a request built for
+  the *current* session, and that needs each endpoint's field set, which is inside the very bodies
+  that cannot be decrypted.
+* **A descriptor is neither in the response envelope** (six fields: `errcode`, `errmsg`, `uuid`,
+  `zip`, `encrypt`, `result`) **nor on disk** (`find_descriptors.py`: 174 files, none). It is
+  assembled inside the player, which is where the remaining keys live.
+
+Two static results on the decryption call sites that have never fired:
+
+* `0x1B480` is not an endpoint handler: it is a **method of the crypto object** — its address sits in
+  a vtable at `.rdata:0x801438`, next to `[aes …]` and `key length must be 16 or 24 or 32`. It fires
+  for whatever flow decrypts through that object, not for one endpoint.
+* `0x34390` has **no static referrer at all**: the only mention of its address anywhere in the image
+  is its own `.pdata` entry. It is either dispatched from a table built at runtime or dead in this
+  build, and only a live session can tell which.
+
+The `CryptDecrypt` import is not a second application-level path: its only call site is inside
+OpenSSL's CAPI engine (`engines\e_capi.c`), i.e. certificate operations in the TLS layer.
+
+
 ## What is already in place, and the one gap
 
 Written up while preparing the human session, because the second half of this ticket turns out not to
