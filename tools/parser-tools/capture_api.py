@@ -106,9 +106,34 @@ send({ t: 'ready', part: 'decrypt', at: dll.base.add(0x1EA10).toString() });
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pid", type=int, required=True)
+    ap.add_argument("--pid", type=int)
     ap.add_argument("--seconds", type=float, default=900)
+    ap.add_argument("--follow", action="store_true",
+                    help="wait for a fresh EVPlayer2 to appear and attach to that one; a player "
+                         "that has already been injected into several times refuses further "
+                         "injection (VirtualAllocEx -> ACCESS_DENIED)")
     args = ap.parse_args()
+
+    if args.follow and not args.pid:
+        import subprocess
+        known = set()
+        print("waiting for an EVPlayer2 process…", flush=True)
+        while True:
+            listing = subprocess.run(["tasklist", "/fi", "imagename eq EVPlayer2.exe", "/fo", "csv"],
+                                     capture_output=True, text=True).stdout
+            pids = {int(row.split('","')[1]) for row in listing.splitlines()
+                    if row.startswith('"EVPlayer2.exe"')}
+            fresh = pids - known
+            if fresh:
+                args.pid = sorted(fresh)[-1]
+                print(f"found pid {args.pid}", flush=True)
+                break
+            known |= pids
+            time.sleep(3)
+
+    if not args.pid:
+        print("pass --pid, or --follow to wait for one")
+        return 1
 
     print(f"attaching pid={args.pid}", flush=True)
     session = frida.attach(args.pid)
