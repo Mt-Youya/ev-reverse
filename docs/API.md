@@ -202,6 +202,33 @@ Two corrections this replaced: the table holding `0x1B480` starts at `.rdata:0x8
 note said `0x801438`, three slots late), and the table *does* have RTTI — the earlier attempt read
 the locator pointer as an RVA instead of a virtual address, which is why it appeared to have none.
 
+### How those two are reached, by name
+
+The DLL exports 185 C++ methods, and reading the names turns the address chain into a story. The
+path to `Decryptor_V8A` is:
+
+```
+MediaPlayer::playFile(QString const&)   0x48ED0
+  -> MediaPlayer::resume()              0x49220
+  -> EVPlayer::play(std::string, …)     0x151C0
+  -> 0x385B0   allocates a 0x58-byte object and calls
+  -> 0x174C0   (8.4 KB) which loads
+  -> 0x1B170   the Decryptor_V8A singleton
+  -> Decryptor_V8A slot 3 = 0x1B480      the silent one
+```
+
+So the decryptor is chosen **per file that is played**, and `0x1B480` fires for a file this build
+considers V8A. `MediaPlayer` is a Qt object with the expected signals (`started`, `paused`,
+`resumed`, `seekFinished`, `stoped`, `videoOutChanged`, `channelChanged`), which is the same surface
+`playctrlform.cpp` logs from in `%LOCALAPPDATA%\EVPlayer2\log`.
+
+That also explains the shape of the negative result: every lesson this account can play arrives as
+the modern segment list (`.ts` segments fetched against a signed URL, keys derived from `tk`), which
+takes none of the eight decryptor paths. The formats the family exists for are simply absent — no
+`.v4a`, `.ev4`, `.v8a`, `.v3a`, `.ev5`…`.ev7` or `.evs` file exists on this machine, and the
+download directory holds 10,038 `.ts` segments and nothing else.
+
+
 
 ## Signing a request
 
