@@ -40,6 +40,7 @@ fn sample(name: &str) -> Command {
         "fetch" => Command::Fetch(FetchArgs {
             token: "eyJhbGciOiJIUzI1NiJ9.test".to_string(),
             from_body: Some(path("captured.params")),
+            from_capture: Some(path("kdf_inputs.jsonl")),
             playkey: "V4bsTWiOcJ1KCbkjYwkzaRFWUM0Xyr2a".to_string(),
             liststr: "0|0|119354-abc.ts".to_string(),
             output: path("list.json"),

@@ -43,7 +43,15 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
 /// The port is the same for every platform — the request is built, signed and encrypted in the
 /// portable core — so unlike `grab` and `capture-ev` this one has no Windows half.
 async fn fetch(args: FetchArgs, reporter: &Reporter) -> Result<()> {
-    let (playkey, liststr) = if let Some(path) = &args.from_body {
+    let (playkey, liststr) = if let Some(path) = &args.from_capture {
+        let (playkey, liststr) = api::fields_from_capture(path)?;
+        reporter.info(format!(
+            "play key and {} segment name(s) read from {}",
+            liststr.matches(',').count() + 1,
+            path.display()
+        ));
+        (playkey, liststr)
+    } else if let Some(path) = &args.from_body {
         let body = std::fs::read(path)
             .map_err(|error| anyhow::anyhow!("read {}: {error}", path.display()))?;
         let (playkey, liststr) = api::request_fields(&body)?;

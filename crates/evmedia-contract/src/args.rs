@@ -128,6 +128,9 @@ pub struct FetchArgs {
     /// A captured request body (`{"params": ...}`) to read the play key and segment list from.
     #[arg(long)]
     pub from_body: Option<PathBuf>,
+    /// A `probe_kdf.py` capture: the newest signed preimage in it carries the current play key.
+    #[arg(long)]
+    pub from_capture: Option<PathBuf>,
     /// The lesson's play key, if not taking it from a captured request.
     #[arg(long, default_value = "")]
     pub playkey: String,
@@ -319,6 +322,9 @@ impl ToArgv for FetchArgs {
         argv.push(self.token.clone());
         if let Some(body) = &self.from_body {
             push_path(&mut argv, "--from-body", body);
+        }
+        if let Some(capture) = &self.from_capture {
+            push_path(&mut argv, "--from-capture", capture);
         }
         argv.push("--playkey".to_string());
         argv.push(self.playkey.clone());

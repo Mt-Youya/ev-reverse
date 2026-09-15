@@ -73,3 +73,20 @@ fn a_captured_body_without_a_play_key_is_refused() {
     assert!(api::request_fields(b"not json").is_err());
     assert!(api::request_fields(b"{\"version\":202}").is_err());
 }
+
+/// The workflow the probe supports: it logs the string the player hashes, and the play key that
+/// rotates per session is inside it. Rejecting anything that is not that string matters — a
+/// half-parsed play key produces a request the server refuses with no clue which field was wrong.
+#[test]
+fn a_signed_preimage_yields_the_play_key_and_the_segment_list() {
+    let preimage = format!(
+        "app_version=5.0.5&evs_playkey={PLAYKEY}&need_zip=1&os_name=windows&platform=1&\
+         platform_type=1&req_time=1789470730&ts_liststr={LISTSTR}&type=0&&{SIGN_SECRET}"
+    );
+    let (playkey, liststr) = api::fields_from_preimage(&preimage).expect("parses");
+    assert_eq!(playkey, PLAYKEY);
+    assert_eq!(liststr, LISTSTR);
+
+    assert!(api::fields_from_preimage("app_version=5.0.5&need_zip=1").is_err());
+    assert!(api::fields_from_preimage("a request body, not a preimage").is_err());
+}

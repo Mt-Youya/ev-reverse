@@ -197,8 +197,7 @@ pub fn open_envelope(body: &[u8]) -> Result<Value> {
 /// This is the one thing a capture is still good for here, and it saves retyping a 280-character
 /// play key that rotates per session: the body is decryptable with the same constant the rest of
 /// this module uses.
-pub fn request_fields(body: &[u8]) -> Result<(String, String)> {
-    use base64::Engine as _;
+pub fn request_fields(body: &[u8]) -> Result<(String, String)> {    use base64::Engine as _;
     let envelope: Value = serde_json::from_slice(body).context("captured body is not JSON")?;
     let params = envelope
         .get("params")
@@ -224,6 +223,52 @@ pub fn request_fields(body: &[u8]) -> Result<(String, String)> {
         bail!("captured request has no play key or segment list");
     }
     Ok((playkey.to_string(), liststr.to_string()))
+}
+
+/// The signed preimage the player hashes -> `(playkey, ts_liststr)`.
+///
+/// `tools/parser-tools/probe_kdf.py` logs exactly this string when the player builds a request, and
+/// it is the only place the *current* play key is visible in readable form: it rotates per session
+/// and exists in no file. Reading it here is what makes `fetch` usable without copying a
+/// 280-character key by hand.
+pub fn fields_from_preimage(preimage: &str) -> Result<(String, String)> {
+    if !preimage.starts_with("app_version=") {
+        bail!("not a signed request preimage");
+    }
+    let mut playkey = None;
+    let mut liststr = None;
+    for part in preimage.split('&') {
+        if let Some(value) = part.strip_prefix("evs_playkey=") {
+            playkey = Some(value.to_string());
+        }
+        if let Some(value) = part.strip_prefix("ts_liststr=") {
+            liststr = Some(value.to_string());
+        }
+    }
+    match (playkey, liststr) {
+        (Some(playkey), Some(liststr)) if !playkey.is_empty() && !liststr.is_empty() => {
+            Ok((playkey, liststr))
+        }
+        _ => bail!("preimage carries no play key or no segment list"),
+    }
+}
+
+/// The newest signed preimage in a `probe_kdf.py` capture.
+pub fn fields_from_capture(path: &std::path::Path) -> Result<(String, String)> {
+    let text = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let mut newest = None;
+    for line in text.lines() {
+        let Ok(record) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        if let Some(input) = record.get("md5_input").and_then(Value::as_str) {
+            if input.starts_with("app_version=") {
+                newest = Some(input.to_string());
+            }
+        }
+    }
+    let preimage = newest.ok_or_else(|| anyhow!("no signed request in {}", path.display()))?;
+    fields_from_preimage(&preimage)
 }
 
 /// Send the request and return the signed list.
