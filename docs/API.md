@@ -160,36 +160,44 @@ Per-call-site table, as caught live:
 | `0x03B435` (inside `0x3B2B0`) | `11585ec1b1f8f30e` | the request descriptor |
 | `0x042C49` (inside `0x42A30`) | `11585ec1b1f8f30e` | the request descriptor |
 
-### The two call sites that never fire
+### The two call sites that never fire are two other formats' decryptors
 
-`0x1B480` and `0x34390` have not decrypted anything in any session observed, and that is now a
-measured statement rather than an absence of evidence: `0x1EA10` reports the return address of
-every call, so a session's call sites are exactly the set of callers it printed. Across a full
-session of real use — two lessons downloading while one of them played, the EVS chain
-(`getEvsSignUrl` → `getPlayAuthorityEVS` → `getPlaySubtitle` → `getDownEVSKey`), seeks and pauses —
-the only callers that appeared were the three above. Playback decrypts its segments somewhere else
-entirely, so playing a lesson does not reach these two either.
+`0x1B480` and `0x34390` have not decrypted anything in any session observed, and that is now both a
+measured and an explained result. Measured: `0x1EA10` reports the return address of every call, so a
+session's call sites are exactly the set of callers it printed — across two lessons downloading
+while one played, the whole EVS chain (`getEvsSignUrl` → `getPlayAuthorityEVS` → `getPlaySubtitle` →
+`getDownEVSKey`), seeks, pauses and an offline attempt, only the three call sites above ever
+appeared. Explained: they are methods of **other media formats' decryptors**.
 
-What they are, structurally:
+The DLL carries a family of them, and every one is a class with a twelve-slot vtable whose first six
+slots it overrides and whose last six are the base class's (`0x9AC0`, `0x1AF60`, `0x1A590`,
+`0x1A5C0`, `0x1A5A0`, `0x7920`). `crypto_classes.py` walks each type descriptor to its Complete
+Object Locator to its vtable and prints the slots:
 
-* **`0x1B480` is slot 3 of a ten-method table at `.rdata:0x801420`**, not at `0x801438` — the
-  earlier note was off by three slots, and the table is referenced exactly twice, at `0x1B170` and
-  `0x1B1A0`, both `lea` loads of `0x801420`. Those two are reached from a single function,
-  `0x385B0`, which allocates a 0x58-byte singleton and calls `0x174C0`. `0x174C0` is 8.4 KB and
-  references the encrypted string table, so the object belongs to one specific flow, and nothing in
-  this build has run it. There is no RTTI on the table, so no class name can be read off it.
-* **`0x34390` is a two-instruction wrapper** that calls `0x1EA10` from its first address. Its four
-  callers — `0x31E43`, `0x32474`, `0x36E18`, `0x374DB` — sit in functions that reference
-  `json_params`, `wdisklist` and eight of the encrypted `m4OEgjp…` strings. `wdisklist` is the
-  disk-shaped twin of `ts_liststr` in the DLL's own field table, so this is the local/disk side of
-  key fetching.
+| Class | vtable | slot 3 | slot 4 |
+| --- | --- | --- | --- |
+| `Decryptor_V8A` | `0x801420` | **`0x1B480`** — the silent one | `0x1CE50` |
+| `Decryptor_EV4` | `0x8021B8` | `0x2AD20` → `0x32070` → **`0x34390`** | `0x2C0C0` → `0x310F0` → **`0x34390`** |
+| `Decryptor_V4A` | `0x802310` | `0x2E0C0` → `0x37080` → **`0x34390`** | `0x2F4B0` → `0x361A0` → **`0x34390`** |
+| `Decryptor_V3A` | `0x802D20` | `0x37A20` | `0x1ACF0` |
+| `Decryptor_EV5` / `EV6` / `EV7` / `EVS` | `0x801108`, `0x801190`, `0x801200`, `0x802DD0` | their own | their own |
 
-Both therefore belong to endpoints no capture contains: `searchCourseVideos`,
-`getCourseDetailPreView`, `playReport`, `errorReport`, `feedBackV2`, `getEvsSignUrlByKey`, or the
-quiz and watermark flows the descriptor names as `tiku` and `water_ts` — every one of which is
-still zero in `captured/`. `capture_keys.py --sites --requests` is the instrument for them: it
-hooks the flow around both sites *and* logs the request path, so whichever endpoint is in flight
-when a new caller RVA appears is the answer.
+`GetEv4Key` (`0x8026B8`, slot 0 = `0x31060`) and `GetV4AKey` (`0x802CA8`, slot 0 = `0x36120`) sit
+in the same neighbourhood as the two handlers, which is what those handlers are: **`0x34390` is the
+response-decryption step of the EV4 and V4A key fetch**, and `0x1B480` is `Decryptor_V8A`'s own
+decrypt method.
+
+So neither is a missing capture of an endpoint this account uses: they are the V8A, EV4 and V4A
+code paths, and this account's content is none of those formats — the download directory holds
+10,038 `.ts` segments and the machine holds **no** `.v4a`, `.ev4`, `.v8a`, `.v3a`, `.ev5`…`.ev7` or
+`.evs` file at all. Reaching them needs media in one of those formats; until then the instrument is
+`capture_keys.py --sites --requests`, which hooks the flow around both sites and logs the request
+path in flight.
+
+Two corrections this replaced: the table holding `0x1B480` starts at `.rdata:0x801420` (an earlier
+note said `0x801438`, three slots late), and the table *does* have RTTI — the earlier attempt read
+the locator pointer as an RVA instead of a virtual address, which is why it appeared to have none.
+
 
 ## Signing a request
 
