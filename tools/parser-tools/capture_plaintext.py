@@ -2,11 +2,11 @@
 
 Why a hook and not a proxy: the API is HTTP/2 over TLS, and every response body is encrypted
 before it reaches the socket (`docs/API.md`: `encrypt: 1` on all 317 captured responses). A proxy
-— even a trusted-certificate MITM — would hand back the same ciphertext that `captured/bodies.bin`
+鈥?even a trusted-certificate MITM 鈥?would hand back the same ciphertext that `captured/bodies.bin`
 already holds. The plaintext exists only inside the process, one instruction after the decryption.
 
 `0x1EA10(out, input, const std::string* key, bool* ok)` is that instruction, and it is the only
-response decryption in the DLL — five call sites, each of which first asks the Bridge layer for a
+response decryption in the DLL 鈥?five call sites, each of which first asks the Bridge layer for a
 key. Payloads differ per call site (JSON for the segment lists, raw bytes for other endpoints), so
 each capture records the return address too: that names the caller, and the caller names the
 endpoint.
@@ -110,7 +110,13 @@ def main():
         return 1
     print(f"attaching pid={pid}", flush=True)
     session = frida.attach(pid)
-    os.makedirs(PLAIN, exist_ok=True)
+
+    # One directory per run, and the run's stamp on every record. Numbered files restart at 001
+    # each time, so a log that is appended to across runs ends up pointing later records at earlier
+    # files: the join looks sound and reports the wrong payload for a key.
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    plain = os.path.join(PLAIN, stamp)
+    os.makedirs(plain, exist_ok=True)
 
     state = {"count": 0}
     seen = set()
@@ -134,7 +140,7 @@ def main():
         seen.add(digest)
         state["count"] += 1
         index = state["count"]
-        path = os.path.join(PLAIN, f"{index:03d}.bin")
+        path = os.path.join(plain, f"{index:03d}.bin")
         with open(path, "wb") as handle:
             handle.write(blob)
         kind = describe(blob)
@@ -143,8 +149,9 @@ def main():
         if key:
             keys.setdefault(key, 0)
             keys[key] += 1
-        record = {"index": index, "caller_rva": payload.get('caller'), "bytes": len(blob),
-                  "kind": kind, "key": key, "cipher": cipher, "path": os.path.basename(path)}
+        record = {"session": stamp, "index": index, "caller_rva": payload.get('caller'),
+                  "bytes": len(blob), "kind": kind, "key": key, "cipher": cipher,
+                  "path": os.path.join(stamp, os.path.basename(path))}
         with open(KEYS, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
         line = (f"[{index:03d}] caller={payload.get('caller'):#08x} {kind:10s} "
@@ -164,7 +171,7 @@ def main():
             session.detach()
         except Exception:
             pass
-    print(f"\n{state['count']} distinct payload(s) in {PLAIN}")
+    print(f"\n{state['count']} distinct payload(s) in {plain}")
     for key, times in sorted(keys.items(), key=lambda kv: -kv[1]):
         printable = key.encode("ascii", "replace").decode()
         print(f"  key {len(key):3d} chars, {times} payload(s): {printable!r}")

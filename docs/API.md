@@ -85,6 +85,22 @@ result (base64)  ->  AES-128-ECB  ->  gzip  ->  JSON
   the list payloads from that session were read through the inflate hook instead.
 * `tools/parser-tools/decrypt_response.py` decrypts what today's keys can, offline, and reports per
   endpoint which key worked.
+* **Descriptors arrive over the network, not from disk.** `find_descriptors.py` walks a directory
+  for base64 blobs that open into one; the player's install directory (110 files), its
+  `%LOCALAPPDATA%\EVPlayer2` (5) and its download directory (59 non-segment files) hold **none**.
+  That is why a capture taken under an older `dkey_ver` cannot be opened afterwards: the descriptor
+  that named its key was traffic, and what was captured was that traffic — encrypted.
+
+Per-call-site table, as caught live:
+
+| Call site | Key | Payload |
+| --- | --- | --- |
+| `0x0283F2` (inside `0x26730`) | `x!@#y.cn_xnk0506` | gzip → the segment list (`d_p`, `k_l`) |
+| `0x03B435` (inside `0x3B2B0`) | `11585ec1b1f8f30e` | the request descriptor |
+| `0x042C49` (inside `0x42A30`) | `11585ec1b1f8f30e` | the request descriptor |
+
+`0x1B480` and `0x34390`, the remaining two call sites, have not fired in any session observed so
+far, which is why the endpoints behind them are still unread.
 
 ## The one response shape that matters for a capture
 
