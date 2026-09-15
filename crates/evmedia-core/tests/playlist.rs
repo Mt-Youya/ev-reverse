@@ -73,3 +73,50 @@ fn a_signed_url_is_joined_to_the_host_it_belongs_to() {
         format!("{}{}", list.d_p, entry.sf)
     );
 }
+
+/// `download` reads the list `fetch` wrote straight through, so the file it saves each segment as
+/// has to be the name the list gives: that name is an input to the key, and a directory of
+/// `NNNNN.bin` would leave `derive` with nothing to match against.
+#[test]
+fn a_list_converts_to_a_download_manifest_that_keeps_each_filename() {
+    let manifest = list().to_download_manifest().unwrap();
+    assert_eq!(manifest.version, 1);
+    assert_eq!(manifest.videos.len(), 1);
+    let segments = &manifest.videos[0].segments;
+    assert_eq!(segments.len(), 2);
+    // sorted by index, with the query string stripped from the URL's filename half
+    assert_eq!(segments[0].index, 0);
+    assert_eq!(
+        segments[0].filename.as_deref(),
+        Some("119354-aaaaaaaa-0000-4000-8000-000000000001.ts")
+    );
+    assert!(segments[0].url.starts_with("http://cn28027.evplayer.cn/5d8f0047"), "{}", segments[0].url);
+    assert!(segments[0].url.contains("?bid=119354"), "{}", segments[0].url);
+}
+
+/// A list with a hole would download as a directory that `derive` refuses anyway; refusing it here
+/// names the list as the cause.
+#[test]
+fn a_list_with_a_gap_converts_to_nothing() {
+    let holed = LIST.replace("\"idx\": 1", "\"idx\": 7");
+    let list: Playlist = serde_json::from_str(&holed).unwrap();
+    let error = list.to_download_manifest().unwrap_err().to_string();
+    assert!(error.contains("contiguous"), "{error}");
+}
+
+#[test]
+fn either_json_contract_can_be_downloaded_from_the_same_argument() {
+    let dir = std::env::temp_dir().join("evmedia-download-input");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("list.json");
+    std::fs::write(&path, LIST).unwrap();
+    assert_eq!(evmedia_core::download::load_input(&path).unwrap().videos[0].segments.len(), 2);
+
+    let path = dir.join("manifest.json");
+    std::fs::write(
+        &path,
+        r#"{"version":1,"course_title":"c","videos":[{"id":"v","relative_path":"","segments":[{"index":0,"url":"http://h/a.ts"}]}]}"#,
+    )
+    .unwrap();
+    assert!(evmedia_core::download::load_input(&path).unwrap().videos[0].segments[0].filename.is_none());
+}

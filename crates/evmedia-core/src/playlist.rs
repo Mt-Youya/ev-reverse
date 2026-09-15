@@ -11,10 +11,11 @@
 
 use crate::crypto::key_from_tk;
 use crate::decode::{build_manifest_of, CaptureManifest};
+use crate::download::{DownloadManifest, RemoteSegment, RemoteVideo};
 use anyhow::{bail, Context, Result};
 use evmedia_contract::Reporter;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
 #[derive(Debug, Deserialize)]
@@ -83,6 +84,29 @@ impl Playlist {
             .collect::<Result<Vec<_>>>()?;
         ordered.sort_by_key(|(index, _)| *index);
         Ok(ordered)
+    }
+
+    /// The same lesson as a `DownloadManifest`, which is what lets `fetch`'s output go straight
+    /// into `download`. Each segment keeps its own filename because that name is an input to the
+    /// key derivation, so the download directory is already what `derive` reads.
+    pub fn to_download_manifest(&self) -> Result<DownloadManifest> {
+        summarize(self)?;
+        let mut segments = Vec::with_capacity(self.k_l.len());
+        for entry in &self.k_l {
+            segments.push(RemoteSegment {
+                index: entry.idx,
+                url: entry.url(&self.d_p),
+                headers: BTreeMap::new(),
+                sha256: None,
+                filename: Some(entry.filename()?.to_string()),
+            });
+        }
+        segments.sort_by_key(|segment| segment.index);
+        Ok(DownloadManifest {
+            version: 1,
+            course_title: self.d_p.clone(),
+            videos: vec![RemoteVideo { id: "lesson".to_string(), relative_path: String::new(), segments }],
+        })
     }
 }
 

@@ -130,7 +130,9 @@ against the segment's own bytes.
 
 - **`Catalog`** — course folders and video leaves, for browsing and selection.
 - **`DownloadManifest v1`** — authorised segment URLs, headers, ordering, optional SHA-256.
-  Downloads are written atomically and may run concurrently.
+  Downloads are written atomically and may run concurrently. `download` accepts a segment list in
+  this argument's place: the list's `d_p`/`k_l` are enough to fill the manifest in, and each
+  segment keeps the filename the list gave it, which is what `derive` matches against.
 - **`EvManifest`** — an ordered set of encrypted segments plus the key material for each.
 - **`CaptureManifest`** — what `capture-ev` writes; the same three top-level fields the previous
   collector emitted, so existing `decode-ev` invocations keep working.

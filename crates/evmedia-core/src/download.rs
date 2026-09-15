@@ -2,7 +2,7 @@
 //! and written atomically so an interrupted run resumes instead of re-fetching.
 
 use crate::paths::safe_relative;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use evmedia_contract::{Event, Reporter, SegmentState, Stage};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use serde::Deserialize;
@@ -36,6 +36,23 @@ pub struct RemoteSegment {
     pub headers: BTreeMap<String, String>,
     #[serde(default)]
     pub sha256: Option<String>,
+    /// Written instead of the default `NNNNN.bin` when the manifest came from a segment list. The
+    /// key derivation and the XOR mask are both over the filename, so keeping the player's own
+    /// name here is what lets `derive` read the download directory untouched.
+    #[serde(default)]
+    pub filename: Option<String>,
+}
+
+/// `download` takes either a hand-written manifest or the segment list `fetch` just wrote, so a
+/// lesson goes from signed list to files on disk with nothing in between.
+pub fn load_input(path: &std::path::Path) -> Result<DownloadManifest> {
+    let value: serde_json::Value = crate::read_json(path)?;
+    if value.get("k_l").is_some() {
+        let list: crate::playlist::Playlist = serde_json::from_value(value)
+            .with_context(|| format!("parse {} as a segment list", path.display()))?;
+        return list.to_download_manifest();
+    }
+    serde_json::from_value(value).with_context(|| format!("parse {} as a download manifest", path.display()))
 }
 
 async fn download_segment(client: reqwest::Client, segment: RemoteSegment, target: PathBuf) -> Result<()> {
@@ -114,7 +131,10 @@ pub async fn download_all(
             let index = segment.index;
             let permit = gate.clone().acquire_owned().await?;
             let client = client.clone();
-            let target = folder.join(format!("{:05}.bin", segment.index));
+            let target = folder.join(match &segment.filename {
+                Some(name) => safe_relative(name)?,
+                None => PathBuf::from(format!("{:05}.bin", segment.index)),
+            });
             let url = segment.url.clone();
             started += 1;
             pending.push(async move {

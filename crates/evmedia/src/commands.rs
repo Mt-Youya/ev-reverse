@@ -17,7 +17,7 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
     match command {
         Command::Tree(args) => catalog::run(&args.catalog, reporter),
         Command::Download(args) => {
-            let manifest: download::DownloadManifest = read_json(&args.manifest)?;
+            let manifest = download::load_input(&args.manifest)?;
             download::download_all(manifest, args.output, args.parallel, reporter).await
         }
         Command::DecodeEv(args) => {
