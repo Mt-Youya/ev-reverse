@@ -28,6 +28,31 @@ Two versions of the same method is not redundancy: the player calls `…20260515
 playback and `…20231103` for the older flow, and the captured counts follow the player's own
 choice (238 against 30).
 
+### The whole method table, read out of the running process
+
+The capture above is only what was exercised. The player's method table is not in any file as
+text — `endpoints_by_caller.py` scans for `/student/…` literals and finds **zero** — but it is in
+memory once the player has started, and `dump_endpoints.py` reads it there. All nine paths sit as
+plain ASCII in `EVPlayer2.exe` at `+0x484300`…`+0x489100`:
+
+| Endpoint | In the captures? |
+| --- | --- |
+| `/student/getPlayTimeKeySignEVS20260515` | yes, 238 |
+| `/student/getDownEVSKey` | yes, 12 |
+| `/student/getPlaySubtitle` | yes, 8 |
+| `/student/getEvsAuthorityCourse`, `/student/getEvsSignUrl`, `/student/getPlayAuthorityEVS` | yes |
+| `/student/getEvsSignUrlByKey?key=` | no |
+| `/student/getCourseDetailPreView` | no |
+| `/student/searchCourseVideos` | no |
+| `/student/playReport` | no |
+| `/student/errorReport`, `/student/feedBackV2` | no |
+
+The same paths also exist inside `PlayerLibRender56_vs.dll`, but not as text: they are UTF-16
+copies of base64 blobs of the form `m4OEgjp…`, 296 of them, each decoding to a header
+`9b 83 84 82 3a` followed by a payload that is neither AES (not block-aligned) nor a plain XOR
+against any constant this project knows. That is why a *static* scan reports no endpoints while
+the process reports nine. Only the DLL's copy of `…20231103` was ever seen decrypted in memory.
+
 ## The envelope, and why almost nothing is readable
 
 Every response is the same shape:
@@ -105,6 +130,14 @@ at all: it is a **method of the crypto object** (`.rdata:0x801438`, a vtable sit
 `[aes …]` and `key length must be 16 or 24 or 32`), so it will fire for whatever flow decrypts
 through that object rather than for one endpoint.
 
+`0x34390` is a two-instruction wrapper — it calls `0x1EA10` from its first address — and it has
+four callers, at `0x31E43`, `0x32474`, `0x36E18` and `0x374DB`. Those two functions reference
+`json_params` and `wdisklist` and eight of the encrypted `m4OEgjp…` strings, so the flow behind
+them builds its request around a *disk* list, which is the offline/download side of the player
+(`getDownEVSKey`, and the "already downloaded" view) rather than playback. Ten minutes of the
+player fetching segment lists fired neither site: those twenty-four decryptions were all the
+segment list, all through `0x0283F2`.
+
 ## Signing a request
 
 Every request carries `sign` and the server checks it — a wrong one is refused with `签名错误`.
@@ -151,8 +184,15 @@ The segment list — a `z-inflate` product — is what ties a file to a key:
 
 ## What this leaves
 
-* `tk` and `idx` are on the wire; the *segment key* is not, and cannot be computed from what is.
-* The unreadable responses are unreadable for one reason: the player's own AES is applied before
-  anything hooks. Ticket 06's oracle exists for exactly this, and the same key material appears to
-  come from a Bridge lookup (`0x42A30` uses one of those values as an AES key), which is the one
-  thing standing between a capture and every response in it.
+* `tk` and `idx` are on the wire, and the segment key is *derived* from them rather than sent:
+  `key = MD5_hex(tk + filename + "20220507")`, verified on every triple that was caught
+  ([`KEY-DERIVATION.md`](KEY-DERIVATION.md)). Nothing has to be played and nothing has to be
+  hooked: `evmedia fetch` signs the request, `derive` computes the keys, and the export runs with
+  the player closed.
+* The responses that were unreadable when captured stay unreadable for one reason only: their
+  key was named by a descriptor that arrived as traffic under a `dkey_ver` that has since rotated.
+  Nothing on disk holds a descriptor — the install directory, `%LOCALAPPDATA%\EVPlayer2` and the
+  download directory were all searched — so an archived capture cannot be reopened later.
+* `0x1B480` and `0x34390` are the only decryption call sites never observed firing; a probe is
+  armed for them (`capture_keys.py`), and what they serve is the one question the list-derived
+  export does not need answered.
