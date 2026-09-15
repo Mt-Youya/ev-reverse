@@ -53,7 +53,9 @@ if (hex !== PROLOGUE) {
   Interceptor.attach(target, {
     onEnter: function (args) {
       // rcx = std::string* out, rdx = const char* input (tk + filename + extra)
-      var text = readCString(args[1], 512);
+      // 4096, not 512: the sign preimage is a request's fields plus a value the player appends, and
+      // at 512 the capture ended in the middle of `ts_liststr` and hid exactly the part being sought.
+      var text = readCString(args[1], 4096);
       if (text && text.length >= 32) send({ t: 'input', text: text });
     }
   });

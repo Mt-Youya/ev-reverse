@@ -1,7 +1,7 @@
 """Print the headers the player sends, so a request of our own can be authenticated the same way.
 
 Writing a request is one thing; being *accepted* is another, and the bearer token is the part of
-that which cannot be derived — it is issued by the server and expires. This hooks
+that which cannot be derived 鈥?it is issued by the server and expires. This hooks
 `nghttp2_submit_request`, which is where the player's outgoing header block exists as a C array
 before it goes on the wire, and prints the headers of any request whose path matches.
 
@@ -10,10 +10,13 @@ before it goes on the wire, and prints the headers of any request whose path mat
 
 import argparse
 import json
+import os
 import sys
 import time
 
 import frida
+
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 JS = r"""
 'use strict';
@@ -84,12 +87,14 @@ def main():
         seen.add(key)
         print(f"\n== {path}", flush=True)
         for name, value in headers:
-            shown = value if len(value) < 80 else value[:60] + f"…({len(value)})"
+            shown = value if len(value) < 80 else value[:60] + f"鈥?{len(value)})"
             print(f"   {name}: {shown}", flush=True)
         if token:
-            with open("captured/live_token.txt", "w", encoding="utf-8") as handle:
+            target = os.path.join(HERE, "captured", "live_token.txt")
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "w", encoding="utf-8") as handle:
                 handle.write(token)
-            print("   -> token written to captured/live_token.txt", flush=True)
+            print(f"   -> token written to {target}", flush=True)
 
     script = session.create_script(JS)
     script.on('message', on_message)
