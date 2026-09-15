@@ -39,6 +39,22 @@ function cstring(ptr, max) {
   } catch (e) { return null; }
 }
 
+// An MSVC `std::string` is { union { char buf[16]; char* ptr; }, size_t size, size_t capacity }.
+// Reading one as a C string returns the bytes of its buffer pointer, which is why every payload
+// was reported with `key=None`: the key was right there, one indirection away.
+function sstring(ptr) {
+  if (!ptr || ptr.isNull()) return null;
+  try {
+    var size = ptr.add(8).readU64().toNumber();
+    var cap = ptr.add(16).readU64().toNumber();
+    if (size > 0 && size < 512 && cap >= size) {
+      var text = (cap < 16) ? ptr.readUtf8String(size) : ptr.readPointer().readUtf8String(size);
+      if (text && text.length === size) return text;
+    }
+  } catch (e) {}
+  return cstring(ptr, 256);
+}
+
 // --- key setup: (rcx = schedule, rdx = key text, r8d = bits, r9d = 1 encrypt) ----------------
 Interceptor.attach(dll.base.add(0x20EC0), {
   onEnter: function (args) {
@@ -54,7 +70,7 @@ Interceptor.attach(dll.base.add(0x1EA10), {
   onEnter: function (args) {
     this.out = args[0];
     this.caller = this.returnAddress.sub(dll.base).toInt32();
-    this.key = cstring(args[2], 256);
+    this.key = sstring(args[2]);
   },
   onLeave: function () {
     try {
