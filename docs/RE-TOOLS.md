@@ -109,6 +109,7 @@ $project = "$env:USERPROFILE\ghidra_projects"
 address. Addresses without the `0x180000000` base are reported as "no function contains", which
 looks like a missing function and is really a missing base.
 
+## Wiring either of them into DSH
 
 DSH bridges MCP servers through its bundled `@deepseek-ai/dsh-mcp-client`, which turns each server's
 tools into `mcp__<serverName>__<tool>`. The profile's `cordis.patch.yml`
