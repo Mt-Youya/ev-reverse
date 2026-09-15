@@ -8,15 +8,26 @@ flow it was. That is the question the earlier probes answered one endpoint at a 
 Hook `0x1EA10` alongside it for the plaintext: the key setup says what opened a payload, this says
 what the payload was.
 
+The player is not doing one thing at a time: several lessons download at once, playback switches
+between them, and a download can be paused half-way. A capture is therefore a stream of
+interleaved lessons, and every payload is attributed to the lesson it names (`d_p` plus the
+`bid`/`sid` in each signed path) rather than assumed to belong to a single one. The per-lesson
+tally printed at the end says which lessons the session actually touched and how much of each was
+seen.
+
     python capture_keys.py --pid 18340 --seconds 900
     python capture_keys.py --follow --seconds 1800
 
-Writes `captured/keys.jsonl` (one line per setup) and `captured/api/<stamp>/NNN-<caller>.bin`.
+Writes `captured/keys.jsonl` (one line per setup) and, under `captured/api/<stamp>/`, one
+`NNN-<caller>.bin` per payload plus `index.jsonl` with the per-payload attribution.
 """
 
 import argparse
+import gzip
+import io
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -89,6 +100,46 @@ send({ t: 'ready', base: dll.base.toString() });
 """
 
 
+SEGMENT = re.compile(r"bid=(\d+)&sid=(\d+)")
+
+
+def attribute(blob):
+    """Which lesson a payload belongs to, and what shape it is.
+
+    A list names its lesson twice over: `d_p` holds the host with the lesson's uuid, and every
+    signed path carries `bid`/`sid`. A descriptor names a `cache_key` instead. Nothing is forced:
+    a payload that is neither stays `opaque`, because guessing here would put a wrong lesson in the
+    record and the record is the point.
+    """
+    plain = blob
+    if blob[:2] == b"\x1f\x8b":
+        try:
+            plain = gzip.GzipFile(fileobj=io.BytesIO(blob)).read()
+        except Exception:
+            return {"kind": "gzip-unreadable"}
+    try:
+        doc = json.loads(plain.decode("utf-8"))
+    except Exception:
+        return {"kind": "opaque"}
+    if not isinstance(doc, dict):
+        return {"kind": "json"}
+    if "k_l" in doc:
+        segments = []
+        for entry in doc.get("k_l", []):
+            path = str(entry.get("sf", "")).split("?")[0]
+            if path:
+                segments.append(path.rsplit("/", 1)[-1])
+        host = str(doc.get("d_p", "")).rstrip("/")
+        match = SEGMENT.search(json.dumps(doc.get("k_l", [])[:1]))
+        return {"kind": "list", "lesson": host.rsplit("/", 1)[-1][:8],
+                "bid": match.group(1) if match else None, "sid": match.group(2) if match else None,
+                "segments": segments}
+    if "cache_key" in doc or "dkey" in doc:
+        return {"kind": "descriptor", "lesson": str(doc.get("cache_key", ""))[:8],
+                "fields": sorted(doc.keys())}
+    return {"kind": "json", "fields": sorted(doc.keys())[:8]}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pid", type=int)
@@ -100,29 +151,18 @@ def main():
         if not args.follow:
             print("pass --pid, or --follow to wait for a fresh player")
             return 1
-        known = set()
-        print("waiting for an EVPlayer2 process…", flush=True)
-        while True:
-            listing = subprocess.run(["tasklist", "/fi", "imagename eq EVPlayer2.exe", "/fo", "csv"],
-                                     capture_output=True, text=True).stdout
-            pids = {int(row.split('","')[1]) for row in listing.splitlines()
-                    if row.startswith('"EVPlayer2.exe"')}
-            fresh = pids - known
-            if fresh:
-                args.pid = sorted(fresh)[-1]
-                break
-            known |= pids
-            time.sleep(3)
+        args.pid = wait_for_player(set())
 
-    print(f"attaching pid={args.pid}", flush=True)
     session = frida.attach(args.pid)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out = os.path.join(OUT, stamp)
     os.makedirs(out, exist_ok=True)
+    index = open(os.path.join(out, "index.jsonl"), "a", encoding="utf-8")
 
     seen_payload = set()
     seen_key = set()
     payloads = 0
+    lessons = {}
 
     def on_message(message, data):
         nonlocal payloads
@@ -154,11 +194,28 @@ def main():
             return
         seen_payload.add(digest)
         payloads += 1
+        where = attribute(blob)
         name = f"{payloads:03d}-{payload['caller']:#08x}.bin"
         with open(os.path.join(out, name), "wb") as handle:
             handle.write(blob)
-        print(f"[{payloads:03d}] payload caller={payload['caller']:#08x} key={payload['key']!r} "
-              f"{len(blob)} B", flush=True)
+        index.write(json.dumps({"at": time.time(), "index": payloads, "caller": payload['caller'],
+                                "key": payload['key'], "size": len(blob), "file": name, **where},
+                               ensure_ascii=False) + "\n")
+        index.flush()
+        # Every payload counts towards a lesson tally, and a list is what says how many segments
+        # that lesson has: the player asks for one list per segment while it downloads, so the
+        # union over a session is the closest thing to "how much of this lesson was in play".
+        lesson = where.get("lesson")
+        tally = None
+        if lesson:
+            entry = lessons.setdefault(lesson, {"sid": where.get("sid"), "segments": set(),
+                                                "payloads": 0, "last": 0})
+            entry["payloads"] += 1
+            entry["last"] = time.time()
+            entry["segments"].update(where.get("segments", []))
+            tally = f" lesson={lesson} sid={where.get('sid')} segs={len(entry['segments'])}"
+        print(f"[{payloads:03d}] caller={payload['caller']:#08x} {where['kind']:9s} "
+              f"key={payload['key']!r} {len(blob):5d} B{tally or ''}", flush=True)
 
     script = session.create_script(JS)
     script.on('message', on_message)
@@ -173,8 +230,30 @@ def main():
             session.detach()
         except Exception:
             pass
+        index.close()
+
     print(f"\n{len(seen_key)} distinct key setup(s), {payloads} payload(s)")
+    if lessons:
+        print(f"{len(lessons)} lesson(s) touched:")
+        for lesson, entry in sorted(lessons.items(), key=lambda kv: -kv[1]["payloads"]):
+            print(f"  {lesson}  sid={entry['sid']}  {entry['payloads']:4d} payload(s)  "
+                  f"{len(entry['segments']):3d} distinct segment(s)")
     return 0
+
+
+def wait_for_player(known):
+    """The pid of an EVPlayer2 that was not running before, waiting until one starts."""
+    print("waiting for an EVPlayer2 process…", flush=True)
+    while True:
+        listing = subprocess.run(["tasklist", "/fi", "imagename eq EVPlayer2.exe", "/fo", "csv"],
+                                 capture_output=True, text=True).stdout
+        pids = {int(row.split('","')[1]) for row in listing.splitlines()
+                if row.startswith('"EVPlayer2.exe"')}
+        fresh = pids - known
+        if fresh:
+            return sorted(fresh)[-1]
+        known |= pids
+        time.sleep(3)
 
 
 if __name__ == "__main__":
