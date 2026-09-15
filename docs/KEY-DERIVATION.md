@@ -88,6 +88,25 @@ Until that filter is understood, the honest status of the offline path is: keys,
 container are solved; the picture is not. Frames are the only oracle worth trusting —
 `ffmpeg -v error -i out.ts -f null -` and an extracted PNG say more than any sync count.
 
+### Measured on 2026-09-16: the second scrambling is not there, for the lesson tested
+
+The "second scrambling" above was **inferred** from key-correct-plus-grey. It has now been tested
+instead of inferred, for lesson `119354`. Every captured packet the player handed to
+`h264_decode_frame` was matched against this project's own decryption of the same segments
+(`tools/parser-tools/verify_packet_identity.py`, over `tools/parser-tools/captured/pairing/`): of
+3,290 captured packets large enough to test, 1,270 are present byte-for-byte in our streams, and in
+the backward direction — which answers per NAL rather than per packet — **every NAL of 256 bytes or
+more, in every one of the 9 streams, was found verbatim among them**, including a 189,694-byte IDR.
+So for that lesson the bytes the player decodes *are* the bytes this document's decryption produces,
+and there is no layer between them left to undo.
+
+The grey is still real, and it is still the same bytes: the player's own decoder turns them into a
+1920×1088 yuv420p picture (luma mean 221.5, standard deviation 33.3, dumped straight out of its
+`AVFrame`), while our ffmpeg turns them into flat grey (mean 130.0, sd ≤ 0.76, 73–86 error lines).
+The difference is therefore **downstream of the bytes**, in the decoder, not in a scrambling this
+pipeline has failed to strip. Read the paragraph above as scoped to the lessons where it was
+measured; the measurements and the current good/grey boundary are in `docs/RETROSPECTIVE.md` §13.
+
 
 ## The three functions
 

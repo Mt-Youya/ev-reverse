@@ -233,10 +233,23 @@ def main():
         if not name:
             continue
         plain = decrypt(open(os.path.join(CACHE, name), "rb").read(), key, name)
-        found = [label for label, needle in needles if needle in plain]
+        # A frame's bytes are never contiguous in a transport stream -- every 188 bytes carries a
+        # header, and a PES packet can split a frame -- so searching the .ts finds nothing even when
+        # nothing has been transformed. The elementary stream is what the decoder is handed.
+        raw = os.path.join(CAPTURED, name + ".ts")
+        with open(raw, "wb") as handle:
+            handle.write(plain)
+        es = raw + ".h264"
+        subprocess.run(["ffmpeg", "-v", "error", "-i", raw, "-c:v", "copy", "-f", "h264", "-y", es],
+                       capture_output=True)
+        if not os.path.exists(es):
+            print(f"  {name}: no video stream could be extracted", flush=True)
+            continue
+        stream = open(es, "rb").read()
+        found = [label for label, needle in needles if needle in stream]
         sync = sum(1 for i in range(0, len(plain) // 188 * 188, 188) if plain[i] == 0x47)
-        print(f"  {name}: {len(plain)} B, sync {sync}/{len(plain) // 188}, "
-              f"frame bytes found: {len(found)} {found[:4]}", flush=True)
+        print(f"  {name}: {len(plain)} B, sync {sync}/{len(plain) // 188}, elementary stream "
+              f"{len(stream)} B, frame bytes found: {len(found)} {found[:4]}", flush=True)
         hits += len(found)
 
     print("\n" + ("RESULT: the player's decoder input IS in the files as decrypted here"
