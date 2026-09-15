@@ -155,6 +155,15 @@ result (base64)  ->  AES-128-ECB  ->  gzip  ->  JSON
   `%LOCALAPPDATA%\EVPlayer2` (5) and its download directory (59 non-segment files) hold **none**.
   That is why a capture taken under an older `dkey_ver` cannot be opened afterwards: the descriptor
   that named its key was traffic, and what was captured was that traffic — encrypted.
+* **Strings, and the two constants, come from the Bridge.** The DLL's own text is not all text: 296
+  of its strings are UTF-16 `m4OEgjp…` blobs, stored end to end with no separators, and they are
+  opened by a call into the Bridge rather than by anything in the DLL —
+  `bridge = *(0xbf26c8 + 0x78)`, then `bridge->vtable[0xd0](bridge, out, wchar_ptr, len)`. That is
+  why every static attack on them failed: AES with each known key, single-byte XOR, and a known
+  plaintext pair all came back empty, because the cipher is not in this file. Alongside it,
+  `bridge->vtable[0x40](bridge, out, value, 0xa6)` looks a value up by numeric id — the mechanism
+  behind `20220507` and `ieway.cn@20200611`, neither of which appears in any file on disk.
+
 
 Per-call-site table, as caught live:
 

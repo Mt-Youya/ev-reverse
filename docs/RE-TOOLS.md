@@ -85,7 +85,30 @@ answers `Connected: GhidraMCP plugin running, but no program loaded`, and the st
 auto-connects to `127.0.0.1:8089` and registers **238 tools**. Ghidra and its MCP server only exist
 while Ghidra is running, and the tools only do something once a program is open.
 
-## Wiring either of them into DSH
+## Ghidra, headless, for reading one function
+
+The GUI is not needed to answer "what does this function do". The binary is imported and analysed
+once (304 s of auto-analysis for this DLL), and after that every question is a script run:
+
+```powershell
+$env:JAVA_HOME = 'D:\DevelopmentTools\jdks\jdk-21.0.12.1'
+$ghidra  = 'D:\DevelopmentTools\ghidra\ghidra_12.1.2_PUBLIC'
+$project = "$env:USERPROFILE\ghidra_projects"
+
+# once
+& "$ghidra\support\analyzeHeadless.bat" $project evplayer `
+    -import D:\Learning\EVPlayer2\PlayerLibRender56_vs.dll -overwrite -analysisTimeoutPerFile 2400
+
+# afterwards: -noanalysis, and addresses carry the image base 0x180000000
+& "$ghidra\support\analyzeHeadless.bat" $project evplayer -process PlayerLibRender56_vs.dll -noanalysis `
+    -scriptPath D:\Codes\github\ev-reverse\tools\parser-tools\ghidra_scripts `
+    -postScript DecompileAt.java 0x180034390 0x1800385b0 0x18001b480
+```
+
+`ghidra_scripts/DecompileAt.java` prints the decompiled C for whichever function contains each
+address. Addresses without the `0x180000000` base are reported as "no function contains", which
+looks like a missing function and is really a missing base.
+
 
 DSH bridges MCP servers through its bundled `@deepseek-ai/dsh-mcp-client`, which turns each server's
 tools into `mcp__<serverName>__<tool>`. The profile's `cordis.patch.yml`
