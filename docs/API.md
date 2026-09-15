@@ -47,6 +47,10 @@ plain ASCII in `EVPlayer2.exe` at `+0x484300`…`+0x489100`:
 | `/student/playReport` | no |
 | `/student/errorReport`, `/student/feedBackV2` | no |
 
+The list is a snapshot of one process's strings, not the whole API: hooking the request path while
+the player ran caught `/student/checkIn`, which the memory table never held. Requests are the
+authoritative source; the table above is a starting point.
+
 The same paths also exist inside `PlayerLibRender56_vs.dll`, but not as text: they are UTF-16
 copies of base64 blobs of the form `m4OEgjp…`, 296 of them, each decoding to a header
 `9b 83 84 82 3a` followed by a payload that is neither AES (not block-aligned) nor a plain XOR
