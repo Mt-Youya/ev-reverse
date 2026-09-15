@@ -1140,6 +1140,7 @@ dependencies = [
  "evmedia-contract",
  "evmedia-core",
  "evmedia-win",
+ "serde_json",
  "tokio",
 ]
 
@@ -1158,8 +1159,10 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "anyhow",
+ "base64 0.21.7",
  "ecb",
  "evmedia-contract",
+ "flate2",
  "futures-util",
  "hex",
  "md-5",

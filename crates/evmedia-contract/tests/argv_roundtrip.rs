@@ -37,6 +37,13 @@ fn sample(name: &str) -> Command {
             input: path("segments"),
             output: path("derived.json"),
         }),
+        "fetch" => Command::Fetch(FetchArgs {
+            token: "eyJhbGciOiJIUzI1NiJ9.test".to_string(),
+            from_body: Some(path("captured.params")),
+            playkey: "V4bsTWiOcJ1KCbkjYwkzaRFWUM0Xyr2a".to_string(),
+            liststr: "0|0|119354-abc.ts".to_string(),
+            output: path("list.json"),
+        }),
         "grab" => Command::Grab(GrabArgs {
             pid: 4242,
             output: path("grab_out"),
@@ -138,7 +145,7 @@ fn describe_covers_every_subcommand_the_parser_accepts() {
         .map(|sub| sub.get_name().to_string())
         .collect();
     assert_eq!(described, declared);
-    for expected in ["tree", "download", "decode-ev", "capture-ev", "derive", "grab", "recover", "adapters"] {
+    for expected in ["tree", "download", "decode-ev", "capture-ev", "derive", "fetch", "grab", "recover", "adapters"] {
         assert!(described.contains(&expected.to_string()), "missing {expected}");
     }
 }

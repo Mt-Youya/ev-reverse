@@ -4,6 +4,7 @@
 //! control live in `evmedia-win` and reach the loop here through the `harvest::Harvester`
 //! seam, which is what lets the harvest loop be tested without a player running.
 
+pub mod api;
 pub mod catalog;
 pub mod crypto;
 pub mod decode;

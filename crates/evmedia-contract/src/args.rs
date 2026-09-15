@@ -54,6 +54,8 @@ pub enum Command {
     CaptureEv(CaptureEvArgs),
     /// Derive a manifest from a captured segment list, with no player involved.
     Derive(DeriveArgs),
+    /// Ask the API to sign a lesson's segments, with no player involved.
+    Fetch(FetchArgs),
     /// Harvest segment keys and signed URLs from a live player, then download, decrypt and merge.
     Grab(GrabArgs),
     /// Recover segment keys from a live player's memory and decrypt the segments it already
@@ -112,9 +114,32 @@ pub struct DeriveArgs {
     pub output: PathBuf,
 }
 
+/// Ask the API to sign a lesson's segments: the request the player makes, made without it.
+///
+/// The endpoint signs the segment names the client already knows, so the client has to bring them
+/// (`--liststr`, or a captured request body to read them from) plus a bearer token. What it does
+/// not have to bring is the player: the signature, the body encryption and the reply's decryption
+/// all live in `evmedia-core::api`.
 #[derive(clap::Args, Debug, Clone, PartialEq, Eq)]
-pub struct GrabArgs {
-    /// PID of the running EVPlayer2 process.
+pub struct FetchArgs {
+    /// The bearer token the API answers to. Expired tokens are refused with a clear message.
+    #[arg(long, default_value = "")]
+    pub token: String,
+    /// A captured request body (`{"params": ...}`) to read the play key and segment list from.
+    #[arg(long)]
+    pub from_body: Option<PathBuf>,
+    /// The lesson's play key, if not taking it from a captured request.
+    #[arg(long, default_value = "")]
+    pub playkey: String,
+    /// `0|0|<file>.ts,1|0|<file>.ts,...` — the segments to sign.
+    #[arg(long, default_value = "")]
+    pub liststr: String,
+    #[arg(long)]
+    pub output: PathBuf,
+}
+
+#[derive(clap::Args, Debug, Clone, PartialEq, Eq)]
+pub struct GrabArgs {    /// PID of the running EVPlayer2 process.
     #[arg(long)]
     pub pid: u32,
     #[arg(long, default_value = DEFAULT_OUTPUT)]
@@ -231,6 +256,7 @@ impl ToArgv for Command {
             Command::DecodeEv(args) => args.to_argv(),
             Command::CaptureEv(args) => args.to_argv(),
             Command::Derive(args) => args.to_argv(),
+            Command::Fetch(args) => args.to_argv(),
             Command::Grab(args) => args.to_argv(),
             Command::Recover(args) => args.to_argv(),
             Command::Adapters(args) => args.to_argv(),
@@ -281,6 +307,23 @@ impl ToArgv for DeriveArgs {
         let mut argv = vec!["derive".to_string()];
         push_path(&mut argv, "--playlist", &self.playlist);
         push_path(&mut argv, "--input", &self.input);
+        push_path(&mut argv, "--output", &self.output);
+        argv
+    }
+}
+
+impl ToArgv for FetchArgs {
+    fn to_argv(&self) -> Vec<String> {
+        let mut argv = vec!["fetch".to_string()];
+        argv.push("--token".to_string());
+        argv.push(self.token.clone());
+        if let Some(body) = &self.from_body {
+            push_path(&mut argv, "--from-body", body);
+        }
+        argv.push("--playkey".to_string());
+        argv.push(self.playkey.clone());
+        argv.push("--liststr".to_string());
+        argv.push(self.liststr.clone());
         push_path(&mut argv, "--output", &self.output);
         argv
     }

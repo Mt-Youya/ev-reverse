@@ -8,8 +8,10 @@ description = "Portable course-media logic: catalog, download, decode, crypto, h
 [dependencies]
 evmedia-contract.workspace = true
 aes.workspace = true
+base64.workspace = true
 anyhow.workspace = true
 ecb.workspace = true
+flate2.workspace = true
 futures-util.workspace = true
 hex.workspace = true
 md-5.workspace = true
