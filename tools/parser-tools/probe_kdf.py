@@ -132,6 +132,11 @@ def main():
             print(f"  EXTRA   = {parsed[2]!r}   <-- the input no capture contains", flush=True)
         else:
             print("  (does not parse as tk + filename + extra)", flush=True)
+        # Write through, not at the end: a long watch is exactly when someone wants to read what has
+        # been caught so far, and a run that is killed at its window would otherwise leave nothing.
+        os.makedirs(os.path.dirname(args.out), exist_ok=True)
+        with open(args.out, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     script = session.create_script(JS)
     script.on('message', on_message)
@@ -148,9 +153,6 @@ def main():
             pass
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as handle:
-        for record in hits:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     print(f"\n{len(hits)} derivation(s) caught, {len(hits) and args.out or 'nothing written'}")
     extras = sorted({record.get('extra') for record in hits if 'extra' in record})
     for extra in extras:
