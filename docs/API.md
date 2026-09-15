@@ -53,6 +53,42 @@ copies of base64 blobs of the form `m4OEgjp…`, 296 of them, each decoding to a
 against any constant this project knows. That is why a *static* scan reports no endpoints while
 the process reports nine. Only the DLL's copy of `…20231103` was ever seen decrypted in memory.
 
+### What the DLL asks for, and the two shapes of one request
+
+`PlayerLibRender56_vs.dll` builds its own requests, and its field table is plain text at
+`.rdata:0x801000`:
+
+```
+req_time  need_zip  zip  json_params  wdisklist
+v4a initByKey / v4a getPlaykey / evc_val / req_ts / ts_liststr / type / progress / app
+d_p  k_l  idx  list  cache_key  p_p
+```
+
+`ts_liststr` and `wdisklist` sit in the same table, and they are the same field in two shapes: the
+*online* request lists the segments it wants keys for, and a request that plays from disk or from
+the HLS cache lists them the other way. Next to them in the image are `open_hls_cache_file`,
+`close_hls_cache_file`, `getLocalFile`, `restclient_download`, `.evtemp` and
+`release Decryptor_EVS` / `EvsKeyCtx` / `.evs` / `evkey`, which is the machinery behind each.
+
+This is the distinction the capture never made: every session observed so far played *online*, so
+every one of the 238 list requests carried `ts_liststr` and no `wdisklist` appears anywhere in
+`captured/`.
+
+### The EVS chain, from the one session that did play an encrypted course
+
+`captured/events.jsonl` holds 317 API calls, and eight of them are a sequence no later session
+reproduced:
+
+```
+getEvsAuthorityCourse → getEvsSignUrl → getPlayAuthorityEVS → getEvsSignUrl
+                      → getPlaySubtitle → getDownEVSKey → getPlayTimeKeySignEVS20260515
+```
+
+So subtitles and the download key are not features with their own screen: they are steps the
+player takes when it plays a course in the encrypted `.evs` format. The counts follow from that —
+`getPlaySubtitle` 8, `getDownEVSKey` 12, `getEvsSignUrl` 20, `getEvsAuthorityCourse` 1 — and the
+lesson played in every capture taken since is a plain segment list, which reaches none of them.
+
 ## The envelope, and why almost nothing is readable
 
 Every response is the same shape:
