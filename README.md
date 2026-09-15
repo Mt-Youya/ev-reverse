@@ -36,7 +36,8 @@ is plain static HTML/CSS/JS and `cargo` alone builds it.
 # capture a lesson: harvest keys from the running player, download, decrypt, merge
 evmedia grab --pid <EVPlayer2 pid> --output lesson_out --mp4
 
-# the same lesson without the player: derive keys from a captured segment list
+# the same lesson without the player: ask the API to sign the segments, then derive and decode
+evmedia fetch --from-body captured.params --token <bearer> --output list.json
 evmedia derive --playlist list.json --input <segments> --output manifest.json
 evmedia decode-ev <segments> manifest.json lesson.ts
 

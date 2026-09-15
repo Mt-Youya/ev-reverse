@@ -1,31 +1,44 @@
 //! The signed request, against what the player's own request body says.
 //!
-//! The strongest check available without a token is that the encryption is *the same encryption*:
-//! build a body from a captured request's fields and it must decrypt back to those fields, and the
-//! signed string must be the name-ordered `key=value&…` form the player was caught hashing at
-//! `0x1FD60`. The signature *value* is not pinned here on purpose — the hook truncated the preimage
-//! at 512 characters, so what it hashes beyond that is still open, and a test written against a
-//! guess would be a test of the guess.
+//! The signature is the one part of this protocol that cannot be read off a capture: it covers a
+//! secret the request does not carry. It was caught live at `0x1FD60` — the player hashed
+//! `…&type=0&&ieway.cn@20200611` — and it reproduces all 238 captured request signatures. The
+//! string and the secret are pinned here so that a change to either fails loudly.
 
-use evmedia_core::api::{self, ListRequest, PROTOCOL_VERSION};
+use evmedia_core::api::{self, ListRequest, PROTOCOL_VERSION, SIGN_SECRET};
 
 const PLAYKEY: &str = "V4bsTWiOcJ1KCbkjYwkzaRFWUM0Xyr2aYnpVdqQbikK2";
 const LISTSTR: &str = "0|0|119354-aaaaaaaa-0000-4000-8000-000000000001.ts";
 
 #[test]
-fn the_signed_string_is_the_fields_in_name_order() {
+fn the_signed_string_is_the_fields_in_name_order_with_the_secret_appended() {
     let request = ListRequest::new(PLAYKEY, LISTSTR);
     let canonical = request.sign_input(1789470730);
     assert_eq!(
         canonical,
         format!(
             "app_version=5.0.5&evs_playkey={PLAYKEY}&need_zip=1&os_name=windows&platform=1&\
-             platform_type=1&req_time=1789470730&ts_liststr={LISTSTR}"
+             platform_type=1&req_time=1789470730&ts_liststr={LISTSTR}&type=0&&{SIGN_SECRET}"
         )
     );
-    // `sign` is the result and `type` is sent without being signed; neither may appear here.
+    // `sign` is the result, never an input.
     assert!(!canonical.contains("sign="));
-    assert!(!canonical.contains("&type="));
+}
+
+/// The mutation check for the line above: without the tail the same fields hash to something else,
+/// which is what two rounds of rebuilding the signature from captures kept producing.
+#[test]
+fn dropping_the_secret_changes_the_signature() {
+    assert_eq!(SIGN_SECRET, "ieway.cn@20200611");
+    let request = ListRequest::new(PLAYKEY, LISTSTR);
+    let fields_only = request
+        .sign_input(1789470730)
+        .trim_end_matches(&format!("&&{SIGN_SECRET}"))
+        .to_string();
+    assert_ne!(
+        request.sign(1789470730),
+        evmedia_core::crypto::md5_hex(fields_only.as_bytes())
+    );
 }
 
 #[test]

@@ -100,7 +100,33 @@ Per-call-site table, as caught live:
 | `0x042C49` (inside `0x42A30`) | `11585ec1b1f8f30e` | the request descriptor |
 
 `0x1B480` and `0x34390`, the remaining two call sites, have not fired in any session observed so
-far, which is why the endpoints behind them are still unread.
+far, which is why the endpoints behind them are still unread. `0x1B480` is not an endpoint handler
+at all: it is a **method of the crypto object** (`.rdata:0x801438`, a vtable sitting next to
+`[aes …]` and `key length must be 16 or 24 or 32`), so it will fire for whatever flow decrypts
+through that object rather than for one endpoint.
+
+## Signing a request
+
+Every request carries `sign` and the server checks it — a wrong one is refused with `签名错误`.
+The preimage is **not** in the request: it is the fields, then `&&`, then a secret the player asks
+its Bridge layer for by an obfuscated name. Caught live at `0x1FD60`:
+
+```
+app_version=5.0.5&evs_playkey=…&need_zip=1&os_name=windows&platform=1&platform_type=1
+&req_time=…&ts_liststr=…&type=0&&ieway.cn@20200611
+```
+
+so `sign = MD5(that)` — every field except `sign`, in name order, plus the tail. It reproduces all
+**238** request signatures in `captured/bodies/`. Two things made it hard to see, and both are worth
+keeping: the first capture truncated the preimage at 512 characters, in the middle of `ts_liststr`;
+and a rebuild from the request *without* the secret looks entirely plausible and matches nothing at
+all — which is why 16,863 combinations of fields, orders and guessed secrets found no fit.
+
+`evmedia fetch` implements the whole request — body, signature, and the reply's decryption.
+Verified against the live server and then end to end: the signed list it returned was downloaded,
+its `tk`s became keys through `evmedia derive`, and the merge came out as 10,284 MPEG-TS packets
+with 10,284 sync bytes. **The player was not involved beyond supplying one token and one play key.**
+
 
 ## The one response shape that matters for a capture
 

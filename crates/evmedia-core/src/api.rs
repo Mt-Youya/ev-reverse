@@ -36,11 +36,20 @@ pub const PROTOCOL_VERSION: u32 = 202;
 pub const DEFAULT_HOST: &str = "https://en2v4.ieway.cn";
 pub const LIST_ENDPOINT: &str = "/student/getPlayTimeKeySignEVS20260515";
 
-/// The fields the signature covers, in the order the player hashes them (by name). `sign` is the
-/// result and `type` is sent but not signed; both are absent here on purpose.
-const SIGNED_FIELDS: [&str; 8] =
+/// The fields the signature covers: every field the request carries except `sign` itself, in name
+/// order.
+const SIGNED_FIELDS: [&str; 9] =
     ["app_version", "evs_playkey", "need_zip", "os_name", "platform", "platform_type", "req_time",
-     "ts_liststr"];
+     "ts_liststr", "type"];
+
+/// What the player appends before hashing, and the reason rebuilding the signature from the request
+/// alone never matched: it is signed with a **secret the request does not carry**.
+///
+/// Caught live at `0x1FD60`, where the player hashed `…&ts_liststr=…&type=0&&ieway.cn@20200611` —
+/// the fields, then `&&`, then this. It is not in the DLL's strings either; the player asks its
+/// Bridge layer for it by an obfuscated name. The first capture missed it because the read stopped
+/// at 512 characters, in the middle of `ts_liststr`.
+pub const SIGN_SECRET: &str = "ieway.cn@20200611";
 
 #[derive(Debug, Clone)]
 pub struct ListRequest {
@@ -70,10 +79,11 @@ impl ListRequest {
         }
     }
 
-    /// The exact string the player hashes: values only, joined by `&`, in name order.
+    /// The exact string the player hashes: `key=value` pairs in name order, joined by `&`, then the
+    /// separator and the secret — `…&type=0&&ieway.cn@20200611`, as caught live.
     pub fn sign_input(&self, req_time: u64) -> String {
         let fields = self.signed_values(req_time);
-        SIGNED_FIELDS
+        let joined = SIGNED_FIELDS
             .iter()
             .map(|name| {
                 let value = fields.get(*name).cloned().unwrap_or(Value::Null);
@@ -84,7 +94,8 @@ impl ListRequest {
                 format!("{name}={rendered}")
             })
             .collect::<Vec<_>>()
-            .join("&")
+            .join("&");
+        format!("{joined}&&{SIGN_SECRET}")
     }
 
     pub fn sign(&self, req_time: u64) -> String {
@@ -101,14 +112,14 @@ impl ListRequest {
         fields.insert("platform_type".into(), json!(1));
         fields.insert("req_time".into(), json!(req_time));
         fields.insert("ts_liststr".into(), json!(self.liststr));
+        fields.insert("type".into(), json!(0));
         fields
     }
 
-    /// The request body: signed fields plus `sign` and `type`, encrypted and wrapped.
+    /// The request body: the signed fields plus `sign`, encrypted and wrapped.
     pub fn body(&self, req_time: u64) -> Result<String> {
         let mut fields = self.signed_values(req_time);
         fields.insert("sign".into(), json!(self.sign(req_time)));
-        fields.insert("type".into(), json!(0));
         let plain = serde_json::to_vec(&Value::Object(fields))?;
         let mut buffer = pkcs7(&plain);
         let cipher = ecb::Encryptor::<Aes128>::new_from_slice(DATA_KEY)
@@ -224,12 +235,21 @@ pub async fn fetch_list(request: &ListRequest, token: &str) -> Result<Value> {
     let body = request.body(req_time)?;
     let url = format!("{}{}", request.host.trim_end_matches('/'), request.endpoint);
     let client = reqwest::Client::builder().build()?;
+    // A captured header value already carries its scheme (`Bearer eyJ…`), and a token pasted from
+    // anywhere else may not. Sending `Bearer Bearer …` is refused as "not logged in", which reads
+    // like an expired token and is a doubled prefix.
+    let token = token.trim();
+    let bearer = if token.to_ascii_lowercase().starts_with("bearer ") {
+        token.to_string()
+    } else {
+        format!("Bearer {token}")
+    };
     let response = client
         .post(&url)
         .header("content-type", "application/json")
         .header("accept", "*/*")
         .header("user-agent", "restclient-cpp/@restclient-cpp_VERSION@")
-        .header("authorization", format!("Bearer {token}"))
+        .header("authorization", bearer)
         .body(body)
         .send()
         .await
