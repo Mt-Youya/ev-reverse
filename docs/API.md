@@ -160,19 +160,36 @@ Per-call-site table, as caught live:
 | `0x03B435` (inside `0x3B2B0`) | `11585ec1b1f8f30e` | the request descriptor |
 | `0x042C49` (inside `0x42A30`) | `11585ec1b1f8f30e` | the request descriptor |
 
-`0x1B480` and `0x34390`, the remaining two call sites, have not fired in any session observed so
-far, which is why the endpoints behind them are still unread. `0x1B480` is not an endpoint handler
-at all: it is a **method of the crypto object** (`.rdata:0x801438`, a vtable sitting next to
-`[aes …]` and `key length must be 16 or 24 or 32`), so it will fire for whatever flow decrypts
-through that object rather than for one endpoint.
+### The two call sites that never fire
 
-`0x34390` is a two-instruction wrapper — it calls `0x1EA10` from its first address — and it has
-four callers, at `0x31E43`, `0x32474`, `0x36E18` and `0x374DB`. Those two functions reference
-`json_params` and `wdisklist` and eight of the encrypted `m4OEgjp…` strings, so the flow behind
-them builds its request around a *disk* list, which is the offline/download side of the player
-(`getDownEVSKey`, and the "already downloaded" view) rather than playback. Ten minutes of the
-player fetching segment lists fired neither site: those twenty-four decryptions were all the
-segment list, all through `0x0283F2`.
+`0x1B480` and `0x34390` have not decrypted anything in any session observed, and that is now a
+measured statement rather than an absence of evidence: `0x1EA10` reports the return address of
+every call, so a session's call sites are exactly the set of callers it printed. Across a full
+session of real use — two lessons downloading while one of them played, the EVS chain
+(`getEvsSignUrl` → `getPlayAuthorityEVS` → `getPlaySubtitle` → `getDownEVSKey`), seeks and pauses —
+the only callers that appeared were the three above. Playback decrypts its segments somewhere else
+entirely, so playing a lesson does not reach these two either.
+
+What they are, structurally:
+
+* **`0x1B480` is slot 3 of a ten-method table at `.rdata:0x801420`**, not at `0x801438` — the
+  earlier note was off by three slots, and the table is referenced exactly twice, at `0x1B170` and
+  `0x1B1A0`, both `lea` loads of `0x801420`. Those two are reached from a single function,
+  `0x385B0`, which allocates a 0x58-byte singleton and calls `0x174C0`. `0x174C0` is 8.4 KB and
+  references the encrypted string table, so the object belongs to one specific flow, and nothing in
+  this build has run it. There is no RTTI on the table, so no class name can be read off it.
+* **`0x34390` is a two-instruction wrapper** that calls `0x1EA10` from its first address. Its four
+  callers — `0x31E43`, `0x32474`, `0x36E18`, `0x374DB` — sit in functions that reference
+  `json_params`, `wdisklist` and eight of the encrypted `m4OEgjp…` strings. `wdisklist` is the
+  disk-shaped twin of `ts_liststr` in the DLL's own field table, so this is the local/disk side of
+  key fetching.
+
+Both therefore belong to endpoints no capture contains: `searchCourseVideos`,
+`getCourseDetailPreView`, `playReport`, `errorReport`, `feedBackV2`, `getEvsSignUrlByKey`, or the
+quiz and watermark flows the descriptor names as `tiku` and `water_ts` — every one of which is
+still zero in `captured/`. `capture_keys.py --sites --requests` is the instrument for them: it
+hooks the flow around both sites *and* logs the request path, so whichever endpoint is in flight
+when a new caller RVA appears is the answer.
 
 ## Signing a request
 
