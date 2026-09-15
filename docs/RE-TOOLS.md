@@ -117,3 +117,11 @@ JSON for 80 tools, and ghidra-mcp registers 238. Registering both puts roughly 3
 every request, so a server that is not needed for the task at hand is better left out, or left
 commented out in the patch file.
 
+The `desktop` profile composes its patch layer **when it starts**, whatever `dsh-app-boot` says
+about live reload elsewhere: editing `cordis.patch.yml` while the app was running produced no bridge
+child process and no connection to x64dbg's port on 9094, and the host log stayed silent. The
+servers appear on the next launch of DSH Desktop, so both programs have to be running first —
+x64dbg's plugin lives inside it, and Ghidra's bridge talks to a server that only exists while
+Ghidra does.
+
+
