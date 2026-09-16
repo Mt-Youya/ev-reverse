@@ -35,6 +35,35 @@ def run(tool, args, label, echo=3):
     return done.stdout or ""
 
 
+def sample_frame(path):
+    """One frame's luma mean and spread, taken from the middle of a video.
+
+    A length is not a picture. A video built from protected segments is exactly the right length and
+    entirely grey, and a tool that reports only seconds will hand that over without a word -- so every
+    produced file is sampled, and the summary counts pictures against flat frames rather than claiming
+    minutes of video that nobody can watch.
+    """
+    import statistics
+    import tempfile
+    with tempfile.TemporaryDirectory() as work:
+        raw = os.path.join(work, "f.gray")
+        probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                "-of", "default=nw=1:nk=1", path], capture_output=True, text=True)
+        try:
+            middle = float((probe.stdout or "").strip()) * 0.4
+        except ValueError:
+            middle = 0
+        subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{middle:.2f}", "-i", path,
+                        "-frames:v", "1", "-pix_fmt", "gray", "-f", "rawvideo", "-y", raw],
+                       capture_output=True, text=True)
+        if not os.path.exists(raw):
+            return None
+        data = open(raw, "rb").read()
+        if len(data) < 1024:
+            return None
+        return statistics.fmean(data), statistics.pstdev(data)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lesson", default="119354")
@@ -120,6 +149,27 @@ def main():
     print(f"videos produced          : {len(videos)}  totalling {total:.1f}s "
           f"({total / 60:.1f} minutes)")
     print(f"indexed positions covered: {covered}")
+
+    watchable, grey, unknown = 0, 0, 0
+    watchable_seconds, grey_seconds = 0.0, 0.0
+    for path in videos:
+        stats = sample_frame(path)
+        try:
+            done = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                   "-of", "default=nw=1:nk=1", path], capture_output=True, text=True)
+            seconds = float((done.stdout or "").strip())
+        except ValueError:
+            seconds = 0.0
+        if stats is None:
+            unknown += 1
+        elif stats[1] < 3:
+            grey += 1
+            grey_seconds += seconds
+        else:
+            watchable += 1
+            watchable_seconds += seconds
+    print(f"sampled every video      : {watchable} with a picture ({watchable_seconds:.1f}s), "
+          f"{grey} flat grey ({grey_seconds:.1f}s, protected), {unknown} unreadable")
     if args.capture_seconds > 0:
         print(f"recorded from the player    : {len(captured)} clip(s) with decrypted audio, "
               f"{args.capture_seconds:.0f}s of playback")
