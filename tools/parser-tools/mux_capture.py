@@ -102,8 +102,13 @@ def main():
                         f"{video_seconds:.3f}", "-vn", "-c:a", "copy", "-y", audio],
                        capture_output=True, text=True)
         target = os.path.join(out_dir, name[:-4] + "_with_audio.mp4")
+        # `-t` on the mux itself, not only on the audio cut. With both streams copied, `-shortest`
+        # ends at a packet boundary, and a packet of audio can outlast the picture by a second or more
+        # -- which is how a two-second clip came out 1.33s longer than its own video. The video's
+        # measured length is the authority here, so both streams are cut to it.
         done = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-i", audio,
-                               "-c:v", "copy", "-c:a", "copy", "-shortest", "-y", target],
+                               "-c:v", "copy", "-c:a", "copy", "-t", f"{video_seconds:.3f}",
+                               "-y", target],
                               capture_output=True, text=True)
         if os.path.exists(audio):
             os.remove(audio)
