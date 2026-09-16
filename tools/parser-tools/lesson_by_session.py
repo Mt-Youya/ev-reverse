@@ -36,6 +36,9 @@ def main():
     ap.add_argument("--max-sessions", type=int, default=8)
     ap.add_argument("--out", default=r"D:\ev-export\lessons")
     ap.add_argument("--min-segments", type=int, default=1)
+    ap.add_argument("--no-verify", action="store_true",
+                    help="skip the full decode of every output, which is what makes 66 sessions "
+                         "finish in minutes instead of hours; lengths are still checked")
     args = ap.parse_args()
 
     library = json.load(open(LIBRARY, encoding="utf-8"))
@@ -57,11 +60,16 @@ def main():
     rows = []
     for count, label, usable in ranked[:args.max_sessions]:
         target = os.path.join(args.out, args.lesson, "by-session", slug(label))
-        done = subprocess.run([sys.executable, os.path.join(HERE, "decrypt_lesson.py"),
-                               "--lesson", args.lesson, "--session", label,
-                               "--min-segments", str(args.min_segments),
-                               "--out", os.path.join(args.out, args.lesson, "by-session")],
-                              capture_output=True, text=True)
+        command = [sys.executable, os.path.join(HERE, "decrypt_lesson.py"),
+                   "--lesson", args.lesson, "--session", label,
+                   "--min-segments", str(args.min_segments),
+                   # One subtree per session. Every session names its videos from the same pattern --
+                   # 119354_01_idx01_<start>s-<end>s -- so sharing one directory means each session
+                   # overwrites the last one's files, which is how 66 sessions produced 50 videos.
+                   "--out", os.path.join(args.out, args.lesson, "by-session", slug(label))]
+        if args.no_verify:
+            command.append("--no-verify")
+        done = subprocess.run(command, capture_output=True, text=True)
         match = SUMMARY.search(done.stdout or "")
         if not match:
             tail = [line for line in (done.stdout or "").splitlines() if line.strip()][-2:]
@@ -69,7 +77,8 @@ def main():
                          "positions": 0, "note": " | ".join(tail)[:90]})
             continue
         seconds, videos, positions = float(match.group(1)), int(match.group(2)), int(match.group(3))
-        report = os.path.join(args.out, args.lesson, "report.json")
+        report = os.path.join(args.out, args.lesson, "by-session", slug(label), args.lesson,
+                              "report.json")
         worst = None
         if os.path.exists(report):
             entries = json.load(open(report, encoding="utf-8"))

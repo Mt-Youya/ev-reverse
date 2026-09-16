@@ -250,6 +250,8 @@ def main():
     ap.add_argument("--session", default="largest",
                     help="restrict to one captured session's segment set: 'largest', 'all', or a "
                          "session label from captured/lesson_sessions.json")
+    ap.add_argument("--no-verify", action="store_true",
+                    help="skip the full decode of each output (the length check still runs)")
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
 
@@ -497,7 +499,7 @@ def main():
         os.remove(list_path)
 
         actual = duration_of(target)
-        errors = decode_errors(target)
+        errors = None if args.no_verify else decode_errors(target)
         ratio = (actual / expected) if (actual and expected) else None
         entry = {
             "video": os.path.basename(target),
