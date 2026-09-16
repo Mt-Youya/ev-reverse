@@ -36,3 +36,6 @@ verify_out*/
 .idea
 .vscode
 __pycache__/
+
+# tools/export_video.py complete video output
+/ev-videos/

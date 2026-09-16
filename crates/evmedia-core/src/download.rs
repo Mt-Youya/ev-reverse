@@ -129,7 +129,7 @@ pub async fn download_all(
                 break;
             }
             let index = segment.index;
-            let permit = gate.clone().acquire_owned().await?;
+            let gate = gate.clone();
             let client = client.clone();
             let target = folder.join(match &segment.filename {
                 Some(name) => safe_relative(name)?,
@@ -138,7 +138,9 @@ pub async fn download_all(
             let url = segment.url.clone();
             started += 1;
             pending.push(async move {
-                let _permit = permit;
+                // Acquire while futures are polled, otherwise scheduling more than `parallel`
+                // segments waits for a permit that no pending download can release.
+                let _permit = gate.acquire_owned().await.expect("download gate stays open");
                 (index, url, download_segment(client, segment, target).await)
             });
         }

@@ -96,12 +96,15 @@ def decode_errors(path):
 
 
 def main():
+    global CACHE_DOWNLOADS
     ap = argparse.ArgumentParser()
     ap.add_argument("--keys", default=KEYS)
+    ap.add_argument("--downloads", default=CACHE_DOWNLOADS)
     ap.add_argument("--out", default=os.path.join(REPO, "ev_videos"))
     ap.add_argument("--min-segments", type=int, default=3)
     ap.add_argument("--container", default="mp4", choices=["mp4", "mkv"])
     args = ap.parse_args()
+    CACHE_DOWNLOADS = args.downloads
 
     if not os.path.exists(args.keys):
         print(f"no keys at {args.keys}; run harvest_player.py first")

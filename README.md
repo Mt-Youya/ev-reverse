@@ -2,6 +2,11 @@
 
 Turns a lesson in the Chinese course-video player **EVPlayer2** into a playable file.
 
+播放后自动导出完整 MP4/MKV：双击 `tools/自动导出整课.cmd`，或运行
+`python -u tools/export_video.py --cache D:\EVPlayer2_download`，然后在播放器打开课程。
+工具从完整 VOD 清单独立下载所有分段，不需要播放到结尾。用法与完整性校验见
+[整课导出说明](docs/FULL-VIDEO-EXPORT.md)。
+
 Two binaries ship from one workspace:
 
 | | |

@@ -88,24 +88,20 @@ Until that filter is understood, the honest status of the offline path is: keys,
 container are solved; the picture is not. Frames are the only oracle worth trusting —
 `ffmpeg -v error -i out.ts -f null -` and an extracted PNG say more than any sync count.
 
-### Measured on 2026-09-16: the second scrambling is not there, for the lesson tested
+### 2026-09-16 实测及源码审计：部分整包相同，全量 NAL 仍待核对
 
-The "second scrambling" above was **inferred** from key-correct-plus-grey. It has now been tested
-instead of inferred, for lesson `119354`. Every captured packet the player handed to
-`h264_decode_frame` was matched against this project's own decryption of the same segments
-(`tools/parser-tools/verify_packet_identity.py`, over `tools/parser-tools/captured/pairing/`): of
-3,290 captured packets large enough to test, 1,270 are present byte-for-byte in our streams, and in
-the backward direction — which answers per NAL rather than per packet — **every NAL of 256 bytes or
-more, in every one of the 9 streams, was found verbatim among them**, including a 189,694-byte IDR.
-So for that lesson the bytes the player decodes *are* the bytes this document's decryption produces,
-and there is no layer between them left to undo.
+上文的「第二层扰乱」是从密钥正确但画面发灰推断的，尚非已证实的变换。对课程 `119354`，
+历史运行的 `tools/parser-tools/verify_packet_identity.py` 检查了 3,290 个捕获包，
+其中 1,270 个完整包在解密流中逐字节命中，这部分证据保留。
 
-The grey is still real, and it is still the same bytes: the player's own decoder turns them into a
-1920×1088 yuv420p picture (luma mean 221.5, standard deviation 33.3, dumped straight out of its
-`AVFrame`), while our ffmpeg turns them into flat grey (mean 130.0, sd ≤ 0.76, 73–86 error lines).
-The difference is therefore **downstream of the bytes**, in the decoder, not in a scrambling this
-pipeline has failed to strip. Read the paragraph above as scoped to the lessons where it was
-measured; the measurements and the current good/grey boundary are in `docs/RETROSPECTIVE.md` §13.
+同日接续审计发现，工具的反向检查只搜索每条 NAL 中间的 64 字节 needle。此前本节写的
+「全部 ≥256 B NAL、包括整个 189,694 B IDR 均逐字相同」超出了实际判据，现撤回，
+等待修正工具后用真实捕获重跑。不能用中间片段相同排除其他位置的变换。
+
+播放器 AVFrame 中确实出现真实画面（1920×1088 yuv420p，亮度均值 221.5、标准差 33.3），
+我们的 FFmpeg 对照为平灰（均值 130.0、标准差 ≤0.76，73–86 行错误）。完整输入是否全部相同、
+差异是否仅在解码器内部，仍需补足证据。原版 4.2.2 若仍灰，也不能单独证明存在内部变换。
+修复、环境迁移差异及待执行命令见 `docs/RETROSPECTIVE.md` §14；真实捕获尚未重跑。
 
 
 ## The three functions

@@ -7,17 +7,19 @@ heuristic -- equal-length NALs can be aligned while their bytes differ. This doe
 instead, in both directions:
 
   forward  every captured packet: is the whole packet present verbatim in one of our streams?
-  backward every NAL of every stream: is it present verbatim in some captured packet?
+  backward every NAL >=256 B: is it present verbatim within one captured packet?
 
-The backward direction is the one that matters when packets are missing (a segment whose key was set
-before the capture began contributes none), because it answers per NAL rather than per packet: if a
-stream's small NALs all appear and its large ones never do, the transform lives in the large ones.
+Missing matches can also reflect incomplete capture. A middle needle match is reported separately
+and never counts as full identity. Smaller NALs are explicitly skipped.
 
-    python verify_packet_identity.py
+    python verify_packet_identity.py [--pairing path]
 """
 
+import argparse
 import collections
 import os
+from pathlib import Path
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,20 +27,27 @@ PAIRING = os.path.join(HERE, "captured", "pairing")
 
 
 def annex_b_nals(es):
-    starts = []
-    i = 0
-    while i < len(es) - 3:
-        if es[i] == 0 and es[i + 1] == 0 and es[i + 2] == 1:
-            starts.append(i + 3)
-            i += 3
-        else:
-            i += 1
+    starts = list(re.finditer(rb"\x00{2,}\x01", es))
     out = []
-    for index, body in enumerate(starts):
-        end = starts[index + 1] - 3 if index + 1 < len(starts) else len(es)
+    for index, start in enumerate(starts):
+        body = start.end()
+        end = starts[index + 1].start() if index + 1 < len(starts) else len(es)
         if end > body:
             out.append((es[body] & 0x1F, body, end - body))
     return out
+
+
+def nal_identity(payload, blobs):
+    """A needle finds candidates; only the complete NAL proves identity within one packet."""
+    middle = len(payload) // 2
+    needle = payload[middle:middle + 64]
+    needle_found = False
+    for blob in blobs:
+        if needle in blob:
+            needle_found = True
+            if payload in blob:
+                return "identical"
+    return "needle-only" if needle_found else "absent"
 
 
 def bucket(size):
@@ -56,20 +65,28 @@ def bucket(size):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pairing", default=PAIRING)
+    args = ap.parse_args()
+    if not os.path.isdir(args.pairing):
+        print("no pairing directory -- pass --pairing or run pair_playback.py first")
+        return 1
     streams = {}
-    for name in sorted(os.listdir(PAIRING)):
+    for name in sorted(os.listdir(args.pairing)):
         if name.endswith(".h264"):
-            streams[name] = open(os.path.join(PAIRING, name), "rb").read()
+            streams[name] = Path(args.pairing, name).read_bytes()
     if not streams:
         print("no .h264 files in captured/pairing -- run pair_playback.py first")
         return 1
     total = sum(len(v) for v in streams.values())
     print(f"{len(streams)} stream(s), {total:,} bytes total\n")
 
-    bins = sorted(n for n in os.listdir(PAIRING) if n.endswith(".bin"))
-    blobs = {name: open(os.path.join(PAIRING, name), "rb").read() for name in bins}
-    haystack = b"\x00\x00\x00\x01".join(blobs.values())
-    print(f"{len(blobs)} captured packet(s), {len(haystack):,} bytes of them\n")
+    bins = sorted(n for n in os.listdir(args.pairing) if n.endswith(".bin"))
+    blobs = {name: Path(args.pairing, name).read_bytes() for name in bins}
+    if not blobs:
+        print("no captured .bin packets -- identity cannot be checked")
+        return 1
+    print(f"{len(blobs)} captured packet(s), {sum(map(len, blobs.values())):,} payload bytes\n")
 
     # forward: is each captured packet one of our bytes?
     exact = prefix = missing = 0
@@ -108,21 +125,30 @@ def main():
 
     # backward: is each NAL of each stream among the captured packets?
     print("\nbackward  per-stream NAL coverage:")
+    totals = collections.Counter()
     for name, stream in streams.items():
         nals = annex_b_nals(stream)
-        covered = collections.defaultdict(lambda: [0, 0])
+        covered = collections.defaultdict(collections.Counter)
+        skipped = 0
         for ntype, offset, size in nals:
-            if size < 96:
-                covered[bucket(size)][0] += 1
+            if size < 256:
+                skipped += 1
                 continue
-            needle = stream[offset + size // 2:offset + size // 2 + 64]
-            covered[bucket(size)][0 if needle in haystack else 1] += 1
+            result = nal_identity(stream[offset:offset + size], blobs.values())
+            covered[bucket(size)][result] += 1
+            totals[result] += 1
+            if ntype == 5:
+                print(f"  IDR {name}: offset={offset} size={size} {result}")
         parts = []
         for key in ("0-255", "256-1k", "1k-4k", "4k-16k", "16k-64k", "64k+"):
             if key in covered:
-                same, other = covered[key]
-                parts.append(f"{key}:{same}/{same + other}")
-        print(f"  {name[:52]:<52} nals={len(nals):5d}  " + "  ".join(parts))
+                counts = covered[key]
+                parts.append(f"{key}:{counts['identical']}/{sum(counts.values())}"
+                             f" (needle-only={counts['needle-only']}, absent={counts['absent']})")
+        print(f"  {name[:52]:<52} nals={len(nals):5d} skipped(<256)={skipped}  " + "  ".join(parts))
+    print(f"backward checked {sum(totals.values())} NAL(s) >=256 B -> "
+          f"identical {totals['identical']}, needle-only {totals['needle-only']}, absent {totals['absent']}")
+    print("Missing NALs can reflect incomplete capture; needle-only is not proof of identity.")
     return 0
 
 
