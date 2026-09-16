@@ -214,6 +214,22 @@ def newest_playkey(path=None):
     return entries[-1] if entries else None
 
 
+def load_facts_cache():
+    path = os.path.join(HERE, "captured", "segment_facts.json")
+    if os.path.exists(path):
+        try:
+            return json.load(open(path, encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_facts_cache(cache):
+    path = os.path.join(HERE, "captured", "segment_facts.json")
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(cache, handle, indent=1, sort_keys=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lesson", default="", help="file-name prefix, e.g. 119354")
@@ -319,6 +335,8 @@ def main():
 
     segments = []
     missing = 0
+    facts = load_facts_cache()
+    reused = 0
     for name in names:
         key = library.get(name)
         if not key:
@@ -328,20 +346,32 @@ def main():
         if not os.path.exists(path):
             missing += 1
             continue
-        plain = decrypt(open(path, "rb").read(), key, name)
-        first, last, level = segment_facts(plain)
         written = os.path.join(dec_dir, name)
-        if not os.path.exists(written):
-            with open(written, "wb") as handle:
-                handle.write(plain)
-        if first is None:
-            first = probe_start_pts(written)
+        # Facts are cached against the key, so a lesson assembled once can be re-assembled -- per
+        # session, say -- without decrypting six hundred segments again.
+        fact = facts.get(name)
+        if fact and fact.get("key") == key and os.path.exists(written):
+            first, last, level = fact["pts"], fact.get("last"), fact.get("level")
+            reused += 1
+        else:
+            plain = decrypt(open(path, "rb").read(), key, name)
+            first, last, level = segment_facts(plain)
+            if not os.path.exists(written):
+                with open(written, "wb") as handle:
+                    handle.write(plain)
+            if first is None:
+                first = probe_start_pts(written)
+            if first is not None:
+                facts[name] = {"key": key, "pts": first, "last": last, "level": level}
         if first is None:
             print(f"  {name}: no video PTS from either parser; skipped")
             continue
         segments.append({"name": name, "pts": first, "last": last, "level": level,
-                         "bytes": len(plain), "path": written,
+                         "bytes": 0, "path": written,
                          "idx": (index_map.get(name) or {}).get("idx")})
+    save_facts_cache(facts)
+    print(f"{len(segments)} segment(s) placed ({missing} without a usable key, "
+          f"{reused} taken from the facts cache)")
     print(f"{len(segments)} segment(s) decrypted ({missing} without a usable key)")
 
     if not segments:
