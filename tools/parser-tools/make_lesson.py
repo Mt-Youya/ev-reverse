@@ -43,6 +43,10 @@ def main():
     ap.add_argument("--out", default=r"D:\ev-export\lessons")
     ap.add_argument("--min-keys", type=int, default=4)
     ap.add_argument("--no-verify", action="store_true", default=True)
+    ap.add_argument("--capture-seconds", type=float, default=0,
+                    help="also record what the player is rendering right now, for the stretches "
+                         "whose picture decryption alone cannot produce (0 = skip)")
+    ap.add_argument("--capture-dir", default=r"D:\ev-export\capture")
     args = ap.parse_args()
 
     if args.harvest:
@@ -53,6 +57,23 @@ def main():
     run("lesson_by_session.py", ["--lesson", args.lesson, "--min-keys", str(args.min_keys),
                                  "--max-sessions", "200", "--out", args.out],
         "assemble every session", echo=2)
+
+    # The protected stretches. Their bytes decrypt correctly and their audio is perfect, but their
+    # picture only exists in the player, so the deliverable for them is a recording of that picture
+    # with the decrypted audio muxed back on -- and the same length check applied to it.
+    captured = []
+    if args.capture_seconds > 0:
+        os.makedirs(args.capture_dir, exist_ok=True)
+        run("capture_frames.py", ["--seconds", str(args.capture_seconds), "--out", args.capture_dir],
+            "record the player's picture", echo=2)
+        run("encode_capture.py", [args.capture_dir, "--seconds", str(args.capture_seconds),
+                                 "--out", os.path.join(args.capture_dir, "mp4")],
+            "encode the capture at its measured rate", echo=2)
+        run("mux_capture.py", ["--capture", os.path.join(args.capture_dir, "mp4"),
+                               "--dec", os.path.join(args.out, args.lesson, "dec")],
+            "mux the decrypted audio and join", echo=3)
+        for root, _, files in os.walk(os.path.join(args.capture_dir, "mp4", "muxed")):
+            captured.extend(os.path.join(root, f) for f in files if f.endswith("_with_audio.mp4"))
 
     library = json.load(open(os.path.join(HERE, "captured", "keys_merged.json"), encoding="utf-8"))
     facts = json.load(open(os.path.join(HERE, "captured", "segment_facts.json"), encoding="utf-8")) \
@@ -99,6 +120,9 @@ def main():
     print(f"videos produced          : {len(videos)}  totalling {total:.1f}s "
           f"({total / 60:.1f} minutes)")
     print(f"indexed positions covered: {covered}")
+    if args.capture_seconds > 0:
+        print(f"recorded from the player    : {len(captured)} clip(s) with decrypted audio, "
+              f"{args.capture_seconds:.0f}s of playback")
     print("\nEvery produced video was measured against the content it was built from; "
           "the per-video numbers are in each session's report.json.")
     return 0
