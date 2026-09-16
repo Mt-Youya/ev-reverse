@@ -89,6 +89,7 @@ def harvest_lesson_lists(roots):
     sessions = {}
     indexed = {}
     entries_by_session = {}
+    candidates = {}
     for root in roots:
         for directory, _, files in os.walk(root):
             for name in files:
@@ -116,6 +117,11 @@ def harvest_lesson_lists(roots):
                     if tk and segment.endswith(".ts"):
                         out[segment] = (key_for(tk, segment), session)
                         collected.append(segment)
+                        # Every key this name could have, not just the newest. The same segment name
+                        # appears in more than one session's list with a different `tk`, and the file
+                        # on disk was downloaded under exactly one of them -- keeping only the last
+                        # one seen is why 190 files "had a key" that did not open them.
+                        candidates.setdefault(segment, set()).add(key_for(tk, segment))
                         # The list index is the content position. Sessions disagree about a segment's
                         # first PTS but agree about where it belongs in the lesson, so the index is
                         # what lets segments from different sessions be assembled without gaps or
@@ -134,26 +140,26 @@ def harvest_lesson_lists(roots):
                         "base": document.get("d_p") or "",
                         "entries": entries_kept,
                     }
-    return out, sessions, indexed, entries_by_session
+    return out, sessions, indexed, entries_by_session, candidates
 
 
-def verify(library, cache_dir):
+def verify(library, cache_dir, candidates=None):
     """Test every key against the file it names, and keep only the ones that open it.
 
     A key is only valid for the file as that file was downloaded: `tk` belongs to a playback session,
     so a list captured in one session yields keys that do *not* open a file downloaded in another --
     measured here as 190 of 742 library entries decrypting to noise (0.5% sync, where a right key
-    gives 100%). Adding mined keys unverified therefore inflates the library with entries that look
-    like coverage and fail at decrypt time, so they are tested before they are kept.
+    gives 100%). Where several candidate keys exist for one name (the same segment appears in more
+    than one session's list), each is tried and the one that opens the file is kept.
     """
-    good, bad, absent = {}, 0, 0
+    from Crypto.Cipher import AES
+    good, bad, absent, rescued = {}, 0, 0, 0
     for name, key in library.items():
         path = os.path.join(cache_dir, name)
         if not os.path.exists(path):
             absent += 1
             continue
         try:
-            from Crypto.Cipher import AES
             with open(path, "rb") as handle:
                 head = handle.read(576)
             if len(head) < 576:
@@ -161,14 +167,22 @@ def verify(library, cache_dir):
                 continue
             mask = hashlib.md5(name.encode()).hexdigest()[:16].encode()
             masked = bytes(b ^ mask[i % 16] for i, b in enumerate(head))
-            plain = AES.new(key.encode(), AES.MODE_ECB).decrypt(masked)
-            if plain[0] == 0x47 and plain[188] == 0x47 and plain[376] == 0x47:
-                good[name] = key
+            tried = [key] + [other for other in (candidates or {}).get(name, ()) if other != key]
+            for index, attempt in enumerate(tried):
+                try:
+                    plain = AES.new(attempt.encode(), AES.MODE_ECB).decrypt(masked)
+                except Exception:
+                    continue
+                if plain[0] == 0x47 and plain[188] == 0x47 and plain[376] == 0x47:
+                    good[name] = attempt
+                    if index:
+                        rescued += 1
+                    break
             else:
                 bad += 1
         except Exception:
             absent += 1
-    return good, bad, absent
+    return good, bad, absent, rescued
 
 
 def main():
@@ -184,7 +198,7 @@ def main():
         per_source[relative] = len(found)
         library.update(found)
 
-    mined, sessions, indexed, entries_by_session = harvest_lesson_lists(
+    mined, sessions, indexed, entries_by_session, candidates = harvest_lesson_lists(
         [CAPTURED, os.path.join(HERE, "..", "..", "verify_out5")])
     per_source[f"lesson lists ({len(sessions)} session(s))"] = len(mined)
     for segment, (key, _) in mined.items():
@@ -224,9 +238,9 @@ def main():
             print(f"  {count:6d}  {relative}")
 
     cache_dir = r"D:\Downloads\EVPlayer2Downloads"
-    verified, rejected, absent = verify(library, cache_dir)
+    verified, rejected, absent, rescued = verify(library, cache_dir, candidates)
     print(f"\nverified against the files on disk: {len(verified)} open, {rejected} do not, "
-          f"{absent} not on disk")
+          f"{absent} not on disk; {rescued} were rescued by a second candidate key")
     if rejected:
         print("  (a key belongs to the session its file was downloaded in; keys mined from another")
         print("   session's list decrypt to noise, and are dropped rather than counted as coverage)")

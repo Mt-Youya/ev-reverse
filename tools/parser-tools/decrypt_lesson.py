@@ -365,59 +365,73 @@ def main():
         print(f"{variants} duplicate-position segment(s) dropped ({len(unique)} positions kept)")
     segments = unique
 
-    # Two ways to know where a segment belongs, used together so neither blocks the other.
+    # One timeline, built from both kinds of evidence.
     #
-    #   * The API list's index is exact, but only exists for segments from a captured list.
-    #   * Otherwise the segment's own first PTS says which *session* it came from: within a session
-    #     positions are exactly ten seconds apart, so PTS modulo ten is constant per session and
-    #     different between sessions (518.13, 526.47, 531.48 in the lesson measured here). Clustering
-    #     on that recovers each session's sequence without knowing the lesson's true start.
-    #
-    # Merging segments from two sessions in one file is what makes a video longer than the lesson, so
-    # each sequence is assembled and measured on its own.
-    sequences = []
+    # A captured list gives a segment's index outright. A segment without one still says which session
+    # it came from: positions within a session are exactly ten seconds apart, so `pts - index * 10s`
+    # is that session's own zero point and is the same number for every segment of it. Indexed
+    # segments therefore reveal their session's zero point, and an unindexed segment landing on one of
+    # those zero points can be placed on the same timeline instead of being emitted as a parallel,
+    # overlapping video -- which is what the two-path version did, and why its output was longer than
+    # the lesson.
+    STEP = 900000                                     # ten seconds in 90 kHz units
+    lists_path = os.path.join(HERE, "captured", "lesson_lists.json")
+    sessions_meta = json.load(open(lists_path, encoding="utf-8")) if os.path.exists(lists_path) else {}
+    session_length = {label: len(payload.get("entries", []))
+                      for label, payload in sessions_meta.items()}
+
     positioned = [item for item in segments if item.get("idx") is not None]
-    floaters = [item for item in segments if item.get("idx") is None]
+    grids = {}
+    for item in positioned:
+        base = item["pts"] - item["idx"] * STEP
+        label = (index_map.get(item["name"]) or {}).get("session")
+        record = grids.setdefault(base, {"count": 0, "length": 0})
+        record["count"] += 1
+        # A grid reaches exactly as far as the session that defines it. Without this bound the
+        # extrapolation happily invents positions past the end of the lesson -- the first version
+        # reported a timeline reaching position 287 in a lesson the captured list says has 195.
+        record["length"] = max(record["length"], session_length.get(label, 0))
 
-    if positioned:
-        by_index = {}
-        for item in positioned:
-            by_index.setdefault(item["idx"], item)
-        ordered = [by_index[key] for key in sorted(by_index)]
-        runs, current = [], [ordered[0]]
-        for item in ordered[1:]:
-            if item["idx"] != current[-1]["idx"] + 1:
-                runs.append(current)
-                current = [item]
-            else:
-                current.append(item)
-        runs.append(current)
-        print(f"{len(positioned)} segment(s) placed by content position: "
-              f"{len(ordered)} position(s) in {len(runs)} run(s)")
-        sequences.extend((f"idx{number:02d}", run) for number, run in enumerate(runs, 1))
+    by_index = {}
+    for item in positioned:
+        by_index.setdefault(item["idx"], item)
+    placed = 0
+    unmatched = []
+    for item in segments:
+        if item.get("idx") is not None:
+            continue
+        for base, record in grids.items():
+            delta = item["pts"] - base
+            if delta < 0 or delta % STEP != 0:
+                continue
+            index = delta // STEP
+            if record["length"] and index >= record["length"]:
+                continue
+            if index not in by_index:
+                by_index[index] = dict(item, idx=index)
+                placed += 1
+            break
+        else:
+            unmatched.append(item)
 
-    if floaters:
-        clusters = {}
-        for item in floaters:
-            offset = round(((item["pts"] / 90000.0) % SEGMENT_SECONDS), 1)
-            clusters.setdefault(offset, []).append(item)
-        kept = {offset: group for offset, group in clusters.items() if len(group) >= args.min_segments}
-        print(f"{len(floaters)} segment(s) placed by position-within-session: "
-              f"{len(kept)} session(s) of "
-              + ", ".join(f"mod {offset:.1f} ({len(group)})"
-                          for offset, group in sorted(kept.items(), key=lambda kv: -len(kv[1]))[:6]))
-        for number, (offset, group) in enumerate(sorted(kept.items()), 1):
-            group.sort(key=lambda item: item["pts"])
-            runs, current = [], [group[0]]
-            for item in group[1:]:
-                if (item["pts"] - current[-1]["pts"]) / 90000.0 > SEGMENT_SECONDS + GAP_SECONDS:
-                    runs.append(current)
-                    current = [item]
-                else:
-                    current.append(item)
+    print(f"{len(positioned)} segment(s) indexed by a captured list, {placed} more placed by their "
+          f"session's own grid, {len(unmatched)} left unplaced")
+    if not by_index:
+        print("nothing can be placed; no captured list covers these segments")
+        return 1
+
+    ordered = [by_index[key] for key in sorted(by_index)]
+    runs, current = [], [ordered[0]]
+    for item in ordered[1:]:
+        if item["idx"] != current[-1]["idx"] + 1:
             runs.append(current)
-            sequences.extend((f"off{offset:.1f}-{index:02d}", run)
-                             for index, run in enumerate(runs, 1))
+            current = [item]
+        else:
+            current.append(item)
+    runs.append(current)
+    print(f"timeline covers position {ordered[0]['idx']} .. {ordered[-1]['idx']} "
+          f"in {len(runs)} contiguous run(s)")
+    sequences = [(f"idx{runs_index:02d}", run) for runs_index, run in enumerate(runs, 1)]
 
     stretches = [(label, group) for label, group in sequences if len(group) >= args.min_segments]
 
@@ -484,6 +498,7 @@ def main():
     # lesson lists, which enumerate the lesson; seconds come from the videos just measured.
     assembled = sum(entry["expected_seconds"] for entry in report)
     covered = len({item["idx"] for item in segments if item.get("idx") is not None})
+    covered = len(by_index)
     lists_path = os.path.join(HERE, "captured", "lesson_lists.json")
     if os.path.exists(lists_path):
         lists = json.load(open(lists_path, encoding="utf-8"))
@@ -497,11 +512,13 @@ def main():
         lesson_positions = max((len(payload.get("entries", [])) for payload in lists.values()),
                                default=0)
         if lesson_positions:
-            print(f"\nkeys: session {best_label} has {lesson_positions} position(s); "
-                  f"{best_positions} of them have a verified key on disk")
-        print(f"assembled {assembled:.1f}s across {len(report)} video(s), "
-              f"covering {covered} of {lesson_positions} position(s) "
-              f"({(covered / lesson_positions * 100) if lesson_positions else 0:.0f}% of the lesson)")
+            print(f"\nkeys: the largest captured list holds {lesson_positions} entr(ies) "
+                  f"(one request's batch, not a known lesson length); session {best_label} "
+                  f"contributes {best_positions} of them")
+        print(f"assembled {assembled:.1f}s across {len(report)} video(s), covering {covered} "
+              f"position(s) of the lesson's index. Every video was measured against the content it "
+              f"was built from, which is the length guarantee; the index coverage says how much of "
+              f"the lesson is here.")
     print(f"\n{len(report)} video(s) in {lesson_dir}")
     return 0
 
