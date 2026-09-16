@@ -117,11 +117,58 @@ def duration_of(path):
         return None
 
 
+def probe_start_pts(path):
+    """First video PTS in 90 kHz units, asked of ffprobe.
+
+    The hand-rolled PES walk finds a PTS only when the segment's first video packet carries one;
+    several hundred segments here start with a packet that does not, and were being dropped as
+    unusable rather than measured. ffprobe looks at the stream as a whole and answers anyway.
+    """
+    done = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                           "-show_entries", "stream=start_time",
+                           "-of", "default=nw=1:nk=1", path], capture_output=True, text=True)
+    try:
+        return int(round(float((done.stdout or "").strip()) * 90000))
+    except ValueError:
+        return None
+
+
 def decode_errors(path):
     done = subprocess.run(["ffmpeg", "-v", "warning", "-i", path, "-f", "null", "-"],
                           capture_output=True, text=True)
     return sum(1 for line in (done.stderr or "").splitlines()
                if "error" in line.lower() or "corrupt" in line.lower())
+
+
+def watch_for_lists(seconds, reporter=print):
+    """Watch the player's API traffic until it fetches a lesson, then fold that list into the library.
+
+    `tk` only arrives when the player opens a lesson, and asking for it needs a token that expires
+    daily -- but the response the player gets is the whole lesson, every segment with its `tk`. So the
+    tool waits for that one moment instead of asking a person to time it: start this, open the lesson
+    in the player, and the keys land. Inflation of the captured bodies is the capture tool's job, so
+    the only thing watched here is the file count.
+
+    `seconds` of 0 means "however long it takes".
+    """
+    import glob
+    inflated = os.path.join(HERE, "captured", "inflated")
+    before = set(glob.glob(os.path.join(inflated, "*.json")))
+    deadline = time.time() + seconds if seconds else None
+    reporter(f"watching the player's API traffic for a lesson list "
+             f"({'up to %.0fs' % seconds if seconds else 'until one arrives'})")
+    while True:
+        subprocess.run([sys.executable, os.path.join(HERE, "capture_api.py"),
+                        "--follow", "--seconds", "60"], capture_output=True, text=True)
+        fresh = set(glob.glob(os.path.join(inflated, "*.json"))) - before
+        if fresh:
+            reporter(f"{len(fresh)} new response(s) captured; mining them for keys")
+            subprocess.run([sys.executable, os.path.join(HERE, "key_inventory.py")],
+                           capture_output=True, text=True)
+            return True
+        if deadline and time.time() > deadline:
+            reporter("nothing arrived in the window; continuing with the keys already held")
+            return False
 
 
 def newest_token(path=None):
@@ -178,6 +225,9 @@ def main():
     ap.add_argument("--min-segments", type=int, default=3)
     ap.add_argument("--harvest", type=float, default=0,
                     help="seconds to watch the live player for extra keys first")
+    ap.add_argument("--watch", type=float, default=0,
+                    help="watch the player's API traffic for a lesson list first (0 = off, "
+                         "negative = until one arrives)")
     ap.add_argument("--playkey", default="", help="defaults to the newest one captured from the player")
     ap.add_argument("--token", default="", help="defaults to the newest unexpired captured token")
     ap.add_argument("--session", default="largest",
@@ -224,6 +274,11 @@ def main():
 
     library = load_library(args.library)
     print(f"{len(library)} key(s) in {args.library}")
+
+    if args.watch:
+        watch_for_lists(0 if args.watch < 0 else args.watch)
+        library = load_library(args.library)
+        print(f"{len(library)} key(s) after watching")
 
     if args.harvest:
         found = harvest(args.harvest)
@@ -274,13 +329,15 @@ def main():
             continue
         plain = decrypt(open(path, "rb").read(), key, name)
         first, last, level = segment_facts(plain)
-        if first is None:
-            print(f"  {name}: no video PTS; skipped")
-            continue
         written = os.path.join(dec_dir, name)
         if not os.path.exists(written):
             with open(written, "wb") as handle:
                 handle.write(plain)
+        if first is None:
+            first = probe_start_pts(written)
+        if first is None:
+            print(f"  {name}: no video PTS from either parser; skipped")
+            continue
         segments.append({"name": name, "pts": first, "last": last, "level": level,
                          "bytes": len(plain), "path": written,
                          "idx": (index_map.get(name) or {}).get("idx")})
@@ -307,40 +364,64 @@ def main():
         print(f"{variants} duplicate-position segment(s) dropped ({len(unique)} positions kept)")
     segments = unique
 
-    # Assemble by content position when the captured lists give one. Sessions agree on where a
-    # segment belongs but not on its first PTS -- their grids are offset by seconds -- so PTS can
-    # order segments within a session and cannot combine sessions without gaps and duplicates. The
-    # list index can, which is what makes a lesson assembled from several sessions the right length.
-    indexed = {item["name"]: item for item in segments if item.get("idx") is not None}
-    if len(indexed) >= max(3, len(segments) // 2):
+    # Two ways to know where a segment belongs, used together so neither blocks the other.
+    #
+    #   * The API list's index is exact, but only exists for segments from a captured list.
+    #   * Otherwise the segment's own first PTS says which *session* it came from: within a session
+    #     positions are exactly ten seconds apart, so PTS modulo ten is constant per session and
+    #     different between sessions (518.13, 526.47, 531.48 in the lesson measured here). Clustering
+    #     on that recovers each session's sequence without knowing the lesson's true start.
+    #
+    # Merging segments from two sessions in one file is what makes a video longer than the lesson, so
+    # each sequence is assembled and measured on its own.
+    sequences = []
+    positioned = [item for item in segments if item.get("idx") is not None]
+    floaters = [item for item in segments if item.get("idx") is None]
+
+    if positioned:
         by_index = {}
-        for item in indexed.values():
+        for item in positioned:
             by_index.setdefault(item["idx"], item)
-        segments = [by_index[key] for key in sorted(by_index)]
-        print(f"{len(indexed)} segment(s) have a content position; assembled {len(segments)} "
-              f"position(s) ({len(indexed) - len(segments)} variant(s) dropped)")
-        stretches, current = [], [segments[0]]
-        for item in segments[1:]:
+        ordered = [by_index[key] for key in sorted(by_index)]
+        runs, current = [], [ordered[0]]
+        for item in ordered[1:]:
             if item["idx"] != current[-1]["idx"] + 1:
-                stretches.append(current)
+                runs.append(current)
                 current = [item]
             else:
                 current.append(item)
-        stretches.append(current)
-    else:
-        segments.sort(key=lambda item: item["pts"])
-        stretches, current = [], [segments[0]]
-        for item in segments[1:]:
-            previous = current[-1]
-            if (item["pts"] - previous["pts"]) / 90000.0 > SEGMENT_SECONDS + GAP_SECONDS:
-                stretches.append(current)
-                current = [item]
-            else:
-                current.append(item)
-        stretches.append(current)
+        runs.append(current)
+        print(f"{len(positioned)} segment(s) placed by content position: "
+              f"{len(ordered)} position(s) in {len(runs)} run(s)")
+        sequences.extend((f"idx{number:02d}", run) for number, run in enumerate(runs, 1))
+
+    if floaters:
+        clusters = {}
+        for item in floaters:
+            offset = round(((item["pts"] / 90000.0) % SEGMENT_SECONDS), 1)
+            clusters.setdefault(offset, []).append(item)
+        kept = {offset: group for offset, group in clusters.items() if len(group) >= args.min_segments}
+        print(f"{len(floaters)} segment(s) placed by position-within-session: "
+              f"{len(kept)} session(s) of "
+              + ", ".join(f"mod {offset:.1f} ({len(group)})"
+                          for offset, group in sorted(kept.items(), key=lambda kv: -len(kv[1]))[:6]))
+        for number, (offset, group) in enumerate(sorted(kept.items()), 1):
+            group.sort(key=lambda item: item["pts"])
+            runs, current = [], [group[0]]
+            for item in group[1:]:
+                if (item["pts"] - current[-1]["pts"]) / 90000.0 > SEGMENT_SECONDS + GAP_SECONDS:
+                    runs.append(current)
+                    current = [item]
+                else:
+                    current.append(item)
+            runs.append(current)
+            sequences.extend((f"off{offset:.1f}-{index:02d}", run)
+                             for index, run in enumerate(runs, 1))
+
+    stretches = [(label, group) for label, group in sequences if len(group) >= args.min_segments]
 
     report = []
-    for number, group in enumerate(stretches, 1):
+    for number, (label, group) in enumerate(stretches, 1):
         if len(group) < args.min_segments:
             continue
         first_seconds = group[0]["pts"] / 90000.0
@@ -351,7 +432,7 @@ def main():
         expected = sum(((item["last"] or item["pts"]) - item["pts"]) / 90000.0 + 0.04
                        for item in group)
         levels = sorted({item["level"] for item in group if item["level"] is not None})
-        stem = f"{args.lesson or 'lesson'}_{number:02d}_{int(first_seconds)}s-{int(last_seconds)}s"
+        stem = f"{args.lesson or 'lesson'}_{number:02d}_{label}_{int(first_seconds)}s-{int(last_seconds)}s"
 
         # The concat demuxer, not a byte concatenation: it rewrites each input's timestamps so the
         # output follows on from the previous file. Concatenating the transport streams and copying
