@@ -465,6 +465,38 @@ def main():
           f"in {len(runs)} contiguous run(s)")
     sequences = [(f"idx{runs_index:02d}", run) for runs_index, run in enumerate(runs, 1)]
 
+    # Material no captured list covers. A key exists for it -- the player played it -- but there is no
+    # index to place it at, because the list that would have carried one was never captured. Its own
+    # PTS still says which session it came from: within one session positions are exactly ten seconds
+    # apart, so PTS modulo ten is constant per session. Ordering by PTS and assembling each such group
+    # produces contiguous video of that material with no claim about *where* in the lesson it sits --
+    # which is why it is labelled, rather than mixed into the indexed timeline.
+    unlisted_by_grid = {}
+    for item in unmatched:
+        key = round(((item["pts"] / 90000.0) % SEGMENT_SECONDS), 1)
+        unlisted_by_grid.setdefault(key, []).append(item)
+    unlisted_runs = 0
+    for grid, group in sorted(unlisted_by_grid.items(), key=lambda pair: -len(pair[1])):
+        if len(group) < 2:
+            continue
+        group.sort(key=lambda item: item["pts"])
+        run, current = [], [group[0]]
+        for item in group[1:]:
+            if (item["pts"] - current[-1]["pts"]) / 90000.0 > SEGMENT_SECONDS + GAP_SECONDS:
+                run.append(current)
+                current = [item]
+            else:
+                current.append(item)
+        run.append(current)
+        for index, piece in enumerate(run, 1):
+            if len(piece) < 2:
+                continue
+            sequences.append((f"unlisted{grid:.1f}-{index:02d}", piece))
+            unlisted_runs += 1
+    if unlisted_runs:
+        print(f"{len(unmatched)} segment(s) are not in any captured list; assembled "
+              f"{unlisted_runs} unlisted run(s) from them, placed by their own session's grid")
+
     stretches = [(label, group) for label, group in sequences if len(group) >= args.min_segments]
 
     report = []
