@@ -222,7 +222,8 @@ def main():
     ap.add_argument("--library", default=LIBRARY)
     ap.add_argument("--out", default=r"D:\ev-export\lessons")
     ap.add_argument("--container", default="mp4", choices=["mp4", "mkv"])
-    ap.add_argument("--min-segments", type=int, default=3)
+    ap.add_argument("--min-segments", type=int, default=1,
+                    help="skip merged runs shorter than this (1 keeps everything we can decrypt)")
     ap.add_argument("--harvest", type=float, default=0,
                     help="seconds to watch the live player for extra keys first")
     ap.add_argument("--watch", type=float, default=0,
@@ -477,6 +478,30 @@ def main():
 
     with open(os.path.join(lesson_dir, "report.json"), "w", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=1)
+
+    # Coverage, in the only unit that answers the question the user actually asks: how much of the
+    # lesson is in the output, and is what is there the right length. Positions come from the captured
+    # lesson lists, which enumerate the lesson; seconds come from the videos just measured.
+    assembled = sum(entry["expected_seconds"] for entry in report)
+    covered = len({item["idx"] for item in segments if item.get("idx") is not None})
+    lists_path = os.path.join(HERE, "captured", "lesson_lists.json")
+    if os.path.exists(lists_path):
+        lists = json.load(open(lists_path, encoding="utf-8"))
+        verified = set(library)
+        best_label, best_positions = None, 0
+        for label, payload in lists.items():
+            names = [entry["name"] for entry in payload.get("entries", [])]
+            on_disk = len([name for name in names if name in verified])
+            if on_disk > best_positions:
+                best_label, best_positions = label, on_disk
+        lesson_positions = max((len(payload.get("entries", [])) for payload in lists.values()),
+                               default=0)
+        if lesson_positions:
+            print(f"\nkeys: session {best_label} has {lesson_positions} position(s); "
+                  f"{best_positions} of them have a verified key on disk")
+        print(f"assembled {assembled:.1f}s across {len(report)} video(s), "
+              f"covering {covered} of {lesson_positions} position(s) "
+              f"({(covered / lesson_positions * 100) if lesson_positions else 0:.0f}% of the lesson)")
     print(f"\n{len(report)} video(s) in {lesson_dir}")
     return 0
 

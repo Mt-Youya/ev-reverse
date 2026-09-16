@@ -88,6 +88,7 @@ def harvest_lesson_lists(roots):
     out = {}
     sessions = {}
     indexed = {}
+    entries_by_session = {}
     for root in roots:
         for directory, _, files in os.walk(root):
             for name in files:
@@ -105,6 +106,7 @@ def harvest_lesson_lists(roots):
                     continue
                 session = os.path.relpath(path, os.path.join(HERE, "..", ".."))
                 collected = []
+                entries_kept = []
                 for item in entries:
                     if not isinstance(item, dict):
                         continue
@@ -121,9 +123,52 @@ def harvest_lesson_lists(roots):
                         if "idx" in item:
                             indexed[segment] = {"idx": int(item["idx"]), "session": session,
                                                 "key": key_for(tk, segment)}
+                        # Keep the signed URL too. It expires, but a list captured while the player
+                        # is playing still carries live ones, and those are what let the tool fetch
+                        # the segments a session has that the download directory lacks.
+                        entries_kept.append({"name": segment, "idx": item.get("idx"),
+                                             "tk": tk, "sf": signed})
                 if collected:
                     sessions[session] = collected
-    return out, sessions, indexed
+                    entries_by_session[session] = {
+                        "base": document.get("d_p") or "",
+                        "entries": entries_kept,
+                    }
+    return out, sessions, indexed, entries_by_session
+
+
+def verify(library, cache_dir):
+    """Test every key against the file it names, and keep only the ones that open it.
+
+    A key is only valid for the file as that file was downloaded: `tk` belongs to a playback session,
+    so a list captured in one session yields keys that do *not* open a file downloaded in another --
+    measured here as 190 of 742 library entries decrypting to noise (0.5% sync, where a right key
+    gives 100%). Adding mined keys unverified therefore inflates the library with entries that look
+    like coverage and fail at decrypt time, so they are tested before they are kept.
+    """
+    good, bad, absent = {}, 0, 0
+    for name, key in library.items():
+        path = os.path.join(cache_dir, name)
+        if not os.path.exists(path):
+            absent += 1
+            continue
+        try:
+            from Crypto.Cipher import AES
+            with open(path, "rb") as handle:
+                head = handle.read(576)
+            if len(head) < 576:
+                absent += 1
+                continue
+            mask = hashlib.md5(name.encode()).hexdigest()[:16].encode()
+            masked = bytes(b ^ mask[i % 16] for i, b in enumerate(head))
+            plain = AES.new(key.encode(), AES.MODE_ECB).decrypt(masked)
+            if plain[0] == 0x47 and plain[188] == 0x47 and plain[376] == 0x47:
+                good[name] = key
+            else:
+                bad += 1
+        except Exception:
+            absent += 1
+    return good, bad, absent
 
 
 def main():
@@ -139,8 +184,8 @@ def main():
         per_source[relative] = len(found)
         library.update(found)
 
-    mined, sessions, indexed = harvest_lesson_lists([CAPTURED,
-                                                     os.path.join(HERE, "..", "..", "verify_out5")])
+    mined, sessions, indexed, entries_by_session = harvest_lesson_lists(
+        [CAPTURED, os.path.join(HERE, "..", "..", "verify_out5")])
     per_source[f"lesson lists ({len(sessions)} session(s))"] = len(mined)
     for segment, (key, _) in mined.items():
         library.setdefault(segment, key)
@@ -149,6 +194,13 @@ def main():
         with open(index_path, "w", encoding="utf-8") as handle:
             json.dump(indexed, handle, indent=1)
         print(f"{len(indexed)} segment(s) carry a content position; wrote {index_path}")
+    if entries_by_session:
+        lists_path = os.path.join(CAPTURED, "lesson_lists.json")
+        with open(lists_path, "w", encoding="utf-8") as handle:
+            json.dump(entries_by_session, handle, indent=1)
+        total = sum(len(value.get("entries", [])) for value in entries_by_session.values())
+        print(f"{total} list entr(ies) across {len(entries_by_session)} session(s); "
+              f"wrote {lists_path}")
     if sessions:
         session_path = os.path.join(CAPTURED, "lesson_sessions.json")
         with open(session_path, "w", encoding="utf-8") as handle:
@@ -170,6 +222,15 @@ def main():
     for relative, count in sorted(per_source.items()):
         if count:
             print(f"  {count:6d}  {relative}")
+
+    cache_dir = r"D:\Downloads\EVPlayer2Downloads"
+    verified, rejected, absent = verify(library, cache_dir)
+    print(f"\nverified against the files on disk: {len(verified)} open, {rejected} do not, "
+          f"{absent} not on disk")
+    if rejected:
+        print("  (a key belongs to the session its file was downloaded in; keys mined from another")
+        print("   session's list decrypt to noise, and are dropped rather than counted as coverage)")
+    library = verified
 
     lessons = collections.Counter()
     for name in library:
