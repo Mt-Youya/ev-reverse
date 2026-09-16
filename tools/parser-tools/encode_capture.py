@@ -13,6 +13,7 @@ where it belongs -- as a lower frame rate.
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -43,6 +44,17 @@ def main():
     args = ap.parse_args()
 
     frame_bytes = args.width * args.height * 3 // 2
+    # Per-file rates when the capture recorded its own timing; the run-wide average otherwise. A clip
+    # recorded while the decoder was slow is not the same speed as one recorded while it was fast, and
+    # giving them one rate is what made a batch come out at 1.8 fps and be encoded as if it were 10.
+    per_file = {}
+    index_path = os.path.join(args.directory, "capture_index.json")
+    if os.path.exists(index_path):
+        for entry in json.load(open(index_path, encoding="utf-8")):
+            span = (entry.get("last") or 0) - (entry.get("first") or 0)
+            if entry.get("frames") and span > 0:
+                per_file[os.path.basename(entry["name"])] = entry["frames"] / span
+        print(f"{len(per_file)} file(s) have their own measured rate")
     files = sorted((name for name in os.listdir(args.directory) if name.endswith(".yuv")),
                    key=lambda name: int(name.split("_")[1].split(".")[0]))
     if not files:
@@ -70,10 +82,11 @@ def main():
         frames = size // frame_bytes
         if frames < 2:
             continue
+        rate_for_file = per_file.get(name, rate)
         path = os.path.join(args.directory, name)
         target = os.path.join(out_dir, name[:-4] + ".mp4")
         done = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "yuv420p",
-                               "-s", f"{args.width}x{args.height}", "-r", f"{rate:.6f}",
+                               "-s", f"{args.width}x{args.height}", "-r", f"{rate_for_file:.6f}",
                                "-i", path, "-c:v", "libx264", "-preset", "veryfast",
                                "-crf", str(args.crf), "-pix_fmt", "yuv420p", "-y", target],
                               capture_output=True, text=True)
@@ -81,7 +94,7 @@ def main():
             print(f"  {name}: encode failed: {(done.stderr or '')[:120]}")
             continue
         actual = duration_of(target)
-        expected = frames / rate if rate else 0
+        expected = frames / rate_for_file if rate_for_file else 0
         produced.append((name, frames, expected, actual))
 
     print(f"\n{'file':<24}{'frames':>8}{'expected':>10}{'actual':>9}{'delta':>8}")

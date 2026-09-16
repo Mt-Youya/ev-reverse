@@ -36,12 +36,29 @@ var fclose = new NativeFunction(msvcrt.getExportByName('fclose'), 'int', ['point
 var OUT = OUTDIR;
 var current = null, currentPts = -1, written = 0, frames = 0, skipped = 0;
 var scratch = null, scratchSize = 0;
+var opened = 0, firstAt = 0, lastAt = 0, fileFrames = 0, index = [];
+
+// Timing per file, not per run. A single rate for the whole capture assumes every clip was recorded
+// at the same speed, and clips from different moments -- or different runs -- are not: one batch here
+// came out at 1.8 frames a second and was encoded as if it were 10, which made its duration wrong and
+// broke the join against the decrypted pieces. The first and last frame's wall-clock times are what a
+// clip's own rate is computed from.
+function closeCurrent() {
+  if (current !== null && fileFrames > 0) {
+    index.push({ name: opened, frames: fileFrames, first: firstAt, last: lastAt });
+  }
+  if (current !== null) { fclose(current); }
+  current = null;
+}
 
 function open(pts) {
   var name = OUT + '\\\\stream_' + pts + '.yuv';
   var handle = fopen(Memory.allocUtf8String(name), Memory.allocUtf8String('wb'));
   if (handle.isNull()) { send({ t: 'error', message: 'fopen failed for ' + name }); return null; }
   currentPts = pts;
+  opened = name;
+  fileFrames = 0;
+  firstAt = 0; lastAt = 0;
   send({ t: 'file', pts: pts, name: name });
   return handle;
 }
@@ -70,10 +87,14 @@ Interceptor.attach(dll.base.add(0xB9648), {
       // A new file per second keeps each one openable on its own and makes a capture that ran out of
       // disk space still mostly usable.
       if (current === null || this.pts !== currentPts) {
-        if (current !== null) { fclose(current); }
+        closeCurrent();
         current = open(this.pts);
         if (current === null) return;
       }
+      var now = Date.now() / 1000;
+      if (fileFrames === 0) firstAt = now;
+      lastAt = now;
+      fileFrames += 1;
       // Pack the three planes into one scratch buffer and write it with a single call. Writing row by
       // row straight to the file is correct but slow enough that the decoder reuses the frame buffer
       // while it runs, which showed up as horizontal tearing; copying in memory costs microseconds and
@@ -106,6 +127,9 @@ Interceptor.attach(dll.base.add(0xB9648), {
 setInterval(function () {
   send({ t: 'stats', frames: frames, skipped: skipped, bytes: written });
 }, 5000);
+setInterval(function () {
+  if (index.length) { send({ t: 'index', entries: index }); index = []; }
+}, 3000);
 send({ t: 'armed', base: dll.base.toString(), out: OUT });
 """
 
@@ -140,6 +164,7 @@ def main():
 
     files = []
     stats = {}
+    index = []
     script = frida.attach(pid).create_script(
         JS.replace("OUTDIR", json.dumps(args.out.replace("\\", "\\\\"))))
 
@@ -156,6 +181,8 @@ def main():
             stats.update(payload)
             print(f"  {payload['frames']} frame(s), {payload['bytes'] / 1048576:.1f} MB, "
                   f"{payload['skipped']} skipped", flush=True)
+        elif payload.get("t") == "index":
+            index.extend(payload["entries"])
         elif payload.get("t") == "file":
             files.append(payload)
         elif payload.get("t") == "error":
@@ -174,6 +201,11 @@ def main():
             pass
 
     print(f"\n{stats.get('frames', 0)} frame(s) written, {len(files)} file(s) started")
+    if index:
+        path = os.path.join(args.out, "capture_index.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(index, handle, indent=1)
+        print(f"per-file timing written to {path} ({len(index)} file(s))")
     if not files:
         print("nothing was recorded: no frame came back while the hooks were on")
         return 0
