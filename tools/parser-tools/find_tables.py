@@ -46,6 +46,13 @@ FINGERPRINTS = [
         16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 29, 30])),
     ("zigzag_8x8 (dct coef order)", bytes([
         0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5])),
+    # cabac_context_init_I/PB are int8 pairs, one pair per context, not int16 -- which is why the
+    # int16 form of this fingerprint was never going to be found anywhere, stock binaries included.
+    ("cabac_context_init pairs 0..5", bytes([
+        20 & 0xFF, (-15) & 0xFF, 2, 54, 3, 74])),
+    ("cabac_context_init pairs 0..12", bytes([
+        20 & 0xFF, (-15) & 0xFF, 2, 54, 3, 74, (-28) & 0xFF, 127,
+        (-23) & 0xFF, 104, (-6) & 0xFF, 53, (-9) & 0xFF, 16])),
 ]
 
 # The spec's rangeTabLPS, one row at a time. Searching rows separately distinguishes "the table is
