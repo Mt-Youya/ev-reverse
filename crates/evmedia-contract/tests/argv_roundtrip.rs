@@ -17,6 +17,13 @@ fn path(value: &str) -> PathBuf {
 fn sample(name: &str) -> Command {
     match name {
         "tree" => Command::Tree(TreeArgs { catalog: path("examples/catalog.json") }),
+        "catalog" => Command::Catalog(CatalogArgs { session: path("session.json"), account: 119354,
+            output: path("catalog") }),
+        "download-evs" => Command::DownloadEvs(DownloadEvsArgs { session: path("session.json"),
+            account: 119354, course: 315187, file: 903780, output: path("lesson.evs") }),
+        "export-evs" => Command::ExportEvs(ExportEvsArgs { session: path("session.json"),
+            account: 119354, course: 315187, file: 903780, output: path("lesson.mp4"),
+            work: path("work"), jobs: 4, ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into() }),
         "download" => Command::Download(DownloadArgs {
             manifest: path("manifest.json"),
             output: path("out"),
@@ -55,6 +62,11 @@ fn sample(name: &str) -> Command {
             no_sweep: true,
             sweep_gap_ms: 10,
             mp4: true,
+        }),
+        "export-video" => Command::ExportVideo(ExportArgs {
+            playlist: path("original.m3u8"), session: path("session.json"),
+            output: path("lesson.mkv"), work: path("work"), cache: Some(path("cache")),
+            jobs: 4, ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into(),
         }),
         "adapters" => Command::Adapters(AdaptersArgs {}),
         "recover" => Command::Recover(RecoverArgs {

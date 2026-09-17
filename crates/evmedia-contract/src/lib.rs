@@ -5,12 +5,16 @@
 //! platform code — both binaries depend on this crate and on nothing of each other.
 
 pub mod args;
+pub mod catalog_args;
+pub mod export_args;
 pub mod event;
 pub mod exit;
 pub mod report;
 pub mod spec;
 
 pub use args::*;
+pub use catalog_args::{CatalogArgs, DownloadEvsArgs, ExportEvsArgs};
+pub use export_args::ExportArgs;
 pub use event::{ArtifactKind, Event, Level, SegmentState, Stage, StageState, Status};
 pub use report::{Reporter, ReporterMode};
 pub use spec::{describe, ArgSpec, CommandSpec};

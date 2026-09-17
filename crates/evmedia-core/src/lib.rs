@@ -6,6 +6,9 @@
 
 pub mod api;
 pub mod catalog;
+pub mod catalog_api;
+pub mod evs_manifest;
+pub mod remote_catalog;
 pub mod crypto;
 pub mod decode;
 pub mod download;
@@ -14,6 +17,9 @@ pub mod keyscan;
 pub mod media;
 pub mod paths;
 pub mod playlist;
+pub mod vod;
+pub mod full_export;
+pub mod verified_media;
 
 use anyhow::{Context, Result};
 use std::path::Path;

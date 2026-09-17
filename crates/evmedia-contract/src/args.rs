@@ -46,6 +46,12 @@ pub struct Cli {
 pub enum Command {
     /// Print a course/video directory tree from a JSON catalog.
     Tree(TreeArgs),
+    /// Refresh the authorized directory and recursively fetch every course detail.
+    Catalog(crate::CatalogArgs),
+    /// Download one authorized EVS file and decrypt its embedded M3U8.
+    DownloadEvs(crate::DownloadEvsArgs),
+    /// Download one authorized EVS file and export it to MP4/MKV without the player.
+    ExportEvs(crate::ExportEvsArgs),
     /// Download all listed segments concurrently with resume-safe atomic files.
     Download(DownloadArgs),
     /// Decode an EVPlayer2 5.0.5 segment ZIP/directory using a live-captured manifest.
@@ -56,6 +62,8 @@ pub enum Command {
     Derive(DeriveArgs),
     /// Ask the API to sign a lesson's segments, with no player involved.
     Fetch(FetchArgs),
+    /// Export a complete VOD to verified MP4/MKV without Python.
+    ExportVideo(crate::ExportArgs),
     /// Harvest segment keys and signed URLs from a live player, then download, decrypt and merge.
     Grab(GrabArgs),
     /// Recover segment keys from a live player's memory and decrypt the segments it already
@@ -255,11 +263,15 @@ impl ToArgv for Command {
     fn to_argv(&self) -> Vec<String> {
         match self {
             Command::Tree(args) => args.to_argv(),
+            Command::Catalog(args) => args.to_argv(),
+            Command::DownloadEvs(args) => args.to_argv(),
+            Command::ExportEvs(args) => args.to_argv(),
             Command::Download(args) => args.to_argv(),
             Command::DecodeEv(args) => args.to_argv(),
             Command::CaptureEv(args) => args.to_argv(),
             Command::Derive(args) => args.to_argv(),
             Command::Fetch(args) => args.to_argv(),
+            Command::ExportVideo(args) => args.to_argv(),
             Command::Grab(args) => args.to_argv(),
             Command::Recover(args) => args.to_argv(),
             Command::Adapters(args) => args.to_argv(),

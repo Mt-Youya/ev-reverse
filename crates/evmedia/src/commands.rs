@@ -5,17 +5,22 @@ use anyhow::Result;
 #[cfg(not(windows))]
 use anyhow::bail;
 use evmedia_contract::{
-    CaptureEvArgs, Command, Event, FetchArgs, GrabArgs, RecoverArgs, Reporter, Stage, StageState,
+    CaptureEvArgs, CatalogArgs, Command, DownloadEvsArgs, Event, ExportEvsArgs, FetchArgs, GrabArgs, RecoverArgs,
+    Reporter, Stage, StageState,
 };
-use evmedia_core::{api, catalog, decode, download, harvest, keyscan, media, playlist, read_json};
+use evmedia_core::{api, catalog, catalog_api::CatalogApi, decode, download, evs_manifest::Descriptor,
+    harvest, keyscan, media, playlist, read_json, remote_catalog};
 use evmedia_core::keyscan::KeyEntry;
-use std::time::Duration;
+use std::{process::Command as ProcessCommand, time::Duration};
 
 const ADAPTERS: &str = "evplayer2-5.0.5/windows-live-manifest\ngeneric/http-segment-manifest\nandroid-agent-protocol (planned)\nmacos-agent-protocol (planned)\nios-companion-app-protocol (planned)";
 
 pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
     match command {
         Command::Tree(args) => catalog::run(&args.catalog, reporter),
+        Command::Catalog(args) => catalog(args, reporter).await,
+        Command::DownloadEvs(args) => download_evs(args, reporter).await,
+        Command::ExportEvs(args) => export_evs(args, reporter).await,
         Command::Download(args) => {
             let manifest = download::load_input(&args.manifest)?;
             download::download_all(manifest, args.output, args.parallel, reporter).await
@@ -29,6 +34,16 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
             playlist::run(&args.playlist, &args.input, &args.output, reporter)
         }
         Command::Fetch(args) => fetch(args, reporter).await,
+        Command::ExportVideo(args) => {
+            let text = std::fs::read_to_string(&args.playlist)?;
+            let vod = evmedia_core::vod::Vod::parse(&text)?;
+            let session = evmedia_core::full_export::Session::load(&args.session, &vod)?;
+            let options = evmedia_core::full_export::Options {
+                output: args.output, work: args.work, cache: args.cache,
+                jobs: args.jobs, ffmpeg: args.ffmpeg, ffprobe: args.ffprobe,
+            };
+            evmedia_core::full_export::run(&text, &session, &options, reporter).await
+        }
         Command::Grab(args) => grab(args, reporter),
         Command::Recover(args) => recover(args, reporter),
         Command::Adapters(_) => {
@@ -36,6 +51,119 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
             Ok(())
         }
     }
+}
+
+async fn catalog(args: CatalogArgs, reporter: &Reporter) -> Result<()> {
+    let session: evmedia_core::catalog_api::CatalogSession = read_json(&args.session)?;
+    remote_catalog::fetch(&CatalogApi::new(session)?, args.account, &args.output, reporter).await
+}
+
+async fn download_evs(args: DownloadEvsArgs, reporter: &Reporter) -> Result<()> {
+    let session: evmedia_core::catalog_api::CatalogSession = read_json(&args.session)?;
+    let api = CatalogApi::new(session)?;
+    let video = authorized_video(&api, args.account, args.course, args.file).await?;
+    let signed = api.download_url(&video).await?;
+    let url = signed["signed_url"].as_str().ok_or_else(|| anyhow::anyhow!("download response has no signed_url"))?;
+    let bytes = api.get_url(url).await?;
+    if bytes.is_empty() { anyhow::bail!("downloaded EVS file is empty"); }
+    if let Some(parent) = args.output.parent() { std::fs::create_dir_all(parent)?; }
+    std::fs::write(&args.output, &bytes)?;
+    let key = api.download_key(args.file).await?;
+    let tkey = key["tkey"].as_str().ok_or_else(|| anyhow::anyhow!("download key response has no tkey"))?;
+    let descriptor = Descriptor::open(tkey)?;
+    let filename = video["upload_key"].as_str().unwrap_or("video.evs");
+    let manifest = descriptor.manifest(&bytes, filename)?;
+    let m3u8 = args.output.with_extension("m3u8");
+    std::fs::write(&m3u8, manifest)?;
+    std::fs::write(args.output.with_extension("descriptor.json"), serde_json::to_vec_pretty(&descriptor)?)?;
+    reporter.info(format!("EVS 下载完成：{}；清单：{}", args.output.display(), m3u8.display()));
+    Ok(())
+}
+
+async fn authorized_video(api: &CatalogApi, account: i64, course: i64, file: i64) -> Result<serde_json::Value> {
+    let detail = api.course(account, course).await?;
+    let mut todo = vec![detail["course_detail"].clone()];
+    while let Some(node) = todo.pop() {
+        todo.extend(node["childs"].as_array().cloned().unwrap_or_default());
+        if let Some(found) = node["files"].as_array().and_then(|files| files.iter()
+            .find(|candidate| candidate["file_id"].as_i64() == Some(file))) {
+            return Ok(found.clone());
+        }
+    }
+    anyhow::bail!("file is not in the authorized course")
+}
+
+/// Download one EVS file, ask the EVS descriptor's endpoint for every segment token, then use the
+/// existing download/derive/decode path. This is the stable offline path: it never needs a player
+/// process or a memory capture after the session JSON has been obtained.
+async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
+    let session: evmedia_core::catalog_api::CatalogSession = read_json(&args.session)?;
+    let api = CatalogApi::new(session)?;
+    let video = authorized_video(&api, args.account, args.course, args.file).await?;
+    let signed = api.download_url(&video).await?;
+    let url = signed["signed_url"].as_str().ok_or_else(|| anyhow::anyhow!("download response has no signed_url"))?;
+    let bytes = api.get_url(url).await?;
+    if bytes.is_empty() { anyhow::bail!("downloaded EVS file is empty"); }
+    let key = api.download_key(args.file).await?;
+    let tkey = key["tkey"].as_str().ok_or_else(|| anyhow::anyhow!("download key response has no tkey"))?;
+    let descriptor = Descriptor::open(tkey)?;
+    let filename = video["upload_key"].as_str().unwrap_or("video.evs");
+    let m3u8_text = descriptor.manifest(&bytes, filename)?;
+    let vod = evmedia_core::vod::Vod::parse(&m3u8_text)?;
+    let liststr = vod.names.iter().enumerate()
+        .map(|(index, name)| format!("{index}|0|{name}"))
+        .collect::<Vec<_>>().join(",");
+    let request = api::ListRequest::with_endpoint(&descriptor.req, &descriptor.cache_key, liststr);
+    let list_value = api::fetch_list(&request, &api.session.token).await?;
+    let list: playlist::Playlist = serde_json::from_value(list_value)?;
+    playlist::summarize(&list)?;
+    let actual = list.ordered()?.into_iter().map(|(_, name)| name).collect::<Vec<_>>();
+    if actual != vod.names {
+        anyhow::bail!("EVS signed segment list does not match the embedded complete M3U8");
+    }
+
+    std::fs::create_dir_all(&args.work)?;
+    let evs_path = args.work.join(filename);
+    let m3u8_path = args.work.join("original.m3u8");
+    let list_path = args.work.join("list.json");
+    std::fs::write(&evs_path, &bytes)?;
+    std::fs::write(&m3u8_path, &m3u8_text)?;
+    std::fs::write(&list_path, serde_json::to_vec_pretty(&list)?)?;
+    let enc_dir = args.work.join("enc");
+    download::download_all(list.to_download_manifest()?, enc_dir.clone(), args.jobs, reporter).await?;
+    let manifest_path = args.work.join("manifest.json");
+    playlist::run(&list_path, &enc_dir, &manifest_path, reporter)?;
+    let ev_manifest: decode::EvManifest = read_json(&manifest_path)?;
+    let merged = args.work.join("lesson.ts");
+    decode::decode_ev(&enc_dir, ev_manifest, &merged, reporter)?;
+
+    let extension = args.output.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
+    if extension != "mp4" && extension != "mkv" {
+        anyhow::bail!("output extension must be .mp4 or .mkv");
+    }
+    if let Some(parent) = args.output.parent() { std::fs::create_dir_all(parent)?; }
+    let partial = args.output.with_file_name(format!("{}.partial.{}", args.output.file_stem().and_then(|x| x.to_str()).unwrap_or("video"), extension));
+    let mut ffmpeg = ProcessCommand::new(&args.ffmpeg);
+    ffmpeg.args(["-v", "warning", "-nostdin", "-y", "-i"])
+        .arg(&merged).args(["-map", "0:v:0", "-map", "0:a?", "-c", "copy"]);
+    if extension == "mp4" { ffmpeg.args(["-movflags", "+faststart"]); }
+    let status = ffmpeg.arg(&partial).status().map_err(|error| anyhow::anyhow!("run {}: {error}", args.ffmpeg))?;
+    if !status.success() { anyhow::bail!("ffmpeg remux failed with {status}"); }
+    let probe = ProcessCommand::new(&args.ffprobe).args(["-v", "error", "-show_streams", "-show_format", "-of", "json"])
+        .arg(&partial).output().map_err(|error| anyhow::anyhow!("run {}: {error}", args.ffprobe))?;
+    if !probe.status.success() { anyhow::bail!("ffprobe rejected the remuxed video"); }
+    let info: serde_json::Value = serde_json::from_slice(&probe.stdout)?;
+    if !info["streams"].as_array().unwrap_or(&Vec::new()).iter().any(|stream| stream["codec_type"] == "video") {
+        anyhow::bail!("remuxed output has no video stream");
+    }
+    if args.output.exists() { std::fs::remove_file(&args.output)?; }
+    std::fs::rename(&partial, &args.output)?;
+    std::fs::write(args.work.join("report.json"), serde_json::to_vec_pretty(&serde_json::json!({
+        "status":"complete", "segments":vod.names.len(), "playlist_seconds":vod.seconds,
+        "output":args.output.canonicalize().unwrap_or_else(|_| args.output.clone()),
+    }))?)?;
+    reporter.info(format!("EVS 导出完成：{}（{} 个分段）", args.output.display(), vod.names.len()));
+    Ok(())
 }
 
 /// `fetch`: the player's own request, made without the player.

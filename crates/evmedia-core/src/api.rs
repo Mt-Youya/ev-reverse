@@ -63,9 +63,22 @@ pub struct ListRequest {
 
 impl ListRequest {
     pub fn new(playkey: impl Into<String>, liststr: impl Into<String>) -> Self {
+        Self::with_endpoint(LIST_ENDPOINT, playkey, liststr)
+    }
+
+    /// Build a request for the endpoint carried by a downloaded EVS descriptor.
+    ///
+    /// Older downloadable lessons use `getPlayTimeKeySignEVS20231103`, while live playback
+    /// currently uses `getPlayTimeKeySignEVS20260515`.  The body/signature protocol is the same;
+    /// the descriptor is the authority for which endpoint to call.
+    pub fn with_endpoint(
+        endpoint: impl Into<String>,
+        playkey: impl Into<String>,
+        liststr: impl Into<String>,
+    ) -> Self {
         Self {
             host: DEFAULT_HOST.to_string(),
-            endpoint: LIST_ENDPOINT.to_string(),
+            endpoint: endpoint.into(),
             playkey: playkey.into(),
             liststr: liststr.into(),
         }

@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Playlist {
     /// Host the segments live on. The `sf` paths are relative to it.
     #[serde(default)]
@@ -26,7 +26,7 @@ pub struct Playlist {
     pub k_l: Vec<PlaylistEntry>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PlaylistEntry {
     pub idx: u32,
     /// The signed path, `/119354-<uuid>.ts?bid=..&sid=..&t=..&v=..&sign=..`.
