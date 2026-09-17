@@ -287,7 +287,10 @@ function syncButtons() {
   el("stop").textContent = stopping ? "正在停止…" : "停止";
   // Only offered once a stop has been asked for: the graceful stop is the one that leaves a
   // resumable lesson behind.
-  el("force").disabled = !stopping;
+  // `force-stop`, not `force`: the settings checkbox is already `force`, and two elements sharing
+  // an id meant `el("force")` returned the checkbox -- so this button stayed disabled forever and
+  // the checkbox's clicks went to the force-stop handler.
+  el("force-stop").disabled = !stopping;
   el("retry").disabled = running || !state.queue.items.length;
   el("refresh").disabled = running || !ready;
   el("open-root").disabled = !el("root").value.trim();

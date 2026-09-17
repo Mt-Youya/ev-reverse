@@ -38,6 +38,12 @@ verify_out*/
 /verify_fresh/
 /verify_gui/
 
+# Poster output: the compiled generator and what running it leaves behind. `build/Poster.cs` is the
+# source and is tracked; these are build products.
+/build/Poster.exe
+/build/frames/
+/build/*.png
+
 .idea
 .vscode
 __pycache__/

@@ -417,7 +417,7 @@ async function boot() {
   el("sniff").addEventListener("click", () => sniffSession());
   el("run").addEventListener("click", runExport);
   el("stop").addEventListener("click", stopExport);
-  el("force").addEventListener("click", forceStop);
+  el("force-stop").addEventListener("click", forceStop);
   el("retry").addEventListener("click", retryFinished);
   el("clear").addEventListener("click", clearFinished);
   el("open-root").addEventListener("click", openRoot);
