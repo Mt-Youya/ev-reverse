@@ -51,7 +51,7 @@ pub struct CommandSpec {
 }
 
 fn looks_like_a_path(id: &str) -> bool {
-    ["input", "output", "manifest", "catalog"]
+    ["input", "output", "manifest", "catalog", "session"]
         .iter()
         .any(|needle| id.contains(needle))
 }

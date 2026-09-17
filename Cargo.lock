@@ -1179,7 +1179,7 @@ dependencies = [
 name = "evmedia-gui"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "clap",
  "evmedia-contract",
  "rfd",
  "serde",

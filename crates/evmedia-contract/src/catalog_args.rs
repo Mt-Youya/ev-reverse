@@ -48,6 +48,9 @@ pub struct ExportEvsArgs {
     pub ffmpeg: String,
     #[arg(long, default_value = "ffprobe")]
     pub ffprobe: String,
+    /// Overwrite an existing output file instead of refusing to run.
+    #[arg(long)]
+    pub force: bool,
 }
 
 impl ToArgv for CatalogArgs {
@@ -69,10 +72,14 @@ impl ToArgv for DownloadEvsArgs {
 
 impl ToArgv for ExportEvsArgs {
     fn to_argv(&self) -> Vec<String> {
-        vec!["export-evs".into(), "--session".into(), self.session.to_string_lossy().into_owned(),
+        let mut argv = vec!["export-evs".into(), "--session".into(), self.session.to_string_lossy().into_owned(),
              "--account".into(), self.account.to_string(), "--course".into(), self.course.to_string(),
              "--file".into(), self.file.to_string(), "--output".into(), self.output.to_string_lossy().into_owned(),
              "--work".into(), self.work.to_string_lossy().into_owned(), "--jobs".into(), self.jobs.to_string(),
-             "--ffmpeg".into(), self.ffmpeg.clone(), "--ffprobe".into(), self.ffprobe.clone()]
+             "--ffmpeg".into(), self.ffmpeg.clone(), "--ffprobe".into(), self.ffprobe.clone()];
+        if self.force {
+            argv.push("--force".into());
+        }
+        argv
     }
 }

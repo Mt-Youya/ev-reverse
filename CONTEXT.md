@@ -102,7 +102,18 @@ A merge whose indexes form an unbroken `0..n-1` run. It is written to `lesson.ts
 is written to `lesson.partial.ts`. The filename is a promise to the caller.
 _Avoid_: full, finished, successful
 
+### How a lesson is exported now
 
-下载的 7537 个加密文件,硬链接进 enc 目录(不占额外磁盘),grab 直接复用它们解密,一个字节都不重新下载。
-解密公式本身早就有了:明文 = AES-256-ECB解密(密文 XOR MD5(文件名)前16字节),密钥是 32 个十六进制字符。这个项目整个 Rust 链路(grab→解密→合并→转 MP4)就是干这个的,现在正跑着。
-唯一绕不过去的硬约束:每段的密钥和播放顺序(index)只存在于播放器的内存里——密钥是播放器解密那一刻才生成、顺序是播放器 context 里的一个 u32。文件名是随机 UUID,不含顺序;加密内容里也读不出顺序。所以离线(不播放)拿不到,必须让播放器把这些段解出来,grab 从内存抓。
+**Decryption**: 明文 = AES-256-ECB 解密(密文 XOR MD5(文件名)前 16 字节)，密钥是 32 个十六进制字符。
+
+**Key**: `MD5_hex(tk + filename + "20220507")`. All three inputs come from the API, so a lesson no
+longer needs a playback pass — see `docs/KEY-DERIVATION.md`. The window's export path is
+`export-evs`: authorized course detail → EVS file → descriptor → complete M3U8 → signed segment
+list → concurrent download → derive → decrypt → merge → remux.
+
+**What still needs the player** is only the *credential*: a short-lived bearer token plus the
+catalog's dynamic keys. `evmedia-gui` reads it out of the running player with the existing Frida
+probe (`tools/parser-tools/probe_catalog_constants.py`) on one button press, so "find the session
+file" is not a step for the user. `grab` and `recover` still exist for the case where only the
+player's own downloads are available, and for reading keys out of its memory.
+

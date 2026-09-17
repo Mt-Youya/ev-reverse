@@ -23,7 +23,8 @@ fn sample(name: &str) -> Command {
             account: 119354, course: 315187, file: 903780, output: path("lesson.evs") }),
         "export-evs" => Command::ExportEvs(ExportEvsArgs { session: path("session.json"),
             account: 119354, course: 315187, file: 903780, output: path("lesson.mp4"),
-            work: path("work"), jobs: 4, ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into() }),
+            work: path("work"), jobs: 4, ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into(),
+            force: true }),
         "download" => Command::Download(DownloadArgs {
             manifest: path("manifest.json"),
             output: path("out"),

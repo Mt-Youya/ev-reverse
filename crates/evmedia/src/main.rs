@@ -33,4 +33,19 @@ async fn main() {
         });
         std::process::exit(exit::FAILED);
     }
+
+    // The contract in `docs/CLI-CONTRACT.md` says `finished` is the last line of *every* run, and
+    // this is where that is guaranteed. `grab` reports its own outcome — `complete`, `partial`,
+    // `nothing`, `cancelled` are all real distinctions — so this only supplies the line for the
+    // commands that would otherwise end with a `stage` and no verdict.
+    //
+    // It is not cosmetic: a reader that refuses to call a run successful without a reported status
+    // read every finished `export-evs` as a failure, because the CLI exited 0 in silence.
+    if !reporter.finished() {
+        reporter.event(&Event::Finished {
+            status: Status::Complete,
+            exit_code: exit::OK,
+            message: String::new(),
+        });
+    }
 }

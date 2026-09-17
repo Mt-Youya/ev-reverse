@@ -80,6 +80,16 @@ async fn download_evs(args: DownloadEvsArgs, reporter: &Reporter) -> Result<()> 
     Ok(())
 }
 
+/// Remove a file if it is there. A missing file is the normal case on a first run, so this is not an
+/// error; anything else is.
+fn remove_if_present(path: &std::path::Path) -> Result<()> {
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(anyhow::anyhow!("cannot clear the previous {}: {error}", path.display())),
+    }
+}
+
 async fn authorized_video(api: &CatalogApi, account: i64, course: i64, file: i64) -> Result<serde_json::Value> {
     let detail = api.course(account, course).await?;
     let mut todo = vec![detail["course_detail"].clone()];
@@ -135,11 +145,22 @@ async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     playlist::run(&list_path, &enc_dir, &manifest_path, reporter)?;
     let ev_manifest: decode::EvManifest = read_json(&manifest_path)?;
     let merged = args.work.join("lesson.ts");
+    // `decode-ev` refuses to overwrite its output, which is right for a command whose output is the
+    // deliverable. Here the merge is an intermediate in the lesson's own `--work` directory, and a
+    // rerun regenerates it from segments that are already cached — so a leftover one is cleared
+    // rather than allowed to fail the rerun. This is what makes "delete the outputs and export
+    // again" work, and it is a rerun of the same lesson by construction: `--work` is per lesson.
+    remove_if_present(&merged)?;
     decode::decode_ev(&enc_dir, ev_manifest, &merged, reporter)?;
 
     let extension = args.output.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
     if extension != "mp4" && extension != "mkv" {
         anyhow::bail!("output extension must be .mp4 or .mkv");
+    }
+    // Refusing to overwrite is the default because a batch that silently re-encoded everything
+    // would be worse than one that stops; `--force` is how a caller says it meant it.
+    if args.output.exists() && !args.force {
+        anyhow::bail!("output already exists: {} (pass --force to overwrite)", args.output.display());
     }
     if let Some(parent) = args.output.parent() { std::fs::create_dir_all(parent)?; }
     let partial = args.output.with_file_name(format!("{}.partial.{}", args.output.file_stem().and_then(|x| x.to_str()).unwrap_or("video"), extension));

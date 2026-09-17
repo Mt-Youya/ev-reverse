@@ -17,11 +17,26 @@ evmedia-contract  ←  evmedia-core  ←  evmedia-win  ←  evmedia (CLI)
 | `evmedia-core` | The portable product: catalog, download, decode, crypto, and the harvest loop. **Makes no Windows API call.** | `evmedia-contract`, crypto/http crates |
 | `evmedia-win` | Everything that needs Windows: reading the player's memory, deriving keys from playback contexts, driving the playhead. | `evmedia-core`, `windows-sys` |
 | `evmedia` | The CLI. One function per subcommand; `grab` and `capture-ev` are the only platform-gated ones. | all of the above |
-| `evmedia-gui` | The desktop window. Deliberately **not** linked against the core — see below. | `evmedia-contract`, tauri |
+| `evmedia-gui` | The desktop window: a course tree, a batch queue, and the session sniff. Deliberately **not** linked against the core — see below. | `evmedia-contract`, tauri |
 
 Each of these rows is enforced rather than intended. `crates/evmedia/tests/source_budget.rs`
 asserts that `evmedia-core/src` never mentions `windows_sys`, and that `evmedia-gui`'s manifest
 lists neither `evmedia-core` nor `evmedia-win`.
+
+Inside `evmedia-gui`, one module owns one question, and the names say which:
+
+| Module | The question it answers |
+|---|---|
+| `catalog` | What did `evmedia catalog` write? (parse only) |
+| `refresh` | Running that process and reading back the tree |
+| `session` | Is this credential file usable? |
+| `sniff` | Getting one out of the running player, in one click |
+| `plan` | Which argv, which output path, which `--work` for one lesson |
+| `job` | Spawning one CLI run and keeping what it says |
+| `protocol` | Where the CLI's event vocabulary becomes the queue's |
+| `queue` | What to export, what is running, what happened |
+| `server` | The `invoke()` surface and the webview events |
+| `log` | Where a window with no console says what it did |
 
 ## The two seams
 
@@ -51,9 +66,28 @@ that is by discipline, which decays. Instead, `evmedia-gui`'s manifest omits `ev
 `evmedia-win`, so an engineer reaching for `core::harvest::grab::run` from the GUI cannot import
 it, and the test suite fails if anyone adds the dependency back.
 
-The window therefore shells out to `evmedia.exe`. Its Rust side spawns the process, parses the
+The window therefore shells out to `evmedia.exe`. Its Rust side spawns the processes, parses the
 JSON event lines and forwards them to the web view; the view is plain static HTML/CSS/JS with no
 bundler, so `cargo build` alone produces the binary.
+
+## How the window batches
+
+One lesson is one process. The queue holds a worker count of them at a time — three by default —
+and each is an independent `evmedia export-evs` with its own `--work` directory, so a lesson that
+fails takes nothing else down with it. Inside a worker, `--jobs` parallelises that lesson's
+segments, which is the CLI's own concurrency; the window only ever adds the outer level.
+
+Three details are load-bearing:
+
+- **A process is not settled until its pipes are drained.** The CLI's last line is the `finished`
+  event, and a process exits before its parent has necessarily read it. Settling a job on "the
+  process is gone" turned a finished export into a reported failure the first time it was tried,
+  which is why `Running::drain` exists.
+- **The exit code decides nothing.** `complete`, `partial` and `cancelled` can all exit 0, and
+  `partial` leaves a file that looks finished. Only the status the CLI reported is a promise.
+- **The session is fetched, not asked for.** `sniff` runs the existing Frida probe against the
+  player's window and writes the credential beside the export root. The offsets stay in the probe,
+  which is the part already checked against a known build.
 
 ## Platform gating
 

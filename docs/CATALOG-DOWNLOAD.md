@@ -31,6 +31,8 @@ cargo run -p evmedia -- export-evs `
 
 中间文件写入 `--work`：`original.m3u8`、`list.json`、`enc/`、`manifest.json`、`lesson.ts` 和 `report.json`。分片下载是可恢复的，已有文件会复用。
 
+重跑同一节课：删掉成品再跑一次即可。`lesson.ts` 是每次重新生成的中间产物，重跑时会自动清掉；`enc/` 里的分段会复用，不会重新下载。真正被保护的是 `--output`：它已存在时默认拒绝，要覆盖得显式加 `--force`。
+
 ## 已验证的协议边界
 
 - 目录接口（`getEvsAuthorityCourse`、`getEVSCourseDetail`、`getEvsSignUrl`、`getDownEVSKey`）使用会话里的动态目录 key，外层协议版本为 `200`。

@@ -10,7 +10,10 @@ use crate::event::Event;
 use std::{
     io::Write,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,11 +35,19 @@ pub struct Reporter {
     /// effect is an event — the attempt cap on a segment that cannot be decrypted, for one —
     /// observable to nobody, and therefore pinnable by no test.
     sink: Option<Arc<Mutex<Vec<Event>>>>,
+    /// Whether a terminal `Finished` has gone out.
+    ///
+    /// The contract says `finished` is the last line of *every* run. Only `grab` used to emit one,
+    /// so a successful `export-evs` ended with a `stage` line and no verdict at all — and a reader
+    /// that refuses to call a run successful without a reported status read every finished export
+    /// as a failure. This flag is what lets `main` guarantee the line without emitting it twice for
+    /// the commands that do report their own.
+    finished: Arc<AtomicBool>,
 }
 
 impl Reporter {
     pub fn new(mode: ReporterMode, stop: Option<PathBuf>) -> Self {
-        Self { mode, stop, sink: None }
+        Self { mode, stop, sink: None, finished: Arc::new(AtomicBool::new(false)) }
     }
 
     /// A reporter that is silent on both channels and also records every event it was given.
@@ -49,8 +60,15 @@ impl Reporter {
             mode: ReporterMode::Null,
             stop: None,
             sink: Some(Arc::clone(&sink)),
+            finished: Arc::new(AtomicBool::new(false)),
         };
         (reporter, sink)
+    }
+
+    /// Whether a terminal event has already been reported, so a caller can supply the one the
+    /// contract requires without duplicating it.
+    pub fn finished(&self) -> bool {
+        self.finished.load(Ordering::SeqCst)
     }
 
     /// The default: exactly the pre-workspace behaviour.
@@ -91,6 +109,9 @@ impl Reporter {
 
     /// A structured event. No-op unless the machine channel is on, or a sink was asked for.
     pub fn event(&self, event: &Event) {
+        if matches!(event, Event::Finished { .. }) {
+            self.finished.store(true, Ordering::SeqCst);
+        }
         if let Some(sink) = &self.sink {
             if let Ok(mut events) = sink.lock() {
                 events.push(event.clone());

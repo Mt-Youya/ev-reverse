@@ -32,6 +32,11 @@ ghidra-master/
 # `verify_out3/`, one per grab run. Run output, never a source file, and the `*` is the point:
 # a rule pinned to one name lets the next run's directory straight into the index.
 verify_out*/
+# The desktop window's own verification root: a sniffed `session.json` (a bearer token), the
+# catalog the CLI wrote, and whatever it exported. A credential, so it stays out by rule rather
+# than by remembering.
+/verify_fresh/
+/verify_gui/
 
 .idea
 .vscode

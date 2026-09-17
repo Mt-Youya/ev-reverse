@@ -1,10 +1,14 @@
 # The evmedia CLI contract
 
-`evmedia-gui` drives `evmedia` as a child process. This document is the whole interface between
+`evmedia-gui` drives `evmedia` as child processes. This document is the whole interface between
 them. It is deliberately small: an argv shape, a line-oriented event stream, three exit codes,
 and one file used to ask for a stop.
 
 Anything not described here is not part of the contract and the GUI must not depend on it.
+
+The window runs **one process per lesson**, several at a time, each with its own `--work`
+directory; see [`DESKTOP-APP.md`](DESKTOP-APP.md) for the batch model that sits on top of this
+contract.
 
 ## 1. Locating the binary
 
@@ -29,6 +33,10 @@ never run something the CLI would reject.
 
 The GUI's forms are not hand-written: `describe()` walks the clap definition at runtime and the
 window renders one field per argument. A new flag appears in the GUI without a second edit.
+
+The batch surface does not use those generated forms — it builds `export-evs` from the shared
+structs in `evmedia-contract` and asks the CLI's own parser whether the result is legal before
+spawning. `describe()` stays for the argv preview the window shows.
 
 ### Global flags the GUI adds itself
 
