@@ -1,0 +1,659 @@
+/* A dark tool window: three panes, one accent, nothing decorative.
+   The layout is fixed to the viewport and each pane scrolls on its own, so a batch of three
+   hundred videos never pushes the run button off the screen. */
+
+:root {
+  --bg: #0f1115;
+  --panel: #161a21;
+  --panel-2: #1b2028;
+  --line: #262c36;
+  --line-soft: #1f242c;
+  --text: #e6e9ef;
+  --muted: #8b93a1;
+  --accent: #4c9aff;
+  --accent-dim: #24405f;
+  --ok: #35c07f;
+  --warn: #e0a83c;
+  --bad: #e5605f;
+  --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.5 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ top bar */
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.brand .tagline {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  flex: 1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field > span:first-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.field.narrow {
+  width: 96px;
+}
+
+.field.wide {
+  flex: 1;
+  min-width: 260px;
+}
+
+.field .row {
+  display: flex;
+  gap: 6px;
+}
+
+.field.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+.field.actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  /* Never let the action row be the thing that gets squeezed: at 1280 the fields before it want
+     more room than there is, and the run button must not be the casualty. */
+  margin-left: auto;
+  padding-bottom: 2px;
+  flex: none;
+}
+
+.field .row {
+  min-width: 0;
+}
+
+#cli-status {
+  max-width: 150px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"],
+select {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 6px 8px;
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint.bad {
+  color: var(--bad);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+button {
+  font: inherit;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #05121f;
+  font-weight: 600;
+}
+
+button.nowrap {
+  white-space: nowrap;
+  flex: none;
+}
+
+button.small {
+  padding: 6px 9px;
+}
+
+/* Destructive, and deliberately the quieter of the two stop buttons: the graceful stop is the one
+   that leaves a resumable lesson behind. */
+button.danger {
+  border-color: #4d2827;
+  color: var(--bad);
+  background: #1d1416;
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--bad);
+}
+
+button.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 2px 4px;
+}
+
+button.link:hover {
+  text-decoration: underline;
+}
+
+.chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-ok {
+  color: var(--ok);
+  border-color: #234b38;
+}
+
+.chip-warn {
+  color: var(--warn);
+  border-color: #4d3d1c;
+}
+
+.chip-bad {
+  color: var(--bad);
+  border-color: #4d2827;
+}
+
+.banner {
+  padding: 8px 16px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.banner.hidden {
+  display: none;
+}
+
+.banner.ok {
+  background: #14261f;
+  color: var(--ok);
+}
+
+.banner.warn {
+  background: #2a2417;
+  color: var(--warn);
+}
+
+.banner.bad {
+  background: #2b1a1a;
+  color: var(--bad);
+}
+
+/* -------------------------------------------------------------------- panes */
+
+main {
+  display: grid;
+  grid-template-columns: minmax(240px, 22%) minmax(360px, 40%) minmax(340px, 38%);
+  gap: 1px;
+  background: var(--line-soft);
+  min-height: 0;
+}
+
+.pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.pane-head h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.pane-head input[type="search"] {
+  width: auto;
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.head-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pane-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 12px;
+  min-height: 42px;
+}
+
+.muted {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted.small {
+  font-size: 11px;
+}
+
+/* The tree's own hint sits between the summary and the two buttons, and gives way first when the
+   pane is narrow: it is advice, not a control. */
+#tree-tip {
+  flex: 1;
+  text-align: right;
+  min-width: 0;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 16px 14px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ---------------------------------------------------------------- tree pane */
+
+.tree {
+  overflow: auto;
+  padding: 6px 0;
+}
+
+.tree-head,
+.tree-video {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  cursor: default;
+}
+
+.tree-head:hover,
+.tree-video:hover {
+  background: var(--panel-2);
+}
+
+.tree-video {
+  cursor: pointer;
+}
+
+.tree-video.on {
+  background: var(--accent-dim);
+}
+
+.twisty {
+  background: none;
+  border: none;
+  color: var(--muted);
+  width: 16px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.tree-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.tree-count {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- list pane */
+
+.videos {
+  overflow: auto;
+}
+
+.video-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-row {
+  display: grid;
+  grid-template-columns: 26px minmax(80px, 1fr) minmax(130px, 1.6fr) 58px minmax(130px, 1.6fr);
+  gap: 8px;
+  align-items: center;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.video-row.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: default;
+  border-bottom: 1px solid var(--line);
+}
+
+.video-row.on {
+  background: #17293c;
+}
+
+.video-row:hover:not(.head) {
+  background: var(--panel-2);
+}
+
+.c-path,
+.c-title,
+.c-out {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.c-path {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.c-time {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: right;
+}
+
+.c-out {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* --------------------------------------------------------------- queue pane */
+
+.queue-pane {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.overall {
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.overall-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #10141a;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+}
+
+.bar.thin {
+  height: 3px;
+  margin: 6px 0 0;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.bar-fill.warn {
+  background: var(--warn);
+}
+
+.queue {
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.queue-foot {
+  justify-content: space-between;
+}
+
+.queue-row {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 8px 10px;
+}
+
+.queue-row.running {
+  border-color: var(--accent-dim);
+}
+
+.queue-row.failed {
+  border-color: #4d2827;
+}
+
+.queue-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  flex: none;
+}
+
+.status-running {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.status-complete {
+  color: var(--ok);
+  border-color: #234b38;
+}
+
+.status-failed {
+  color: var(--bad);
+  border-color: #4d2827;
+}
+
+.status-skipped,
+.status-cancelled {
+  color: var(--warn);
+  border-color: #4d3d1c;
+}
+
+.queue-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-counts {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.queue-message {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-message .stage {
+  color: var(--accent);
+  margin-right: 6px;
+}
+
+.queue-details summary {
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.log {
+  margin: 6px 0 0;
+  padding: 8px;
+  max-height: 220px;
+  overflow: auto;
+  background: #0b0e12;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #b9c2d0;
+}
+
+/* ------------------------------------------------------------------ scroll */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b323d;
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #39424f;
+}

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>evmedia · EVPlayer2 课程导出</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <h1>evmedia</h1>
+        <p class="tagline">批量下载 · 解密 · 合成</p>
+      </div>
+
+      <form id="settings" class="settings" autocomplete="off">
+        <label class="field wide">
+          <span>会话凭证</span>
+          <span class="row">
+            <input type="text" id="session" placeholder="留空即用导出目录下的 session.json" />
+            <button type="button" id="sniff" class="primary nowrap">自动获取</button>
+          </span>
+          <span class="hint" id="session-hint">正在检查…</span>
+        </label>
+
+        <label class="field narrow">
+          <span>账号 ID</span>
+          <input type="number" id="account" placeholder="119354" />
+        </label>
+
+        <label class="field wide">
+          <span>导出目录</span>
+          <span class="row">
+            <input type="text" id="root" placeholder="D:\\ev-export" />
+            <button type="button" class="small nowrap" data-pick="root">选择…</button>
+          </span>
+          <span class="hint">目录、分段缓存、成品都在这里；重跑会复用已下载的分段</span>
+        </label>
+
+        <label class="field narrow">
+          <span>同时导出</span>
+          <input type="number" id="workers" min="1" max="16" />
+          <span class="hint">个视频</span>
+        </label>
+
+        <label class="field narrow">
+          <span>每视频线程</span>
+          <input type="number" id="jobs" min="1" max="32" />
+          <span class="hint">个分段</span>
+        </label>
+
+        <label class="field narrow">
+          <span>输出格式</span>
+          <select id="extension">
+            <option value="mp4">mp4</option>
+            <option value="mkv">mkv</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>ffmpeg / ffprobe</span>
+          <span class="row">
+            <input type="text" id="ffmpeg" placeholder="ffmpeg" />
+            <button type="button" class="small nowrap" data-pick="ffmpeg" data-file="exe">选择…</button>
+            <input type="text" id="ffprobe" placeholder="ffprobe" />
+            <button type="button" class="small nowrap" data-pick="ffprobe" data-file="exe">选择…</button>
+          </span>
+          <span class="hint">留空即用 PATH 里的 ffmpeg / ffprobe</span>
+        </label>
+
+        <label class="field check">
+          <input type="checkbox" id="force" />
+          <span>覆盖已有文件</span>
+        </label>
+
+        <div class="field actions">
+          <button type="button" id="refresh" class="secondary">刷新目录</button>
+          <button type="button" id="save" class="link">保存设置</button>
+          <span id="cli-status" class="chip chip-warn">正在查找 evmedia…</span>
+        </div>
+      </form>
+    </header>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <main>
+      <section class="pane tree-pane">
+        <div class="pane-head">
+          <h2>课程目录</h2>
+          <input type="search" id="filter" placeholder="筛选标题…" />
+        </div>
+        <div id="tree" class="tree"></div>
+        <div class="pane-foot">
+          <span id="tree-summary" class="muted">还没有目录</span>
+          <button type="button" id="expand-all" class="link">全部展开</button>
+          <button type="button" id="collapse-all" class="link">全部收起</button>
+        </div>      </section>
+
+      <section class="pane list-pane">
+        <div class="pane-head">
+          <h2>选集</h2>
+          <div class="head-actions">
+            <button type="button" id="select-all" class="link">全选</button>
+            <button type="button" id="select-none" class="link">全不选</button>
+            <button type="button" id="select-invert" class="link">反选</button>
+          </div>
+        </div>
+        <div id="videos" class="videos"></div>
+        <div class="pane-foot">
+          <span id="selection-summary" class="muted">没有选中视频</span>
+        </div>
+      </section>
+
+      <section class="pane queue-pane">
+        <div class="pane-head">
+          <h2>导出队列</h2>
+          <div class="head-actions">
+            <button type="button" id="stop" class="secondary" disabled>停止</button>
+            <button type="button" id="force" class="danger" disabled>强制结束</button>
+            <button type="button" id="retry" class="secondary" disabled>重试失败</button>
+            <button type="button" id="clear" class="link">清除已完成</button>
+          </div>
+        </div>
+
+        <div class="overall">
+          <div class="overall-line">
+            <span id="overall-label">尚未开始</span>
+            <span id="overall-counts" class="muted"></span>
+          </div>
+          <div class="bar"><div id="overall-fill" class="bar-fill"></div></div>
+        </div>
+
+        <div id="queue" class="queue"></div>
+
+        <div class="pane-foot queue-foot">
+          <button type="button" id="run" class="primary" disabled>开始导出</button>
+          <button type="button" id="open-root" class="link" disabled>打开导出目录</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+    <script src="catalog.js"></script>
+    <script src="queue.js"></script>
+  </body>
+</html>

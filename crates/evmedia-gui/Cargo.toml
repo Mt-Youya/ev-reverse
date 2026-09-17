@@ -3,26 +3,40 @@ name = "evmedia-gui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Desktop shell for evmedia: every interaction is an evmedia CLI invocation"
+description = "Desktop shell for evmedia: a course tree, a batch export queue, and the CLI doing the work"
+
+[lib]
+name = "evmedia_gui"
+path = "src/lib.rs"
 
 [[bin]]
 name = "evmedia-gui"
 path = "src/main.rs"
 
+# A stand-in for the CLI, so the queue can be tested without a session, a network or a video.
+# It is not part of the product and the window never launches it.
+[[bin]]
+name = "evmedia-stub"
+path = "src/bin/evmedia-stub.rs"
+
 [build-dependencies]
 tauri-build.workspace = true
 
 [dependencies]
-# Deliberately absent: evmedia-core and evmedia-win. The GUI's only model of the product is
+# Deliberately absent: evmedia-core and evmedia-win. The window's only model of the product is
 # "a set of CLI invocations", and leaving those crates out of this manifest turns that from a
 # convention into something the linker enforces.
 evmedia-contract.workspace = true
-anyhow.workspace = true
 rfd.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-# Job objects, so cancelling takes ffmpeg down with the CLI instead of orphaning it.
+# Job objects, so a forced stop reaches the ffmpeg the CLI spawned instead of orphaning it.
 windows-sys.workspace = true
+
+[dev-dependencies]
+# Only so the tests can assert that the argv this crate builds is one the CLI's own parser
+# accepts: `to_argv` and clap's parsing have to stay exact inverses.
+clap.workspace = true

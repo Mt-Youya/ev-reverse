@@ -1,210 +1,198 @@
-//! Starting, streaming and cancelling one CLI run.
+//! Running a batch: the worker loop, and the handle that can end it now.
 //!
-//! The GUI's only mechanism is `std::process::Command` on the `evmedia` binary. Everything the
-//! user sees in the progress bar comes from parsing that process's stdout; everything in the
-//! log pane is its stderr. There is no shared state, no IPC and no second implementation of
-//! any behaviour.
+//! The queue owns the rows; this module owns the processes. It is the only place that decides how
+//! many lessons run at once, when one is settled, and — when a graceful stop is not enough — how to
+//! end one without waiting for it.
 
-use evmedia_contract::Event;
-use serde::Serialize;
-use std::{
-    io::{BufRead, BufReader},
-    path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
-    sync::Mutex,
-    time::Duration,
+use crate::{
+    job::{self, JobStatus, Running},
+    plan::Options,
+    protocol::{JobSink, Sink},
+    queue::Queue,
 };
-use tauri::{AppHandle, Emitter, Manager};
+use std::{
+    collections::BTreeMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-/// The channel the frontend listens on.
-pub const EVENT_CHANNEL: &str = "job";
+/// How often the loop looks at its running processes. Fast enough that a finished lesson frees a
+/// worker slot almost immediately, slow enough to be free.
+const TICK: Duration = Duration::from_millis(200);
 
-#[derive(Serialize, Clone)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-pub enum Payload {
-    /// A parsed protocol event.
-    Event { event: Event },
-    /// A line of human output (which the CLI sends to stderr in JSON mode), or a stdout line
-    /// this build could not parse. Both are shown verbatim.
-    Log { line: String },
-    /// The process finished.
-    Exit { code: i32 },
-}
-
-struct Running {
-    child: Child,
-    stop: PathBuf,
+/// A handle onto a running CLI, for the one operation that must not wait for it.
+///
+/// The loop owns the `Child` and polls it; this holds the process id and, on Windows, a job object,
+/// so "stop now" can kill the tree without borrowing the child out from under the thread that is
+/// watching it. The job object matters: the CLI spawns ffmpeg partway through a merge, and killing
+/// only the CLI would leave the encoder holding the output file.
+#[derive(Clone)]
+pub struct KillSwitch {
+    pub id: String,
+    pub pid: u32,
     #[cfg(windows)]
-    job: Option<crate::winjob::JobHandle>,
+    job: Option<Arc<crate::winjob::JobHandle>>,
 }
 
-#[derive(Default)]
-pub struct JobState {
-    running: Mutex<Option<Running>>,
-}
-
-impl JobState {
-    pub fn is_running(&self) -> bool {
-        self.running.lock().map(|guard| guard.is_some()).unwrap_or(false)
-    }
-}
-
-/// Build the argv the CLI will actually receive, so the UI can show it and the user can copy it.
-pub fn full_argv(argv: &[String], stop_file: &Path) -> Vec<String> {
-    let mut full = argv.to_vec();
-    full.push("--json-events".to_string());
-    full.push("--stop-file".to_string());
-    full.push(stop_file.display().to_string());
-    full
-}
-
-#[tauri::command]
-pub fn start_job(
-    app: AppHandle,
-    state: tauri::State<JobState>,
-    cli: String,
-    argv: Vec<String>,
-    workdir: String,
-) -> Result<(), String> {
-    // The GUI never invents a command line: it asks the CLI's own parser whether this is legal,
-    // and refuses to spawn otherwise.
-    if let Err(error) = evmedia_contract::try_parse(&argv) {
-        return Err(error);
-    }
-    if argv.is_empty() {
-        return Err("没有选择要执行的子命令".to_string());
-    }
-
-    let mut guard = state.running.lock().map_err(|_| "状态锁异常".to_string())?;
-    if guard.is_some() {
-        return Err("已有任务在运行，请先等它结束或取消".to_string());
-    }
-
-    let workdir = PathBuf::from(&workdir);
-    std::fs::create_dir_all(&workdir).map_err(|error| format!("创建输出目录失败：{error}"))?;
-    let stop = workdir.join(".evmedia-stop");
-    // A leftover stop file from a previous run would end this one immediately.
-    let _ = std::fs::remove_file(&stop);
-
-    let mut command = Command::new(&cli);
-    command
-        .args(full_argv(&argv, &stop))
-        .current_dir(&workdir)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+impl KillSwitch {
+    /// Windows gets the job object as well, so the kill reaches the ffmpeg the CLI spawned.
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    pub fn new(id: String, pid: u32, job: Option<Arc<crate::winjob::JobHandle>>) -> Self {
+        Self { id, pid, job }
     }
 
-    let mut child = command.spawn().map_err(|error| format!("启动 {cli} 失败：{error}"))?;
-
-    // A job object so a cancel also reaches ffmpeg, which the CLI spawns partway through a
-    // merge. If the process is already in a job that forbids nesting this returns false and we
-    // fall back to killing just the child.
-    #[cfg(windows)]
-    let job = crate::winjob::JobHandle::create().filter(|job| job.assign(&child));
-
-    if let Some(stdout) = child.stdout.take() {
-        let app = app.clone();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().map_while(|line| line.ok()) {
-                // A line this build cannot parse is treated as text, not as an error, so a newer
-                // CLI can add event variants without breaking an older GUI.
-                let payload = match serde_json::from_str::<Event>(&line) {
-                    Ok(event) => Payload::Event { event },
-                    Err(_) => Payload::Log { line },
-                };
-                let _ = app.emit(EVENT_CHANNEL, payload);
-            }
-        });
-    }
-    if let Some(stderr) = child.stderr.take() {
-        let app = app.clone();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().map_while(|line| line.ok()) {
-                let _ = app.emit(EVENT_CHANNEL, Payload::Log { line });
-            }
-        });
+    #[cfg(not(windows))]
+    pub fn new(id: String, pid: u32) -> Self {
+        Self { id, pid }
     }
 
-    *guard = Some(Running {
-        child,
-        stop,
+    /// Kill this run and everything it started. Returns whether anything was asked to die.
+    pub fn terminate(&self) -> bool {
         #[cfg(windows)]
-        job,
-    });
-    drop(guard);
-
-    // Reap the process on a timer rather than blocking on `wait`, because the child has to stay
-    // reachable so `cancel_job` can signal it.
-    let app = app.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_millis(200));
-        let state = app.state::<JobState>();
-        let mut guard = match state.running.lock() {
-            Ok(guard) => guard,
-            Err(_) => return,
-        };
-        let Some(running) = guard.as_mut() else { return };
-        match running.child.try_wait() {
-            Ok(Some(status)) => {
-                let code = status.code().unwrap_or(-1);
-                *guard = None;
-                drop(guard);
-                let _ = app.emit(EVENT_CHANNEL, Payload::Exit { code });
-                return;
+        {
+            if let Some(job) = &self.job {
+                job.terminate();
+                return true;
             }
-            Ok(None) => {}
-            Err(_) => {
-                *guard = None;
-                drop(guard);
-                let _ = app.emit(EVENT_CHANNEL, Payload::Exit { code: -1 });
-                return;
+            // No job object: it could not be created, or the CLI was already inside a job that
+            // forbids nesting. Fall back to the process itself — worse, because an ffmpeg the CLI
+            // spawned survives — but better than refusing to stop.
+            use windows_sys::Win32::{
+                Foundation::CloseHandle,
+                System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE},
+            };
+            unsafe {
+                let handle = OpenProcess(PROCESS_TERMINATE, 0, self.pid);
+                if handle == 0 {
+                    return false;
+                }
+                let killed = TerminateProcess(handle, 1) != 0;
+                CloseHandle(handle);
+                killed
             }
         }
-    });
-
-    Ok(())
-}
-
-/// Ask the CLI to stop. It finishes the segment in flight, merges what it has, and exits 0 —
-/// so nothing already downloaded is lost.
-#[tauri::command]
-pub fn cancel_job(app: AppHandle, state: tauri::State<JobState>) -> Result<(), String> {
-    let guard = state.running.lock().map_err(|_| "状态锁异常".to_string())?;
-    let Some(running) = guard.as_ref() else {
-        return Err("没有正在运行的任务".to_string());
-    };
-    std::fs::write(&running.stop, b"").map_err(|error| format!("写入停止标记失败：{error}"))?;
-    let _ = app.emit(EVENT_CHANNEL, Payload::Log {
-        line: "已请求停止；正在等待当前分片完成…".to_string(),
-    });
-    Ok(())
-}
-
-/// Give up waiting: kill the whole tree now.
-#[tauri::command]
-pub fn force_kill(app: AppHandle, state: tauri::State<JobState>) -> Result<(), String> {
-    let mut guard = state.running.lock().map_err(|_| "状态锁异常".to_string())?;
-    let Some(mut running) = guard.take() else {
-        return Err("没有正在运行的任务".to_string());
-    };
-    #[cfg(windows)]
-    if let Some(job) = &running.job {
-        job.terminate();
+        #[cfg(not(windows))]
+        {
+            std::process::Command::new("kill")
+                .args(["-9", &self.pid.to_string()])
+                .status()
+                .map(|status| status.success())
+                .unwrap_or(false)
+        }
     }
-    let _ = running.child.kill();
-    drop(guard);
-    let _ = app.emit(EVENT_CHANNEL, Payload::Log {
-        line: "已强制结束（进程树）".to_string(),
-    });
-    let _ = app.emit(EVENT_CHANNEL, Payload::Exit { code: -1 });
-    Ok(())
 }
 
-#[tauri::command]
-pub fn job_running(state: tauri::State<JobState>) -> bool {
-    state.is_running()
+/// Run workers until the queue is empty. Both the window and the tests use this one loop.
+pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, count: usize) {
+    let mut running: BTreeMap<String, Running> = BTreeMap::new();
+    let mut stopping = false;
+
+    loop {
+        // Reap first: a finished job should free its slot before another starts.
+        let finished: Vec<String> = running
+            .iter_mut()
+            .filter_map(|(id, process)| match process.poll() {
+                job::Poll::Working => None,
+                job::Poll::Exited { .. } => Some(id.clone()),
+            })
+            .collect();
+        for id in finished {
+            let Some(mut process) = running.remove(&id) else { continue };
+            // The status the CLI reported arrives on the same pipe as everything else, and a process
+            // exits before the parent has necessarily read its last line. Settling the job before
+            // the readers finish would turn a finished export into a failure.
+            process.drain();
+            queue.finish(&id);
+            // The switch goes with the process: a forced stop must never reach a run that has
+            // already been settled, and its pid could by now belong to something else.
+            queue.forget_worker(&id);
+        }
+
+        let (queued, halt, requested) = {
+            let state = queue.lock();
+            let queued: Vec<String> = state
+                .items
+                .iter()
+                .filter(|entry| entry.status == JobStatus::Queued)
+                .map(|entry| entry.item.id.clone())
+                .collect();
+            (queued, state.halt.clone(), state.stop_requested)
+        };
+
+        stopping |= requested || halt.is_some();
+        if stopping {
+            for process in running.values() {
+                let _ = process.request_stop();
+            }
+        }
+
+        if queued.is_empty() && running.is_empty() {
+            break;
+        }
+
+        let slots = count.saturating_sub(running.len());
+        if !stopping && slots > 0 {
+            for id in queued.into_iter().take(slots) {
+                match queue.claim(&id) {
+                    Ok(Some(entry)) => {
+                        let job_sink: Arc<dyn Sink> =
+                            Arc::new(JobSink::new(queue.clone(), sink.clone(), id.clone()));
+                        match job::spawn(cli, &entry.item, options, &job_sink) {
+                            Ok(process) => {
+                                let pid = process.pid;
+                                #[cfg(windows)]
+                                let switch = KillSwitch::new(id.clone(), pid, process.job.clone());
+                                #[cfg(not(windows))]
+                                let switch = KillSwitch::new(id.clone(), pid);
+                                queue.patch(&id, |stored| {
+                                    stored.status = JobStatus::Running;
+                                    stored.pid = Some(pid);
+                                    stored.message = "已启动".to_string();
+                                });
+                                running.insert(id, process);
+                                // Published so a forced stop can reach this run without borrowing it
+                                // from the thread that is polling it.
+                                queue.lock().workers.push(switch);
+                            }
+                            Err(error) => queue.patch(&id, |stored| {
+                                stored.status = JobStatus::Failed;
+                                stored.message = error;
+                            }),
+                        }
+                    }
+                    // Skipped: nothing to spawn, and the row already says why.
+                    Ok(None) => {}
+                    Err(error) => queue.patch(&id, |stored| {
+                        stored.status = JobStatus::Failed;
+                        stored.message = error;
+                    }),
+                }
+            }
+            continue;
+        }
+
+        std::thread::sleep(TICK);
+    }
+
+    queue.settle();
+    sink.finished();
+}
+
+/// Wait until every worker has stopped. For the tests and the headless harness; the window never
+/// waits, it listens.
+pub fn wait_idle(queue: &Queue, timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
+    let mut state = queue.lock();
+    while state.running {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return false;
+        }
+        let (guard, _) = queue
+            .changed()
+            .wait_timeout(state, left.min(TICK))
+            .unwrap_or_else(|error| error.into_inner());
+        state = guard;
+    }
+    true
 }

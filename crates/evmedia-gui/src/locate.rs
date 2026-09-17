@@ -1,16 +1,16 @@
 //! Finding the `evmedia` CLI.
 //!
-//! A GUI with no CLI is useless, so a failure here is surfaced in the UI with instructions
+//! A window with no CLI is useless, so a failure here is surfaced in the UI with instructions
 //! rather than as an empty window. The resolved path and version stay visible so it is always
 //! clear which build is being driven.
 
 use crate::config;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 const EXE: &str = if cfg!(windows) { "evmedia.exe" } else { "evmedia" };
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CliStatus {
     pub path: Option<String>,
@@ -20,9 +20,9 @@ pub struct CliStatus {
     pub detail: String,
 }
 
-/// Search order: an explicit override, the environment, next to this executable, then PATH.
-/// In a workspace build all binaries land in the same `target/release`, so step three is what
-/// makes a development build work with no configuration at all.
+/// Search order: an explicit override, the environment, next to this executable, then PATH. In a
+/// workspace build all binaries land in the same `target/release`, so step three is what makes a
+/// development build work with no configuration at all.
 pub fn resolve(override_path: Option<&str>) -> Result<(PathBuf, &'static str), String> {
     if let Some(value) = override_path.filter(|value| !value.trim().is_empty()) {
         let path = PathBuf::from(value);
@@ -100,4 +100,20 @@ pub fn pick_directory(current: Option<String>) -> Option<String> {
         dialog = dialog.set_directory(dir);
     }
     dialog.pick_folder().map(|path| path.display().to_string())
+}
+
+/// Pick a file, optionally restricted to one extension. The media binaries are "a file the user
+/// has somewhere", so this is the picker for them.
+#[tauri::command]
+pub fn pick_file(current: Option<String>, filter: Option<String>) -> Option<String> {
+    let mut dialog = rfd::FileDialog::new();
+    if let Some(dir) = current {
+        if let Some(parent) = Path::new(&dir).parent() {
+            dialog = dialog.set_directory(parent);
+        }
+    }
+    if let Some(extension) = filter.filter(|value| !value.trim().is_empty()) {
+        dialog = dialog.add_filter(extension.to_uppercase(), &[extension.as_str()]);
+    }
+    dialog.pick_file().map(|path| path.display().to_string())
 }

@@ -1,4 +1,4 @@
-//! A job object wrapping each run, so cancelling reaches the CLI's own children.
+﻿//! A job object wrapping each run, so cancelling reaches the CLI's own children.
 //!
 //! `Child::kill` only reaches the direct child. The CLI may spawn ffmpeg partway through a
 //! merge, so without this a cancel can leave an orphaned encoder holding the output file.
