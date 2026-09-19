@@ -41,6 +41,7 @@ verify_out*/
 # Poster output: the compiled generator and what running it leaves behind. `build/Poster.cs` is the
 # source and is tracked; these are build products.
 /build/Poster.exe
+/build/CredRead.exe
 /build/frames/
 /build/*.png
 
