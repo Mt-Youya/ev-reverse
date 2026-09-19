@@ -1,0 +1,191 @@
+{
+    "episodes":  [
+                     {
+                         "episode":  "01",
+                         "title_zh":  "必看导言",
+                         "subtitle_en":  "Course Introduction",
+                         "keywords":  [
+                                          "deepagent",
+                                          "langgraph",
+                                          "langchain",
+                                          "Agents"
+                                      ],
+                         "bg_motif_en":  "no text, ascent of stacked luminous platform planes rising toward a distant core, isometric, deep indigo",
+                         "observed_notes":  [
+                                                "出现「课程导言 / 学习顺序调整」，画布为 Agents底层逻辑 → Agents应用框架 → Agents企业应用 → 就业 → 效能工具 的流程图，白板写有「对AI理解 / 对工具理解 / 业务落地经验」",
+                                                "出现 langchain 全家桶层级图 deepagent → langchain → langgraph → langchain-core，并标注各自定位（底层数据结构约束 / 流程引擎 / 模型能力 / Agent范式）",
+                                                "VS Code 课件目录列出 01 必看导言.md ~ 11 Mock Model.ipynb，可确认全集标题与第 04 集正文标题为「多模态模型」"
+                                            ]
+                     },
+                     {
+                         "episode":  "02",
+                         "title_zh":  "langgraph核心概念",
+                         "subtitle_en":  "Core Concepts",
+                         "keywords":  [
+                                          "StateGraph",
+                                          "TypedDict",
+                                          "compile",
+                                          "invoke"
+                                      ],
+                         "bg_motif_en":  "no text, directed graph of glowing rounded nodes lighting up one by one along wired edges, isometric, deep violet",
+                         "observed_notes":  [
+                                                "my_first_graph.py 定义 class MyState(TypedDict, total=False)，含 node1: str 与 node2: str",
+                                                "workflow = StateGraph(MyState)，并 add_node(node1/node2)、add_edge(START, \"node1\")、add_edge(\"node1\", \"node2\")、add_edge(\"node1\", END)",
+                                                "讲解「节点」：可调用对象或 langchain_core 的 Runnable，演示 hasattr(Runnable, \"invoke\"/\"ainvoke\"/\"stream\"/\"batch\")；白板列出 1.定义图 2.编译图 3.运行图，以及 1.定义图状态 2.定义节点/边 3.编译 4.运行 的步骤"
+                                            ]
+                     },
+                     {
+                         "episode":  "03",
+                         "title_zh":  "环境搭建",
+                         "subtitle_en":  "Environment Setup",
+                         "keywords":  [
+                                          "env.example",
+                                          "LANGSMITH",
+                                          "OpenAI",
+                                          "Anthropic"
+                                      ],
+                         "bg_motif_en":  "no text, glowing gateway hub with branching conduits into multiple keyed ports and a pulsing tracing pipeline, isometric, deep blue",
+                         "observed_notes":  [
+                                                "白板「langgraph 图 / 调用模型」列出 langchain 调模型、OpenAI SDK、requests httpx，并区分「模型服务商：源头厂商」与「聚合商（网关）」",
+                                                "env.example 明文出现 OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_DEFAULT_MODEL、ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / ANTHROPIC_DEFAULT_MODEL、LANGSMITH_TRACING=true 与 LANGSMITH_PROJECT=源—LangGraph学习",
+                                                "出现「监控/评测平台 https://smith.langchain.com/」与「Agent应用 → 收集消息 → LLM」示意，另有聚合商/自建网关/无网关的成本对比表"
+                                            ]
+                     },
+                     {
+                         "episode":  "04",
+                         "title_zh":  "模型",
+                         "subtitle_en":  "Models",
+                         "keywords":  [
+                                          "ChatOpenAI",
+                                          "AIMessage",
+                                          "astream",
+                                          "tool_calls"
+                                      ],
+                         "bg_motif_en":  "no text, many provider tokens converging into one glowing model core that emits a streaming ribbon of particles, isometric, indigo and cyan",
+                         "observed_notes":  [
+                                                "打开 langchain/chat_models/base.py 的 provider 注册表，可见 \"openai\": (\"langchain_openai\", \"ChatOpenAI\")、\"ollama\"、\"openrouter\"、\"deepseek\"、\"xai\" 等条目",
+                                                "response = await model.ainvoke(\"你好\") 后打印返回类型、回复文本、工具调用、响应块、额外信息、token消耗，返回类型为 AIMessage",
+                                                "出现「OpenAI接口的问题：官方接口标准中不暴露思维链」与「流式传输 chunks = model.astream(\"你好\")」；源码目录含 reasoning_chat_model.py，左侧 M4 大纲为核心理解/创建模型/OpenAI接口的问题/流式传输/多轮对话"
+                                            ]
+                     },
+                     {
+                         "episode":  "05",
+                         "title_zh":  "消息",
+                         "subtitle_en":  "Messages",
+                         "keywords":  [
+                                          "HumanMessage",
+                                          "AIMessage",
+                                          "mustache",
+                                          "multimodal"
+                                      ],
+                         "bg_motif_en":  "no text, three translucent message shells of different shapes orbiting a core, plus a multimodal prism splitting light, isometric, deep purple",
+                         "observed_notes":  [
+                                                "core/create_model.py 定义 Provider = Union[Literal[...]] 与 def create_model(model_name, provider=\"openai\", **kwargs)，返回 init_chat_model(...)",
+                                                "演示多模态消息：{\"type\":\"text\"}、{\"type\":\"image\",\"url\"}、{\"type\":\"image\",\"base64\",\"mime_type\":\"image/png\"}、{\"type\":\"audio\",\"base64\",\"mime_type\":\"audio/mpeg\"}",
+                                                "出现「消息模板」：from langchain_core.utils.mustache import render，并对比 jinja2 的注入攻击风险；另有 from langgraph_python.template import prompt_from_filename；M5 大纲含消息类型/消息格式/消息模板"
+                                            ]
+                     },
+                     {
+                         "episode":  "06",
+                         "title_zh":  "Reducer",
+                         "subtitle_en":  "Reducers",
+                         "keywords":  [
+                                          "operator.add",
+                                          "Annotated",
+                                          "TypedDict",
+                                          "add_messages"
+                                      ],
+                         "bg_motif_en":  "no text, multiple streams merging into a single channel node that keeps the brightest value, glowing wiring, isometric, deep magenta",
+                         "observed_notes":  [
+                                                "system.mt 给出三类 reducer：普通覆盖 covered: NotRequired[str]、追加 append_list: NotRequired[Annotated[list[str], operator.add]]、保留最大值 high_score: NotRequired[Annotated[int, lambda a,b: max(a,b)]]",
+                                                "node1 / node2 各自 return {\"covered\": ..., \"append_list\": [...], \"high_score\": ...}，并打印「进入Node1的状态」，用于对比多节点写同一通道的合并结果",
+                                                "core_agent_state.py 的 _environment_info() 收集 cwd / os / is_git，_SYSTEM_PROMPT_TEMPLATES 把「系统提示词名称」映射到需要注入的信息；页面出现「图结构」与 call_model / model_config / templates 目录"
+                                            ]
+                     },
+                     {
+                         "episode":  "07",
+                         "title_zh":  "Agent Server",
+                         "subtitle_en":  "Agent Server",
+                         "keywords":  [
+                                          "langgraph",
+                                          "uv add",
+                                          "Studio",
+                                          ".env"
+                                      ],
+                         "bg_motif_en":  "no text, a served node hub with orbiting console rings and heartbeat link lines, isometric, slate navy",
+                         "observed_notes":  [
+                                                "langgraph.json 内容为 {\"dependencies\": [\".\"], \"graphs\": {\"agent\": \"langgraph_python.dev:graph\"}, \"env\": \".env\"}",
+                                                "MD 课件写明「Agent Server 可以帮你搞定 API 接口和数据持久化」，安装 uv add \"langgraph-cli[inmem]==0.4.31\"，验证 langgraph --version；大纲为安装 LangGraph CLI / 配置文件 / 启动服务 / 使用 Studio / 使用 Agent Chat",
+                                                "LangSmith Studio 的 graph 视图为 __start__ → call_model → __end__，Input 面板含 Messages（必填）与 Model Config（Model Name、Provider、Kwargs）"
+                                            ]
+                     },
+                     {
+                         "episode":  "08",
+                         "title_zh":  "超步",
+                         "subtitle_en":  "Super-step",
+                         "keywords":  [
+                                          "BSP",
+                                          "StateGraph",
+                                          "super-step",
+                                          "add_edge"
+                                      ],
+                         "bg_motif_en":  "no text, layered parallel planes with synchronized light pulses advancing one layer per beat, isometric, midnight teal",
+                         "observed_notes":  [
+                                                "MD 课件定义：「Pregel 有一个算法叫 BSP（Bulk Synchronous Parallel，整体同步并行计算模型）；超步是 BSP 并行计算中的一个基本计算迭代单元；超步是运行时概念，而非编译时」",
+                                                "demo_parallel_graph.py 用 for node_name, sleep in ((\"A\",8),(\"B1\",1),(\"C1\",2),(\"D1\",3),(\"B2\",1),(\"C2\",2),(\"D2\",3),(\"E\",8)) 批量 add_node，并 add_edge(START, \"A\") 后同时流入 B1/C1/D1 演示同一步并行",
+                                                "demo_loop_graph.py 出现 add_conditional_edges(\"B\", lambda state: \"A\" if state[\"a_count\"] \u003e 0 else \"C\", {\"A\": \"A\", \"C\": \"C\"})；Studio 中可同时看到 __start__ / A / B / C / __end__ 与 8 秒级节点耗时"
+                                            ]
+                     },
+                     {
+                         "episode":  "09",
+                         "title_zh":  "线程和检查点",
+                         "subtitle_en":  "Threads \u0026 Checkpoints",
+                         "keywords":  [
+                                          "checkpointer",
+                                          "thread_id",
+                                          "SQLite",
+                                          "run/turn"
+                                      ],
+                         "bg_motif_en":  "no text, parallel vertical light threads threaded through stacked translucent checkpoint discs, side view, deep charcoal",
+                         "observed_notes":  [
+                                                "白板图「图跑在线程上」画出线程1 / 线程2 两条并行泳道，并标注 检查点 checkpointer、超步 super step、run / turn",
+                                                "正文说明：检查点位于图的 start 节点前后及超步之后，作用是记录图的当前状态，持久化需在编译时指定，支持 memory、postgres、sqlite、自定义；线程即「图在哪个线程上运行，可在图运行时指定线程ID」；Turn/Run 指「某个线程上，一个图从开始执行到结束」",
+                                                "config={\"configurable\": {\"thread_id\": ...}} 跑完多轮后 graph.get_state(config) 取 latest；085 帧是 LangGraph API 文档 GET /threads/{thread_id}/runs，参数含 thread_id / limit / offset / status"
+                                            ]
+                     },
+                     {
+                         "episode":  "10",
+                         "title_zh":  "工具节点",
+                         "subtitle_en":  "Tool Node",
+                         "keywords":  [
+                                          "@tool",
+                                          "ToolNode",
+                                          "ToolMessage",
+                                          "Tavily"
+                                      ],
+                         "bg_motif_en":  "no text, agent core with a circular loop reaching out to branching tool appendages and returning, isometric, dark teal",
+                         "observed_notes":  [
+                                                "src/langgraph_python/tools/web.py 用 @tool 定义 async def web_search(query: str) 与 fetch_url(urls: list[str])，内部 TavilyClient(api_key=tavily_settings.api_key) 并 asyncio.to_thread(client.search, ...)",
+                                                "白板写「工具定义 ok / 绑定工具：告诉模型有哪些工具 / 工具节点：调用工具 ToolMessage / 生成图」；core_agent_graph.py 中 workflow.add_node(\"tools\", ToolNode[tools])",
+                                                "should_continue(state) 判断最后一条消息带 tool_calls 则路由到 tools，否则结束，返回 \"tools\" if last_message.tool_calls else END，并用 add_conditional_edges(\"model\", should_continue, {\"tools\": \"tools\", END: END})；Studio 呈现 __start__ / model / tools / __end__ 的 ReAct 回环"
+                                            ]
+                     },
+                     {
+                         "episode":  "11",
+                         "title_zh":  "Mock Model",
+                         "subtitle_en":  "Mock Model",
+                         "keywords":  [
+                                          "mock_model",
+                                          "config.json",
+                                          "tool_calls",
+                                          "responses"
+                                      ],
+                         "bg_motif_en":  "no text, a hollow luminous placeholder shell answered by mirrored ghost nodes, isometric, warm slate",
+                         "observed_notes":  [
+                                                "页面标题「使用封装好的 mock model」：from langgraph_python.core.mock_model import mock_model，模型来自 core/mock_model.py，由 core/mock_model.config.json 驱动，可见 await model.ainvoke(HumanMessage(\"时间\"))",
+                                                "mock_model.config.json 的 responses 数组含 reasoning（思维链）与 text，如「你好，我是由配置文件驱动的模拟模型。你可以修改 mock_model.config.json 来改变我的行为。」；注释标出 tool_calls、{\"type\":\"error\",\"message\":\"...\"} 主动抛异常、retry、echo_image 等特殊类型",
+                                                "返回结构为 tool_calls=[{\u0027name\u0027: \u0027get_current_time\u0027, \u0027args\u0027: {}, \u0027id\u0027: \u0027call_1430aa5b295...\u0027}]，并演示 model.astream([...])；env.example 顶部汇总了 OPENAI / ANTHROPIC / LANGSMITH / TAVILY 等 key"
+                                            ]
+                     }
+                 ]
+}

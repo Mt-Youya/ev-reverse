@@ -45,6 +45,10 @@ verify_out*/
 /build/frames/
 /build/*.png
 
+# Collection posters: the rendered output, the art generated for it, and the HTML the browser was
+# pointed at. `tools/covers/` holds the sources and `cards.json` holds the words.
+/build/covers/
+
 .idea
 .vscode
 __pycache__/

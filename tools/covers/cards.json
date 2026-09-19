@@ -1,0 +1,118 @@
+{
+  "_comment": [
+    "One entry per collection cover. This file is the single source of truth:",
+    "render.mjs lays the card out from it and backgrounds.ps1 turns `bg` into the",
+    "art prompt, so the words on a poster and the picture behind them cannot drift",
+    "apart. Episode counts and runtimes are read from verify_fresh/catalog.json,",
+    "which is the platform's own listing, not from the exported folders -- the",
+    "folders are still filling up while an export runs.",
+    "`out` is relative to the export root passed to deliver.ps1."
+  ],
+  "root": "verify_fresh/out/AI 大全栈",
+  "_naming": [
+    "Kept here rather than in the scripts on purpose. Windows PowerShell 5.1 decodes a .ps1 file",
+    "without a BOM as ANSI, so a Chinese literal in a script is read as mojibake and creates a",
+    "directory nobody will find -- which is what `封面` did before these two fields existed.",
+    "Every .ps1 here is ASCII-only and reads its Chinese from this file, which is opened as UTF-8."
+  ],
+  "coverDir": "封面",
+  "coverSuffix": "合集封面",
+  "cards": [
+    {
+      "key": "langgraph",
+      "out": "AI/LangGraph工作流开发",
+      "title": "LangGraph 工作流开发",
+      "en": "FROM ZERO TO RUNTIME",
+      "tags": ["StateGraph", "Reducer", "Checkpointer", "ToolNode"],
+      "epLabel": "SERIES / COMPLETE COURSE",
+      "ghost": "ALL",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "Python · LangGraph · LangChain · LangSmith",
+      "footerRight": "LangGraph 工作流开发",
+      "bg": {
+        "scene": "a wide isometric workflow graph of many glowing nodes and wired edges with several paths lit at once",
+        "palette": "deep indigo and cyan"
+      }
+    },
+    {
+      "key": "agents",
+      "out": "AI/Agents底层逻辑",
+      "title": "Agents 底层逻辑",
+      "en": "FROM NEURONS TO AGENTS",
+      "tags": ["Transformer", "ReAct", "MCP", "Harness"],
+      "epLabel": "SERIES / 34 EPISODES",
+      "ghost": "34",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 34 集 · 总时长 14 小时 27 分",
+      "footerRight": "Agents 底层逻辑",
+      "bg": {
+        "scene": "a vertical ascent of layered luminous planes: a single glowing neuron cell at the base, a grid of attention beams through the middle, and a compact autonomous agent core crowning the top",
+        "palette": "violet and teal"
+      }
+    },
+    {
+      "key": "ds",
+      "out": "Python/数据科学工具包",
+      "title": "数据科学工具包",
+      "en": "FROM NUMPY TO SEABORN",
+      "tags": ["Jupyter", "NumPy", "Pandas", "Matplotlib"],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 10 集 · 总时长 5 小时 02 分",
+      "footerRight": "数据科学工具包",
+      "bg": {
+        "scene": "translucent isometric data visualisations rising from a grid floor: a column chart, a smooth line chart and a cloud of scatter points arranged like stacked glass panels",
+        "palette": "emerald and cyan"
+      }
+    },
+    {
+      "key": "db",
+      "out": "通识/数据库",
+      "title": "数据库",
+      "en": "POSTGRESQL IN DEPTH",
+      "tags": ["DDL", "DML", "事务", "索引"],
+      "epLabel": "SERIES / 07 EPISODES",
+      "ghost": "07",
+      "eyebrow": "AI 全栈 · 通识课",
+      "footerLeft": "共 07 集 · 总时长 4 小时 02 分",
+      "footerRight": "数据库",
+      "bg": {
+        "scene": "translucent isometric database tables floating in layers, their rows glowing, joined by relation lines, beside a stack of storage cylinders and a lit index column",
+        "palette": "cobalt blue"
+      }
+    },
+    {
+      "key": "oauth2",
+      "out": "通识/OAuth2",
+      "title": "OAuth2",
+      "en": "GRANTS, TOKENS, OIDC",
+      "tags": ["PKCE", "OIDC", "授权码", "Token"],
+      "epLabel": "SERIES / 08 EPISODES",
+      "ghost": "08",
+      "eyebrow": "AI 全栈 · 通识课",
+      "footerLeft": "共 08 集 · 总时长 8 小时 56 分",
+      "footerRight": "OAuth2",
+      "bg": {
+        "scene": "a glowing authorization handshake between two glass terminals, a key exchanged for a luminous token that travels along a secured circuit with a shield checkpoint",
+        "palette": "amber and warm gold"
+      }
+    },
+    {
+      "key": "rbac",
+      "out": "通识/RBAC",
+      "title": "RBAC",
+      "en": "ROLES & PERMISSIONS",
+      "tags": ["User", "Role", "Permission", "API"],
+      "epLabel": "SERIES / 05 EPISODES",
+      "ghost": "05",
+      "eyebrow": "AI 全栈 · 通识课",
+      "footerLeft": "共 05 集 · 总时长 3 小时 28 分",
+      "footerRight": "RBAC",
+      "bg": {
+        "scene": "a crystalline access-control lattice: nested rings of roles gating one central resource, with permission keys fanning out to small user nodes",
+        "palette": "crimson and rose"
+      }
+    }
+  ]
+}
