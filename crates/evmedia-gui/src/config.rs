@@ -10,9 +10,9 @@ use std::path::PathBuf;
 /// Segment-level parallelism inside one video. The CLI's own default; changing it changes how hard
 /// one lesson pushes the network.
 pub const DEFAULT_JOBS: usize = 8;
-/// Video-level parallelism. Four lessons at once is already 32 segment downloads in flight, which
-/// is the point where more concurrency stops helping and starts looking like an attack.
-pub const DEFAULT_WORKERS: usize = 4;
+/// Video-level parallelism. A lesson can enter a CPU-heavy EVC compatibility conversion after its
+/// download completes, so one active lesson is the responsive default for a desktop machine.
+pub const DEFAULT_WORKERS: usize = 1;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 #[serde(rename_all = "camelCase", default)]
@@ -198,6 +198,11 @@ mod tests {
         assert_eq!(config.extension, "mkv");
         assert_eq!(config.jobs, DEFAULT_JOBS);
         assert_eq!(config.ffmpeg, "ffmpeg");
+    }
+
+    #[test]
+    fn a_fresh_install_exports_one_video_at_a_time() {
+        assert_eq!(GuiConfig::default().with_defaults().workers, 1);
     }
 
     #[test]

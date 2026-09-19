@@ -20,6 +20,7 @@ pub mod playlist;
 pub mod vod;
 pub mod full_export;
 pub mod verified_media;
+mod evc_media;
 
 use anyhow::{Context, Result};
 use std::path::Path;

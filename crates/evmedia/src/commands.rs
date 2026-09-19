@@ -11,7 +11,7 @@ use evmedia_contract::{
 use evmedia_core::{api, catalog, catalog_api::CatalogApi, decode, download, evs_manifest::Descriptor,
     harvest, keyscan, media, playlist, read_json, remote_catalog};
 use evmedia_core::keyscan::KeyEntry;
-use std::{process::Command as ProcessCommand, time::Duration};
+use std::time::Duration;
 
 const ADAPTERS: &str = "evplayer2-5.0.5/windows-live-manifest\ngeneric/http-segment-manifest\nandroid-agent-protocol (planned)\nmacos-agent-protocol (planned)\nios-companion-app-protocol (planned)";
 
@@ -162,27 +162,12 @@ async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     if args.output.exists() && !args.force {
         anyhow::bail!("output already exists: {} (pass --force to overwrite)", args.output.display());
     }
-    if let Some(parent) = args.output.parent() { std::fs::create_dir_all(parent)?; }
-    let partial = args.output.with_file_name(format!("{}.partial.{}", args.output.file_stem().and_then(|x| x.to_str()).unwrap_or("video"), extension));
-    let mut ffmpeg = ProcessCommand::new(&args.ffmpeg);
-    ffmpeg.args(["-v", "warning", "-nostdin", "-y", "-i"])
-        .arg(&merged).args(["-map", "0:v:0", "-map", "0:a?", "-c", "copy"]);
-    if extension == "mp4" { ffmpeg.args(["-movflags", "+faststart"]); }
-    let status = ffmpeg.arg(&partial).status().map_err(|error| anyhow::anyhow!("run {}: {error}", args.ffmpeg))?;
-    if !status.success() { anyhow::bail!("ffmpeg remux failed with {status}"); }
-    let probe = ProcessCommand::new(&args.ffprobe).args(["-v", "error", "-show_streams", "-show_format", "-of", "json"])
-        .arg(&partial).output().map_err(|error| anyhow::anyhow!("run {}: {error}", args.ffprobe))?;
-    if !probe.status.success() { anyhow::bail!("ffprobe rejected the remuxed video"); }
-    let info: serde_json::Value = serde_json::from_slice(&probe.stdout)?;
-    if !info["streams"].as_array().unwrap_or(&Vec::new()).iter().any(|stream| stream["codec_type"] == "video") {
-        anyhow::bail!("remuxed output has no video stream");
-    }
-    if args.output.exists() { std::fs::remove_file(&args.output)?; }
-    std::fs::rename(&partial, &args.output)?;
-    std::fs::write(args.work.join("report.json"), serde_json::to_vec_pretty(&serde_json::json!({
-        "status":"complete", "segments":vod.names.len(), "playlist_seconds":vod.seconds,
-        "output":args.output.canonicalize().unwrap_or_else(|_| args.output.clone()),
-    }))?)?;
+    let options = evmedia_core::full_export::Options {
+        output: args.output.clone(), work: args.work.clone(), cache: None, jobs: args.jobs,
+        ffmpeg: args.ffmpeg.clone(), ffprobe: args.ffprobe.clone(),
+    };
+    evmedia_core::verified_media::publish(&merged, &vod, &options, &args.work, reporter)?;
+    std::fs::copy(args.work.join(format!("report-{extension}.json")), args.work.join("report.json"))?;
     reporter.info(format!("EVS 导出完成：{}（{} 个分段）", args.output.display(), vod.names.len()));
     Ok(())
 }
