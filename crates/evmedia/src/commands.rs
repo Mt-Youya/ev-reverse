@@ -4,8 +4,10 @@
 use anyhow::Result;
 #[cfg(not(windows))]
 use anyhow::bail;
+mod batch;
+
 use evmedia_contract::{
-    CaptureEvArgs, CatalogArgs, Command, DownloadEvsArgs, Event, ExportEvsArgs, FetchArgs, GrabArgs, RecoverArgs,
+    CaptureEvArgs, CatalogArgs, Command, DownloadEvsArgs, Event, ExportEvsArgs, ExportPhase, FetchArgs, GrabArgs, RecoverArgs,
     Reporter, Stage, StageState,
 };
 use evmedia_core::{api, catalog, catalog_api::CatalogApi, decode, download, evs_manifest::Descriptor,
@@ -21,6 +23,7 @@ pub async fn dispatch(command: Command, reporter: &Reporter) -> Result<()> {
         Command::Catalog(args) => catalog(args, reporter).await,
         Command::DownloadEvs(args) => download_evs(args, reporter).await,
         Command::ExportEvs(args) => export_evs(args, reporter).await,
+        Command::ExportBatch(args) => batch::run(args, reporter).await,
         Command::Download(args) => {
             let manifest = download::load_input(&args.manifest)?;
             download::download_all(manifest, args.output, args.parallel, reporter).await
@@ -82,7 +85,7 @@ async fn download_evs(args: DownloadEvsArgs, reporter: &Reporter) -> Result<()> 
 
 /// Remove a file if it is there. A missing file is the normal case on a first run, so this is not an
 /// error; anything else is.
-fn remove_if_present(path: &std::path::Path) -> Result<()> {
+pub(crate) fn remove_if_present(path: &std::path::Path) -> Result<()> {
     match std::fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -90,7 +93,7 @@ fn remove_if_present(path: &std::path::Path) -> Result<()> {
     }
 }
 
-async fn authorized_video(api: &CatalogApi, account: i64, course: i64, file: i64) -> Result<serde_json::Value> {
+pub(crate) async fn authorized_video(api: &CatalogApi, account: i64, course: i64, file: i64) -> Result<serde_json::Value> {
     let detail = api.course(account, course).await?;
     let mut todo = vec![detail["course_detail"].clone()];
     while let Some(node) = todo.pop() {
@@ -107,6 +110,19 @@ async fn authorized_video(api: &CatalogApi, account: i64, course: i64, file: i64
 /// existing download/derive/decode path. This is the stable offline path: it never needs a player
 /// process or a memory capture after the session JSON has been obtained.
 async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
+    match args.phase {
+        ExportPhase::All => {
+            download_export(&args, reporter).await?;
+            convert_export(&args, reporter)
+        }
+        ExportPhase::Download => download_export(&args, reporter).await,
+        ExportPhase::Convert => convert_export(&args, reporter),
+    }
+}
+
+/// Authorize a lesson and cache every encrypted segment. This phase is I/O-bound, so the GUI can
+/// run many lessons here without starting any CPU-heavy decode or encode work.
+async fn download_export(args: &ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     let session: evmedia_core::catalog_api::CatalogSession = read_json(&args.session)?;
     let api = CatalogApi::new(session)?;
     let video = authorized_video(&api, args.account, args.course, args.file).await?;
@@ -141,6 +157,19 @@ async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     std::fs::write(&list_path, serde_json::to_vec_pretty(&list)?)?;
     let enc_dir = args.work.join("enc");
     download::download_all(list.to_download_manifest()?, enc_dir.clone(), args.jobs, reporter).await?;
+    reporter.info(format!("视频下载完成：{}（{} 个分段，等待转换）", args.work.display(), vod.names.len()));
+    Ok(())
+}
+
+/// Convert only the files cached by `download_export`; this path intentionally makes no network
+/// request, so a batch can defer CPU/GPU work until every selected lesson has downloaded.
+fn convert_export(args: &ExportEvsArgs, reporter: &Reporter) -> Result<()> {
+    let m3u8_path = args.work.join("original.m3u8");
+    let list_path = args.work.join("list.json");
+    let m3u8_text = std::fs::read_to_string(&m3u8_path)
+        .map_err(|error| anyhow::anyhow!("读取已下载的视频描述 {} 失败：{error}", m3u8_path.display()))?;
+    let vod = evmedia_core::vod::Vod::parse(&m3u8_text)?;
+    let enc_dir = args.work.join("enc");
     let manifest_path = args.work.join("manifest.json");
     playlist::run(&list_path, &enc_dir, &manifest_path, reporter)?;
     let ev_manifest: decode::EvManifest = read_json(&manifest_path)?;
@@ -151,7 +180,7 @@ async fn export_evs(args: ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     // rather than allowed to fail the rerun. This is what makes "delete the outputs and export
     // again" work, and it is a rerun of the same lesson by construction: `--work` is per lesson.
     remove_if_present(&merged)?;
-    decode::decode_ev(&enc_dir, ev_manifest, &merged, reporter)?;
+    decode::decode_ev_parallel(&enc_dir, ev_manifest, &merged, args.jobs, reporter)?;
 
     let extension = args.output.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
     if extension != "mp4" && extension != "mkv" {

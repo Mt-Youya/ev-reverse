@@ -24,7 +24,10 @@ fn sample(name: &str) -> Command {
         "export-evs" => Command::ExportEvs(ExportEvsArgs { session: path("session.json"),
             account: 119354, course: 315187, file: 903780, output: path("lesson.mp4"),
             work: path("work"), jobs: 4, ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into(),
-            force: true }),
+            force: true, phase: ExportPhase::Download }),
+        "export-batch" => Command::ExportBatch(ExportBatchArgs { session: path("session.json"),
+            account: 119354, plan: path("batch-plan.json"), download_jobs: 6, decrypt_jobs: 2,
+            ffmpeg: "ffmpeg".into(), ffprobe: "ffprobe".into(), force: true }),
         "download" => Command::Download(DownloadArgs {
             manifest: path("manifest.json"),
             output: path("out"),

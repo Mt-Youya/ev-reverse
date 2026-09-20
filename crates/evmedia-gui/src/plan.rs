@@ -5,7 +5,7 @@
 //! decides — the argv is built from `evmedia-contract`'s own structs and is re-parsed through the
 //! CLI's parser before anything is spawned.
 
-use evmedia_contract::{Command, ExportEvsArgs, ToArgv};
+use evmedia_contract::{Command, ExportEvsArgs, ExportPhase, ToArgv};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -63,6 +63,11 @@ pub fn item_of(options: &Options, video: &crate::catalog::Found) -> JobItem {
 /// The argv for one requested export. `session`, `account`, `course` and `file` come straight from
 /// the catalog entry, so an export can never address a video the directory did not name.
 pub fn argv(item: &JobItem, options: &Options) -> Vec<String> {
+    argv_for_phase(item, options, ExportPhase::All)
+}
+
+/// The GUI runs a batch in two phases: network-heavy downloads first, then bounded local work.
+pub fn argv_for_phase(item: &JobItem, options: &Options, phase: ExportPhase) -> Vec<String> {
     let command = Command::ExportEvs(ExportEvsArgs {
         session: options.session.clone(),
         account: options.account,
@@ -74,6 +79,7 @@ pub fn argv(item: &JobItem, options: &Options) -> Vec<String> {
         ffmpeg: options.ffmpeg.clone(),
         ffprobe: options.ffprobe.clone(),
         force: options.force,
+        phase,
     });
     command.to_argv()
 }

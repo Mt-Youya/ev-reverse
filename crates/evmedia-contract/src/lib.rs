@@ -13,7 +13,7 @@ pub mod report;
 pub mod spec;
 
 pub use args::*;
-pub use catalog_args::{CatalogArgs, DownloadEvsArgs, ExportEvsArgs};
+pub use catalog_args::{CatalogArgs, DownloadEvsArgs, ExportBatchArgs, ExportBatchPlan, ExportBatchVideo, ExportEvsArgs, ExportPhase};
 pub use export_args::ExportArgs;
 pub use event::{ArtifactKind, Event, Level, SegmentState, Stage, StageState, Status};
 pub use report::{Reporter, ReporterMode};

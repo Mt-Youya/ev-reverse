@@ -8,7 +8,7 @@
 
 use crate::plan::{self, JobItem, Options};
 use crate::protocol::Sink;
-use evmedia_contract::Event;
+use evmedia_contract::{Event, ExportPhase};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -91,14 +91,15 @@ pub const STDERR_LOG: &str = "stderr.log";
 struct Transcript(Option<Mutex<fs::File>>);
 
 impl Transcript {
-    /// Truncating, not appending: a rerun of the same lesson should not leave the previous
-    /// attempt's lines in front of this one's.
-    fn create(path: &PathBuf) -> Self {
-        Self(
+    /// A new download replaces an old attempt; its conversion is the second half of that same
+    /// attempt and must therefore append to the transcript.
+    fn create(path: &PathBuf, append: bool) -> Self {
+        let file = if append {
+            fs::OpenOptions::new().create(true).append(true).open(path)
+        } else {
             fs::File::create(path)
-                .ok()
-                .map(Mutex::new),
-        )
+        };
+        Self(file.ok().map(Mutex::new))
     }
 
     fn write(&self, line: &str) {
@@ -250,8 +251,14 @@ impl Running {
 }
 
 /// Build and spawn the CLI for one item, streaming both of its channels into `sink`.
-pub fn spawn(cli: &str, item: &JobItem, options: &Options, sink: &Arc<dyn Sink>) -> Result<Running, String> {
-    let argv = plan::argv(item, options);
+pub fn spawn(
+    cli: &str,
+    item: &JobItem,
+    options: &Options,
+    phase: ExportPhase,
+    sink: &Arc<dyn Sink>,
+) -> Result<Running, String> {
+    let argv = plan::argv_for_phase(item, options, phase);
     // The window never invents a command line: the CLI's own parser gets the last word.
     evmedia_contract::try_parse(&argv)?;
 
@@ -301,7 +308,7 @@ pub fn spawn(cli: &str, item: &JobItem, options: &Options, sink: &Arc<dyn Sink>)
     sink.transcript(&id, &log_path.display().to_string());
     sink.log(&id, &format!("$ {cli} {}", argv.join(" ")));
     sink.log(&id, &format!("完整日志：{}", log_path.display()));
-    let transcript = Arc::new(Transcript::create(&log_path));
+    let transcript = Arc::new(Transcript::create(&log_path, phase == ExportPhase::Convert));
 
     let readers = Arc::new(Readers::default());
     if let Some(stdout) = child.stdout.take() {

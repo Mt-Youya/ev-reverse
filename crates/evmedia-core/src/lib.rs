@@ -9,6 +9,7 @@ pub mod catalog;
 pub mod catalog_api;
 pub mod evs_manifest;
 pub mod remote_catalog;
+pub mod segment_queue;
 pub mod crypto;
 pub mod decode;
 pub mod download;

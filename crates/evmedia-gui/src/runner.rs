@@ -10,11 +10,14 @@ use crate::{
     protocol::{JobSink, Sink},
     queue::Queue,
 };
+use evmedia_contract::ExportPhase;
 use std::{
     collections::BTreeMap,
     sync::Arc,
     time::{Duration, Instant},
 };
+
+mod batch;
 
 /// How often the loop looks at its running processes. Fast enough that a finished lesson frees a
 /// worker slot almost immediately, slow enough to be free.
@@ -84,27 +87,66 @@ impl KillSwitch {
 
 /// Run workers until the queue is empty. Both the window and the tests use this one loop.
 pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, count: usize) {
-    let mut running: BTreeMap<String, Running> = BTreeMap::new();
+    // The production CLI owns one queue across every selected lesson.  The stub intentionally
+    // stays on the older per-row path because it models a single lesson for the GUI unit tests.
+    if std::path::Path::new(cli).file_stem().and_then(|name| name.to_str()) == Some("evmedia") {
+        batch::run(queue, sink, cli, options, count);
+        return;
+    }
+    let mut downloads: BTreeMap<String, Running> = BTreeMap::new();
+    let mut conversions: BTreeMap<String, Running> = BTreeMap::new();
+    let mut ready_to_convert = std::collections::BTreeSet::new();
     let mut stopping = false;
 
     loop {
-        // Reap first: a finished job should free its slot before another starts.
-        let finished: Vec<String> = running
+        // Reap downloads first. A completed lesson joins the conversion queue immediately; it
+        // never waits for unrelated lessons still using the network workers.
+        let finished_downloads: Vec<String> = downloads
             .iter_mut()
             .filter_map(|(id, process)| match process.poll() {
                 job::Poll::Working => None,
                 job::Poll::Exited { .. } => Some(id.clone()),
             })
             .collect();
-        for id in finished {
-            let Some(mut process) = running.remove(&id) else { continue };
+        for id in finished_downloads {
+            let Some(mut process) = downloads.remove(&id) else { continue };
             // The status the CLI reported arrives on the same pipe as everything else, and a process
             // exits before the parent has necessarily read its last line. Settling the job before
             // the readers finish would turn a finished export into a failure.
             process.drain();
-            queue.finish(&id);
+            let completed_download = queue
+                .snapshot()
+                .items
+                .iter()
+                .find(|entry| entry.item.id == id)
+                .is_some_and(|entry| entry.status == JobStatus::Complete);
+            if completed_download {
+                ready_to_convert.insert(id.clone());
+                queue.patch(&id, |entry| {
+                    entry.status = JobStatus::Queued;
+                    entry.pid = None;
+                    entry.stage = Some(crate::job::JobStage::Decrypt);
+                    entry.message = "下载完成，正在等待解密、校验和转换".to_string();
+                });
+            } else {
+                queue.finish(&id);
+            }
             // The switch goes with the process: a forced stop must never reach a run that has
             // already been settled, and its pid could by now belong to something else.
+            queue.forget_worker(&id);
+        }
+
+        let finished_conversions: Vec<String> = conversions
+            .iter_mut()
+            .filter_map(|(id, process)| match process.poll() {
+                job::Poll::Working => None,
+                job::Poll::Exited { .. } => Some(id.clone()),
+            })
+            .collect();
+        for id in finished_conversions {
+            let Some(mut process) = conversions.remove(&id) else { continue };
+            process.drain();
+            queue.finish(&id);
             queue.forget_worker(&id);
         }
 
@@ -121,51 +163,41 @@ pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, co
 
         stopping |= requested || halt.is_some();
         if stopping {
-            for process in running.values() {
+            for process in downloads.values().chain(conversions.values()) {
                 let _ = process.request_stop();
             }
         }
 
-        if queued.is_empty() && running.is_empty() {
+        if queued.is_empty() && downloads.is_empty() && conversions.is_empty() {
             break;
         }
 
-        let slots = count.saturating_sub(running.len());
-        if !stopping && slots > 0 {
-            for id in queued.into_iter().take(slots) {
-                match queue.claim(&id) {
-                    Ok(Some(entry)) => {
-                        let job_sink: Arc<dyn Sink> =
-                            Arc::new(JobSink::new(queue.clone(), sink.clone(), id.clone()));
-                        match job::spawn(cli, &entry.item, options, &job_sink) {
-                            Ok(process) => {
-                                let pid = process.pid;
-                                #[cfg(windows)]
-                                let switch = KillSwitch::new(id.clone(), pid, process.job.clone());
-                                #[cfg(not(windows))]
-                                let switch = KillSwitch::new(id.clone(), pid);
-                                queue.patch(&id, |stored| {
-                                    stored.status = JobStatus::Running;
-                                    stored.pid = Some(pid);
-                                    stored.message = "已启动".to_string();
-                                });
-                                running.insert(id, process);
-                                // Published so a forced stop can reach this run without borrowing it
-                                // from the thread that is polling it.
-                                queue.lock().workers.push(switch);
-                            }
-                            Err(error) => queue.patch(&id, |stored| {
-                                stored.status = JobStatus::Failed;
-                                stored.message = error;
-                            }),
-                        }
+        if !stopping {
+            // Conversion has priority as soon as any lesson is ready. It is one process at a time
+            // because EVC decode, validation and FFmpeg compete for CPU/GPU and disk bandwidth.
+            if conversions.is_empty() {
+                if let Some(id) = queued.iter().find(|id| ready_to_convert.contains(*id)) {
+                    if let Some(process) = spawn(queue, sink, cli, options, id, ExportPhase::Convert) {
+                        ready_to_convert.remove(id);
+                        conversions.insert(id.clone(), process);
                     }
-                    // Skipped: nothing to spawn, and the row already says why.
-                    Ok(None) => {}
-                    Err(error) => queue.patch(&id, |stored| {
-                        stored.status = JobStatus::Failed;
-                        stored.message = error;
-                    }),
+                }
+            }
+
+            let slots = count.max(1).saturating_sub(downloads.len());
+            let download_ids: Vec<String> = queued
+                .iter()
+                .filter(|id| {
+                    !ready_to_convert.contains(*id)
+                        && !conversions.contains_key(*id)
+                        && !downloads.contains_key(*id)
+                })
+                .take(slots)
+                .cloned()
+                .collect();
+            for id in download_ids {
+                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Download) {
+                    downloads.insert(id, process);
                 }
             }
             continue;
@@ -195,4 +227,52 @@ pub fn wait_idle(queue: &Queue, timeout: Duration) -> bool {
         state = guard;
     }
     true
+}
+
+/// Claim and start one stage. A row stays the same user-visible job while its CLI process changes
+/// from `download` to `convert`, so stop/force-stop and transcript handling remain uniform.
+fn spawn(
+    queue: &Queue,
+    sink: &Arc<dyn Sink>,
+    cli: &str,
+    options: &Options,
+    id: &str,
+    phase: ExportPhase,
+) -> Option<Running> {
+    match queue.claim(id) {
+        Ok(Some(entry)) => {
+            let job_sink: Arc<dyn Sink> = Arc::new(JobSink::new(queue.clone(), sink.clone(), id.to_string()));
+            match job::spawn(cli, &entry.item, options, phase, &job_sink) {
+                Ok(process) => {
+                    let pid = process.pid;
+                    #[cfg(windows)]
+                    let switch = KillSwitch::new(id.to_string(), pid, process.job.clone());
+                    #[cfg(not(windows))]
+                    let switch = KillSwitch::new(id.to_string(), pid);
+                    queue.patch(id, |stored| {
+                        stored.status = JobStatus::Running;
+                        stored.pid = Some(pid);
+                        stored.message = "已启动".to_string();
+                    });
+                    queue.lock().workers.push(switch);
+                    Some(process)
+                }
+                Err(error) => {
+                    queue.patch(id, |stored| {
+                        stored.status = JobStatus::Failed;
+                        stored.message = error;
+                    });
+                    None
+                }
+            }
+        }
+        Ok(None) => None,
+        Err(error) => {
+            queue.patch(id, |stored| {
+                stored.status = JobStatus::Failed;
+                stored.message = error;
+            });
+            None
+        }
+    }
 }

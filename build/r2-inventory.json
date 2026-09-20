@@ -1,0 +1,2173 @@
+[
+ {
+  "key": "videos/3D/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:46:51.975Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:32:42.301Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:32:50.468Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:06.364Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/01. 必看导言.mp4",
+  "etag": "ebcfd8cf502942ed28b1bc726c16d811-24",
+  "last_modified": "2026-09-19T07:36:05.681Z",
+  "size": 194501328,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/02. AI的分类.mp4",
+  "etag": "52c4ed94783f60fb3d0279da2e26d2e1-58",
+  "last_modified": "2026-09-19T07:53:29.716Z",
+  "size": 479097273,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/03. 神经元.mp4",
+  "etag": "1952fc7180b1107ace833ba3d88420a9-32",
+  "last_modified": "2026-09-19T07:39:16.866Z",
+  "size": 261921447,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/04. 前向传播.mp4",
+  "etag": "b2506b5463a0b051cf14c5e2c3169cad-46",
+  "last_modified": "2026-09-19T07:47:41.976Z",
+  "size": 377491684,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/05. 梯度下降.mp4",
+  "etag": "9313be0499fa98ec9a80d8de5c2b8f99-53",
+  "last_modified": "2026-09-19T07:54:02.609Z",
+  "size": 438094608,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/06. 训练模式和框架.mp4",
+  "etag": "57b2f56047b57e018337223064b68d3b-35",
+  "last_modified": "2026-09-19T07:53:28.861Z",
+  "size": 285416159,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/07. 词元.mp4",
+  "etag": "f69e3ea34b37ab49b62fdd9118d53832-51",
+  "last_modified": "2026-09-19T07:56:26.197Z",
+  "size": 426760913,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/08. token统计.mp4",
+  "etag": "4c496e9cf19860b08b35711c97c8868a-40",
+  "last_modified": "2026-09-19T07:57:14.594Z",
+  "size": 333905840,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/09. 神经网络的本质.mp4",
+  "etag": "8b4e9a11073da5f83900a5fdf2791735-32",
+  "last_modified": "2026-09-19T07:56:22.717Z",
+  "size": 266427024,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/10. 词嵌入.mp4",
+  "etag": "bbe53f15c5000af32697f09e0161e74f-57",
+  "last_modified": "2026-09-19T07:58:48.339Z",
+  "size": 472128481,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/11. 注意力机制.mp4",
+  "etag": "33a6278dd0cd87b86300e0eea47b5e15-58",
+  "last_modified": "2026-09-19T08:01:45.449Z",
+  "size": 483465462,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/12. Transformer的完整训练流程.mp4",
+  "etag": "dd4154bc2936dd60c21226c41abc3aa5-44",
+  "last_modified": "2026-09-19T08:00:15.501Z",
+  "size": 366737367,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/13. 推理机制.mp4",
+  "etag": "a3cda642d4d9f3a0040ec85f494ebe7d-45",
+  "last_modified": "2026-09-19T08:00:45.911Z",
+  "size": 373459891,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/14. 训练阶段.mp4",
+  "etag": "444ea3944d4f82f1ce4feb0cf6c5be37-22",
+  "last_modified": "2026-09-19T08:00:24.938Z",
+  "size": 181329130,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/15. Ollama.mp4",
+  "etag": "19be1ca20743f61b092c93b559a4bcb5-112",
+  "last_modified": "2026-09-19T08:07:49.499Z",
+  "size": 938347213,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/16. 系统提示词.mp4",
+  "etag": "15ca0a4da1b547dbd6e051f2bf22c98e-46",
+  "last_modified": "2026-09-19T08:06:33.998Z",
+  "size": 379450165,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/17. 会话.mp4",
+  "etag": "120d9bb72b3f0b8152a7cca03ec43b79-41",
+  "last_modified": "2026-09-19T08:06:26.137Z",
+  "size": 340848980,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/18. tools.mp4",
+  "etag": "019639c15bca4c0f5ca25d2026ab3827-47",
+  "last_modified": "2026-09-19T09:09:31.479Z",
+  "size": 391506069,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/19. 封装tools.mp4",
+  "etag": "378f852abb8e2433304c451dc21db33f-118",
+  "last_modified": "2026-09-19T09:13:52.567Z",
+  "size": 983049190,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/20. ReAct.mp4",
+  "etag": "18c268165d8863a0d9d951dd258c115c-30",
+  "last_modified": "2026-09-19T09:07:40.061Z",
+  "size": 246530332,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/21. Agent.mp4",
+  "etag": "0ff9afb35988aaa56e29e19043644894-20",
+  "last_modified": "2026-09-19T09:06:23.614Z",
+  "size": 160561755,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/22. Agent 搜索引擎.mp4",
+  "etag": "e733b13c9144dbbc4c5778281f6dcb88-68",
+  "last_modified": "2026-09-19T09:12:07.780Z",
+  "size": 563845640,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/23. Skill.mp4",
+  "etag": "736aff69f080dbafdcb474e7bd6cc8e4-70",
+  "last_modified": "2026-09-19T09:12:50.499Z",
+  "size": 586045862,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/24. MCP协议.mp4",
+  "etag": "d933af489e44dfd55ec0a501726cc979-43",
+  "last_modified": "2026-09-19T09:15:49.938Z",
+  "size": 355973266,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/25. MCP Client.mp4",
+  "etag": "44edc72ff42d3e5201244720731337fe-80",
+  "last_modified": "2026-09-19T15:21:12.803Z",
+  "size": 667046979,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/26. Agent接入MCP.mp4",
+  "etag": "16222003c330e21f83105808ba677c67-20",
+  "last_modified": "2026-09-19T15:15:54.408Z",
+  "size": 160474986,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/27. 实现MCP服务器.mp4",
+  "etag": "397cac78479927692b640b4333c070d5-22",
+  "last_modified": "2026-09-19T15:16:29.174Z",
+  "size": 182336634,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/28. Skill VS MCP.mp4",
+  "etag": "514fdcbd51cfe8d2790fe3ef3fe733b7-60",
+  "last_modified": "2026-09-19T15:19:57.992Z",
+  "size": 500952806,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/29. 子代理.mp4",
+  "etag": "3b6834896744e106633d3dbe9ca30158-46",
+  "last_modified": "2026-09-19T15:20:28.388Z",
+  "size": 385729466,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/30. Prompt Engeering.mp4",
+  "etag": "c146cf947a831e86c608c8316c3aa303-13",
+  "last_modified": "2026-09-19T15:17:47.214Z",
+  "size": 103134702,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/31. Context Engeering.mp4",
+  "etag": "ce8273fd332c6d9a724c4d5897196765-12",
+  "last_modified": "2026-09-19T15:19:03.432Z",
+  "size": 94567048,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/32. Harness Engeering.mp4",
+  "etag": "c27f07be4718149822b748461220fc02-29",
+  "last_modified": "2026-09-19T15:21:11.730Z",
+  "size": 238264427,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/33. Loop Engeering.mp4",
+  "etag": "7b78aa58283ffa4aa75c27844940424f-6",
+  "last_modified": "2026-09-19T15:20:33.882Z",
+  "size": 47796319,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/34. Graph Engeering.mp4",
+  "etag": "f964b10d61114009b4f7a185e9e16713-4",
+  "last_modified": "2026-09-19T15:20:47.280Z",
+  "size": 33056497,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-18T14:48:16.391Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/封面/Agents底层逻辑-合集封面-16x9.png",
+  "etag": "4122af54ec6875464a007ca53e3ea1ce",
+  "last_modified": "2026-09-19T08:00:17.244Z",
+  "size": 1478313,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/agents/duyi-edu/封面/Agents底层逻辑-合集封面-4x3.png",
+  "etag": "ce675f3fb1ca88bf8c1abe8ec7b3b38c",
+  "last_modified": "2026-09-19T08:00:19.327Z",
+  "size": 1102735,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/deep-agents/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:41.648Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/deep-learning/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:16.027Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:24.675Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/01. 课程导言.mp4",
+  "etag": "019d17f36707af85d0d5dfa6060a518a-4",
+  "last_modified": "2026-09-19T04:54:51.988Z",
+  "size": 25272460,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/02. 认识 Agent.mp4",
+  "etag": "a74872d8b5456b46af6133f35ad16013-12",
+  "last_modified": "2026-09-19T04:55:40.970Z",
+  "size": 92673050,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/04. 中间件.mp4",
+  "etag": "c1dbe63b2bb97c84625291228f4f09bc-41",
+  "last_modified": "2026-09-19T04:58:01.947Z",
+  "size": 338231521,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/05. 动态提示词.mp4",
+  "etag": "a8c1a2057913c5ebba3813cfe38f2398-25",
+  "last_modified": "2026-09-19T04:56:53.860Z",
+  "size": 208044172,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/06. 动态模型.mp4",
+  "etag": "03134559bb3927c76cec30bdf86d468d-38",
+  "last_modified": "2026-09-19T04:57:49.975Z",
+  "size": 313704151,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/07. 预置中间件.mp4",
+  "etag": "a27c5a9849451637ff12ff72cfd36df2-15",
+  "last_modified": "2026-09-19T04:57:08.721Z",
+  "size": 122177927,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/09. 阶段总结.mp4",
+  "etag": "92e2dd0e28761bea47552e69191bfb76-4",
+  "last_modified": "2026-09-19T04:57:12.000Z",
+  "size": 27163623,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langchain/duyi-edu/10. 认识 deepagent.mp4",
+  "etag": "5e2194b0a1010c571463ecf511c65ed4-18",
+  "last_modified": "2026-09-19T04:58:05.453Z",
+  "size": 144163661,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:33.305Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/01. 必看导言.mp4",
+  "etag": "727dec28c341dc3ea1ead4001d3499ad-11",
+  "last_modified": "2026-09-19T04:14:16.089Z",
+  "size": 84256557,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/02. langgraph核心概念.mp4",
+  "etag": "38d300aa52a69f2cb37c1d647801dd30-33",
+  "last_modified": "2026-09-19T04:16:27.832Z",
+  "size": 269910458,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/03. 环境搭建.mp4",
+  "etag": "b8667de4c29bdc69da4db493b6824ede-27",
+  "last_modified": "2026-09-19T04:16:01.087Z",
+  "size": 221007934,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/04. 模型.mp4",
+  "etag": "43468c5f61aad4410fa838e4ea42eccf-97",
+  "last_modified": "2026-09-19T04:21:43.103Z",
+  "size": 808982236,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/05. 消息.mp4",
+  "etag": "f0846da05b8da6fd405199800ba447aa-30",
+  "last_modified": "2026-09-19T04:16:58.250Z",
+  "size": 247075114,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/06. Reducer.mp4",
+  "etag": "6a7e218cdb2159f40b0490ff936d50a9-47",
+  "last_modified": "2026-09-19T04:20:22.030Z",
+  "size": 392219229,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/07. Agent Server.mp4",
+  "etag": "81a4feac5b637e0fb2e6a65b6248fef5-16",
+  "last_modified": "2026-09-19T04:17:57.915Z",
+  "size": 130406289,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/08. 超步.mp4",
+  "etag": "5331fb6c1f91f3925c5f45f7495b6dae-26",
+  "last_modified": "2026-09-19T04:19:29.831Z",
+  "size": 212921683,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/09. 线程和检查点.mp4",
+  "etag": "8e22356b284a8e44ead27c3de1d7b93e-44",
+  "last_modified": "2026-09-19T04:21:50.335Z",
+  "size": 364091316,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/10. 工具节点.mp4",
+  "etag": "22853e380a5aedd89541ba3fc11f5c13-26",
+  "last_modified": "2026-09-19T04:21:51.311Z",
+  "size": 211264957,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/11. Mock Model.mp4",
+  "etag": "f5c3797dbc564b4e6495da20dcf3f448-23",
+  "last_modified": "2026-09-19T04:22:21.257Z",
+  "size": 191390727,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/12. 部署模式和学习重心.mp4",
+  "etag": "bf749900691067e0b0b2a9754c7faaf8-11",
+  "last_modified": "2026-09-19T04:22:48.287Z",
+  "size": 90555854,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/13. 断点调试.mp4",
+  "etag": "3732afcd6e9d299b8378175715e3edc1-3",
+  "last_modified": "2026-09-19T04:22:10.895Z",
+  "size": 21936661,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/14. 模型配置的动态切换.mp4",
+  "etag": "2b53271cc251e08e64ebb5d0e7b728ff-27",
+  "last_modified": "2026-09-19T04:24:00.545Z",
+  "size": 218783490,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/16. Runtime.mp4",
+  "etag": "f850963327b811a2dd6272f0546fdb10-41",
+  "last_modified": "2026-09-19T04:26:07.470Z",
+  "size": 339716314,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/17. Assistant API.mp4",
+  "etag": "c2e5fae6ea491b6b58bcf0a916db6741-80",
+  "last_modified": "2026-09-19T04:28:52.568Z",
+  "size": 664648579,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/18. 子图.mp4",
+  "etag": "2b14775d86e5e13b03b6fa2940926a53-52",
+  "last_modified": "2026-09-19T04:28:22.503Z",
+  "size": 432279321,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/19. Thread API.mp4",
+  "etag": "715b14fa158eec0120b6cad3c5edc141-63",
+  "last_modified": "2026-09-19T04:28:59.114Z",
+  "size": 527193435,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/20. Run API.mp4",
+  "etag": "0665ad3c58528c3433873897b4e8e518-51",
+  "last_modified": "2026-09-19T04:30:59.264Z",
+  "size": 426398242,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/21. Cron API.mp4",
+  "etag": "c0beeca4e75f5374235334e9d61b29ad",
+  "last_modified": "2026-09-19T03:10:03.244Z",
+  "size": 192529554,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/22. System API.mp4",
+  "etag": "38d1ce7175471df59640341b7ceb0630",
+  "last_modified": "2026-09-19T03:06:26.596Z",
+  "size": 42459577,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/23. MCP API.mp4",
+  "etag": "2b8b19efc750f6248ea3df7d8633e941",
+  "last_modified": "2026-09-19T03:07:07.218Z",
+  "size": 41481009,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/24. 时间旅行.mp4",
+  "etag": "9fabab2a0f68d8c0343194c7c6b4451a-143",
+  "last_modified": "2026-09-19T04:40:55.853Z",
+  "size": 1196795438,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/25. 手动错误重试.mp4",
+  "etag": "ae69e07bb88a4bceeea1e66b7712b517",
+  "last_modified": "2026-09-19T03:09:37.395Z",
+  "size": 148550127,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/27. Command.mp4",
+  "etag": "640ecb6866daaf6ec75602d3582448dc",
+  "last_modified": "2026-09-19T03:09:51.287Z",
+  "size": 175222193,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/28. 中断.mp4",
+  "etag": "edd89f364ab5ef0ac977530a721f2bf0-118",
+  "last_modified": "2026-09-19T04:39:01.239Z",
+  "size": 984430728,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/31. 运行取消.mp4",
+  "etag": "d1b778ae73331d5cd9e566e8d2ea1561-13",
+  "last_modified": "2026-09-19T04:30:07.557Z",
+  "size": 101389851,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/32. 多任务策略.mp4",
+  "etag": "972e962dd796964a25d397f9c932a593-18",
+  "last_modified": "2026-09-19T04:31:40.485Z",
+  "size": 149518122,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/33. 事件流.mp4",
+  "etag": "2be3a5845939d497aec07a8f13c0595d-90",
+  "last_modified": "2026-09-19T04:39:25.122Z",
+  "size": 747057532,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/34. Store.mp4",
+  "etag": "21ffa84968367d8f5670b3aac09dc03c-21",
+  "last_modified": "2026-09-19T04:33:30.296Z",
+  "size": 168942970,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/35. 长期记忆.mp4",
+  "etag": "58abb81872822ae8f9875bfb1ea7162c-52",
+  "last_modified": "2026-09-19T04:38:04.083Z",
+  "size": 429615380,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/36. A2A协议.mp4",
+  "etag": "d59c4d4d98837323062cbcc7ff6a2664-29",
+  "last_modified": "2026-09-19T04:40:37.538Z",
+  "size": 240311988,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/37. Agent 部署.mp4",
+  "etag": "99bcb1bb88597e3624421c5e3e296d07-21",
+  "last_modified": "2026-09-19T04:40:44.087Z",
+  "size": 168124567,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/38. 课程总结.mp4",
+  "etag": "d7821d79a6ce996537892cdaeb979696-15",
+  "last_modified": "2026-09-19T04:40:47.889Z",
+  "size": 123487363,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-19T03:03:33.457Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/封面/LangGraph工作流开发-合集封面-16x9.png",
+  "etag": "0045438dbaaa4c07763423a78df2bb99",
+  "last_modified": "2026-09-19T08:20:00.983Z",
+  "size": 1547737,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/langgraph/duyi-edu/封面/LangGraph工作流开发-合集封面-4x3.png",
+  "etag": "2725d7a7f38ae50eed89f31d90895349",
+  "last_modified": "2026-09-19T08:20:17.819Z",
+  "size": 1120875,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/llm/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:03.024Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/ai/rag/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:35:09.153Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/01. 权限控制的需求和实现模型.mp4",
+  "etag": "272f13a7c8d8b9a44f72d2aca4a904f7-30",
+  "last_modified": "2026-09-19T08:49:34.763Z",
+  "size": 246866842,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/02. RBAC核心模型：用户、角色和权限.mp4",
+  "etag": "a85642f1c1b50ea8043841e2b8ed7fa6-36",
+  "last_modified": "2026-09-19T08:50:19.997Z",
+  "size": 296748563,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/03. RBAC数据库设计.mp4",
+  "etag": "66b17a7fad7856bd481391015cdfe5c6-41",
+  "last_modified": "2026-09-19T08:50:29.081Z",
+  "size": 337241152,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/04. RBAC API接口层设计.mp4",
+  "etag": "2f0342957aac8ebe48f31f76d1cfdca5-44",
+  "last_modified": "2026-09-19T08:50:35.821Z",
+  "size": 362040231,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/05. RBAC收官实战.mp4",
+  "etag": "7f725b82f62c89b9643443230c41e3a5-29",
+  "last_modified": "2026-09-19T08:51:01.176Z",
+  "size": 242369406,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-19T08:25:06.521Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/封面/RBAC-合集封面-16x9.png",
+  "etag": "f028a2400627d8ab4a5983b6f36fc844",
+  "last_modified": "2026-09-19T08:50:23.397Z",
+  "size": 1479952,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/RBAC/duyi-edu/封面/RBAC-合集封面-4x3.png",
+  "etag": "496a1aecaea38a60d5c5b19a3e1efe8a",
+  "last_modified": "2026-09-19T08:50:25.960Z",
+  "size": 1094523,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/01. OAuth2是什么：问题与需求.mp4",
+  "etag": "b7e498822c8941eeff1b5b0561d6e486-65",
+  "last_modified": "2026-09-19T08:56:38.604Z",
+  "size": 537412432,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/02. OAuth2怎么工作：核心概念和角色.mp4",
+  "etag": "a164c1ae3342da83027579f8becd27e6-70",
+  "last_modified": "2026-09-19T08:57:43.452Z",
+  "size": 579907970,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/03. OAuth2的授权模式与选型.mp4",
+  "etag": "04e781c7cbb458f945b10c437cc24f91-44",
+  "last_modified": "2026-09-19T08:55:03.582Z",
+  "size": 361366054,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/04. 授权码模式：流程、参数与设计.mp4",
+  "etag": "480a268b1fd4e92c4edb5921b16cdb22-57",
+  "last_modified": "2026-09-19T08:56:14.908Z",
+  "size": 477723584,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/05. 授权码模式+PKCE：移动端安全增强.mp4",
+  "etag": "b432171cf698f26b4ceed45e032e333f-51",
+  "last_modified": "2026-09-19T08:59:25.951Z",
+  "size": 426735502,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/06. OIDC：在OAuth2上加一层身份认证.mp4",
+  "etag": "bbf990d9015d8811f005b785accd3bbd-47",
+  "last_modified": "2026-09-19T09:00:06.646Z",
+  "size": 388799680,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/07. 令牌的生命周期管理和最佳实践.mp4",
+  "etag": "a9dabf0b066a0b7ba6f206d33e146b6f-46",
+  "last_modified": "2026-09-19T09:00:16.017Z",
+  "size": 383309257,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/08. OAuth2收官实战.mp4",
+  "etag": "cf028814f9de86bcc02f9ddc25db3e62-56",
+  "last_modified": "2026-09-19T09:01:24.022Z",
+  "size": 466165673,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-19T08:26:03.493Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/封面/OAuth2-合集封面-16x9.png",
+  "etag": "4d3a39d00a9dd7e2132a69aae680b076",
+  "last_modified": "2026-09-19T08:59:29.983Z",
+  "size": 1465316,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/auth/oauth2/duyi-edu/封面/OAuth2-合集封面-4x3.png",
+  "etag": "47df00083608cb605a6f524472554151",
+  "last_modified": "2026-09-19T08:59:32.289Z",
+  "size": 1052775,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/backend/java/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:33:47.938Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/backend/nodejs/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:50:45.340Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/backend/nodejs/koa/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:50:56.187Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/backend/nodejs/koa/duyi-edu/02-koa-api.mp4",
+  "etag": "c15b31088de3799a7bf449d143e31e83",
+  "last_modified": "2026-09-15T15:52:58.665Z",
+  "size": 167552834,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/backend/nodejs/koa/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:51:20.138Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/mysql/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-19T08:23:23.312Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/01. PostgreSQL安装.mp4",
+  "etag": "800f8ac9b06c829832ec357f85008f7c-16",
+  "last_modified": "2026-09-19T08:38:47.355Z",
+  "size": 127923640,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/02. DDL.mp4",
+  "etag": "c2ce57cef35daf735e748f46197a5433-14",
+  "last_modified": "2026-09-19T08:38:25.433Z",
+  "size": 116029367,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/03. 表间关系.mp4",
+  "etag": "5dde65da9cf133a078429c68bb457128-34",
+  "last_modified": "2026-09-19T08:46:46.026Z",
+  "size": 277417255,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/04. DML.mp4",
+  "etag": "d8cc5a98cb5aec01f6870771e9309cf9-8",
+  "last_modified": "2026-09-19T08:36:34.287Z",
+  "size": 65213562,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/05. 事务.mp4",
+  "etag": "7221607ae62bef4b131e811e68f42e20-17",
+  "last_modified": "2026-09-19T08:45:05.225Z",
+  "size": 140949876,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/06. 索引.mp4",
+  "etag": "f92f0fc79a6f1483de394fa619a46a7a-7",
+  "last_modified": "2026-09-19T08:42:03.944Z",
+  "size": 53584973,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/07. 拓展知识.mp4",
+  "etag": "76f27c94171190f4f8ab9596569bebfe-19",
+  "last_modified": "2026-09-19T08:46:52.661Z",
+  "size": 153222417,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/database/postgresql/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-19T08:23:02.475Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/gsap/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:47:10.870Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/gsap/duyi-edu/01-动画方法.mp4",
+  "etag": "4be0b3e5b8bbb83dde25757cb621956d",
+  "last_modified": "2026-09-15T15:49:55.954Z",
+  "size": 92562625,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/gsap/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:47:54.859Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/js/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:34:50.505Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/nextjs/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:34:37.735Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/react/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:32:59.941Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/react/duyi-edu/2-2-React和Vue描述页面的区别-rust.mp4",
+  "etag": "0235dd3814cbcc13d38709405e9626e2",
+  "last_modified": "2026-09-17T00:55:31.522Z",
+  "size": 119442745,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/react/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-17T00:54:10.705Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/ts/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:34:53.391Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/frontend/vue/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:34:45.086Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-17T13:24:39.355Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/01. 课程导言.mp4",
+  "etag": "9a96abbf239c55c73d5b631017431864",
+  "last_modified": "2026-09-17T13:29:19.866Z",
+  "size": 43133957,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/02. python环境安装.mp4",
+  "etag": "1398653a7de5fbf6a703be841ea22b31",
+  "last_modified": "2026-09-17T13:32:18.103Z",
+  "size": 129490947,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/03. python基本语法.mp4",
+  "etag": "f4674edf9d3aa94119a495024b0a5ec8",
+  "last_modified": "2026-09-17T13:30:35.015Z",
+  "size": 170711366,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/04. 容器类型.mp4",
+  "etag": "b059c0e8b521ab900fd5990fc0a7e579",
+  "last_modified": "2026-09-17T13:33:13.195Z",
+  "size": 157246013,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/05. 函数.mp4",
+  "etag": "3e2ad37827e714eb1cd831f3976bc686",
+  "last_modified": "2026-09-17T13:47:52.063Z",
+  "size": 82437140,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/06. 作用域.mp4",
+  "etag": "3f0f84ce3279a109d22aed6d56d58f29",
+  "last_modified": "2026-09-17T14:12:48.260Z",
+  "size": 75673969,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/07. lambda表达式.mp4",
+  "etag": "31724a70dd99e2a63b7ae9dec7ad6bbf",
+  "last_modified": "2026-09-17T13:28:33.233Z",
+  "size": 126246626,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/08. 类和对象.mp4",
+  "etag": "414125be35914a457704ca892a9aea8a",
+  "last_modified": "2026-09-17T13:49:09.032Z",
+  "size": 151533852,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/09. 对象的类型.mp4",
+  "etag": "ba56addccd2ecef57b37454ae626d37c",
+  "last_modified": "2026-09-17T13:48:17.751Z",
+  "size": 99610034,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/10. 对象的创建过程.mp4",
+  "etag": "078d53dd106f6947129d6ac59d66f05f",
+  "last_modified": "2026-09-17T13:47:08.651Z",
+  "size": 54749345,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/11. 可调用对象.mp4",
+  "etag": "da66dc7f1ac9ff3b673254e56e3f49a1",
+  "last_modified": "2026-09-17T13:47:19.332Z",
+  "size": 56995804,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/12. 元类.mp4",
+  "etag": "8f1321e6403fc1eb2ceaa4fb958df0f1",
+  "last_modified": "2026-09-17T14:13:46.962Z",
+  "size": 124318745,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/13. 装饰器.mp4",
+  "etag": "8ec916cdae607ec1f480968bd21c1738",
+  "last_modified": "2026-09-17T13:29:05.625Z",
+  "size": 65931646,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/14. 魔术方法.mp4",
+  "etag": "14aa879d4e97407840692de0f4024114",
+  "last_modified": "2026-09-17T13:27:40.660Z",
+  "size": 52311374,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/15. 描述符.mp4",
+  "etag": "325352cea8ea4c7088d7b61463acb8db",
+  "last_modified": "2026-09-17T14:15:59.286Z",
+  "size": 250206726,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/16. 异常处理.mp4",
+  "etag": "7fc6ac3d5b069710ef964a7da10d1d8a",
+  "last_modified": "2026-09-17T14:12:17.511Z",
+  "size": 48748455,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/17. 迭代器与生成器.mp4",
+  "etag": "1bbecbcee80a07083bf453546ac48ff5",
+  "last_modified": "2026-09-17T14:15:33.781Z",
+  "size": 228687341,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/18. 上下文管理器.mp4",
+  "etag": "b1b318bc7efc6990edcd7e61a646e697",
+  "last_modified": "2026-09-17T14:13:54.340Z",
+  "size": 76928351,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/19. ABC.mp4",
+  "etag": "90ad4058ef4b2c5f3dc1f32f80924ea9",
+  "last_modified": "2026-09-17T13:29:55.581Z",
+  "size": 82849006,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/20. 类型标注.mp4",
+  "etag": "c91a591feb5d5191b7c90f9338dbd926",
+  "last_modified": "2026-09-17T13:28:24.204Z",
+  "size": 42778869,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/21. 模块化.mp4",
+  "etag": "709e8886cc1f66b2c23966c682cf7682",
+  "last_modified": "2026-09-17T14:14:39.128Z",
+  "size": 82689019,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/22. 标准库.mp4",
+  "etag": "e14cbb79153aaaac8bf7b5be6757da50",
+  "last_modified": "2026-09-17T13:48:16.770Z",
+  "size": 77308538,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/23. 第三方库.mp4",
+  "etag": "a978ff2760f28b5f986660e69e677545",
+  "last_modified": "2026-09-17T13:49:53.796Z",
+  "size": 210961559,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/24. 事件循环.mp4",
+  "etag": "8e18aac57c63387987f4e15c31b7de8c",
+  "last_modified": "2026-09-17T14:17:08.741Z",
+  "size": 160325689,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/25. Future类.mp4",
+  "etag": "3fa88817ad16da9420e4fdcc4a16eb85",
+  "last_modified": "2026-09-17T13:49:35.345Z",
+  "size": 170981789,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/26. 协程 Coroutine.mp4",
+  "etag": "2fac166bd14c83a6e59f68bf06503eb9",
+  "last_modified": "2026-09-17T13:49:42.650Z",
+  "size": 185594645,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/27. 异步编程.mp4",
+  "etag": "1a53e3e30fa7b807aaa3dbddcb3e334c",
+  "last_modified": "2026-09-17T13:53:46.555Z",
+  "size": 215349689,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/28. 多线程与多进程.mp4",
+  "etag": "2aa69f94bac45700c681ef9b6f915b98",
+  "last_modified": "2026-09-17T14:15:04.264Z",
+  "size": 60682094,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/29. 构建发布.mp4",
+  "etag": "a7942b67bd72cd5d4368efca1f323ed4",
+  "last_modified": "2026-09-17T14:18:07.601Z",
+  "size": 237427151,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/30. 项目管理工具.mp4",
+  "etag": "d899800cb594ad1e7e7bc059d796e497",
+  "last_modified": "2026-09-17T14:17:33.665Z",
+  "size": 126955772,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/31. monorepo.mp4",
+  "etag": "231cde75ca965083fc0950691777d155",
+  "last_modified": "2026-09-17T14:17:50.502Z",
+  "size": 126917275,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/32. 断点调试.mp4",
+  "etag": "164526dc3c39ff573090156f0422639d",
+  "last_modified": "2026-09-17T14:17:45.100Z",
+  "size": 91303113,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-17T13:24:58.485Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/Python语言核心精讲-封面-16x9.png",
+  "etag": "dc62b4829e507bd9d178aab8ab03100a",
+  "last_modified": "2026-09-19T08:17:41.994Z",
+  "size": 294354,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/basic/duyi-edu/Python语言核心精讲-封面-4x3.png",
+  "etag": "24b71fa403f52183904fbdbf1231f757",
+  "last_modified": "2026-09-19T08:17:47.383Z",
+  "size": 459780,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/01. Web服务框架.mp4",
+  "etag": "5ae18a58397f99f5246f73ea0cedf422",
+  "last_modified": "2026-09-17T14:29:15.698Z",
+  "size": 286577033,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/02. 优化包结构.mp4",
+  "etag": "132eca2d5a401b3b0f9a83b1eb2bab81",
+  "last_modified": "2026-09-17T15:32:27.993Z",
+  "size": 127665365,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/03. 初识SQLAlchemy.mp4",
+  "etag": "010f1b9b77569dbcc8dbe895b5359351",
+  "last_modified": "2026-09-17T15:40:47.795Z",
+  "size": 221606438,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/04. ORM.mp4",
+  "etag": "c62dc8b1d2440a2e6d19ae03687bef24",
+  "last_modified": "2026-09-17T15:41:41.540Z",
+  "size": 236428099,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/05. 数据操作.mp4",
+  "etag": "a5aa2c5eab957a52b2523d0f0b9006ba",
+  "last_modified": "2026-09-17T15:43:20.795Z",
+  "size": 285480194,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/06. 数据迁移.mp4",
+  "etag": "c1f450b9e71880df6c23737a2f652fc3",
+  "last_modified": "2026-09-17T15:38:25.048Z",
+  "size": 182302153,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/07. 业务逻辑.mp4",
+  "etag": "fcfe57522d969d6bb4d5273903e15162",
+  "last_modified": "2026-09-17T15:35:48.484Z",
+  "size": 160293490,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/08. 依赖注入.mp4",
+  "etag": "cd4e44f73e63e073b1c5e8c24803700c",
+  "last_modified": "2026-09-17T15:39:46.824Z",
+  "size": 199831254,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/09. 统一异常处理.mp4",
+  "etag": "bb0824c6a8fafeee380a10833f1367f0",
+  "last_modified": "2026-09-17T14:28:52.680Z",
+  "size": 217369517,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/10. 中间件.mp4",
+  "etag": "522bbab991a0eb727dda456aa081fdd6",
+  "last_modified": "2026-09-17T14:28:33.792Z",
+  "size": 178630810,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/11. 测试框架.mp4",
+  "etag": "d3a34d186c31210560a4b6069cf66f5c",
+  "last_modified": "2026-09-17T15:47:49.838Z",
+  "size": 282686718,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/12. 测试方案.mp4",
+  "etag": "f50d07d42e94f968cad05d8c6783066f",
+  "last_modified": "2026-09-17T15:47:53.379Z",
+  "size": 282353494,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/13. 三层架构.mp4",
+  "etag": "480001206afd7e5b7297ae2790f18f1c",
+  "last_modified": "2026-09-17T15:44:35.280Z",
+  "size": 115530029,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/14. 文件上传.mp4",
+  "etag": "0ff261ef3de3bcfcf55b186d2452da43-53",
+  "last_modified": "2026-09-19T04:53:20.900Z",
+  "size": 442432891,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/15. 系统设置.mp4",
+  "etag": "1c5646a6543958e0fae33890737301c5",
+  "last_modified": "2026-09-17T15:47:27.350Z",
+  "size": 185694416,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/16. 长事务和短事务.mp4",
+  "etag": "24a3b167ee4209a994864caa03cd34b1-43",
+  "last_modified": "2026-09-19T04:53:23.318Z",
+  "size": 358986141,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/17. 用户系统.mp4",
+  "etag": "81b47cf02a3460fc228845eb51fc5601-43",
+  "last_modified": "2026-09-19T04:52:12.069Z",
+  "size": 356856682,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/18. 日志.mp4",
+  "etag": "4f36d94a0135b485ef133a775f355bd9",
+  "last_modified": "2026-09-17T15:48:04.581Z",
+  "size": 268408497,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/19. AI导购.mp4",
+  "etag": "5e5f8bd6311d3419fb3487086b4c1651",
+  "last_modified": "2026-09-17T15:47:36.029Z",
+  "size": 139220455,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/20. 流式响应.mp4",
+  "etag": "f54a119abf7a79e9399e82bc3375e0ac-36",
+  "last_modified": "2026-09-19T04:51:57.885Z",
+  "size": 300560514,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/21. 部署-认识Docker.mp4",
+  "etag": "c4701dac24af2e56f5a59a83ad9420a8",
+  "last_modified": "2026-09-17T15:49:42.911Z",
+  "size": 268795166,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/22. 部署-云资产.mp4",
+  "etag": "416c85c3754ce29b37951d7f6d828b28-39",
+  "last_modified": "2026-09-19T04:54:19.121Z",
+  "size": 319326458,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/23. 部署-k8s.mp4",
+  "etag": "a64d9bbe4e9d8238a937bca85014e4f5-45",
+  "last_modified": "2026-09-19T04:54:33.643Z",
+  "size": 373741714,
+  "http_metadata": {},
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/24. 部署-CICD.mp4",
+  "etag": "c9f2d554a3f37a4d1b5571bb3db5fe9e",
+  "last_modified": "2026-09-17T15:50:18.842Z",
+  "size": 293472038,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/25. 部署-总结.mp4",
+  "etag": "689d85a1b8bb5b61c0b85592e067c160",
+  "last_modified": "2026-09-17T15:35:40.585Z",
+  "size": 84792362,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/26. python收官检验.mp4",
+  "etag": "23637f5810b8c4e62f7385076287af77",
+  "last_modified": "2026-09-17T15:50:29.886Z",
+  "size": 265583982,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-17T14:20:40.028Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/Python Web 后端框架-封面-16x9.png",
+  "etag": "d1a8d95316c7a4519c590bf65cd08268",
+  "last_modified": "2026-09-19T08:17:51.837Z",
+  "size": 357700,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/framework/duyi-edu/Python Web 后端框架-封面-4x3.png",
+  "etag": "8f7dad922aed7f8a36b00c996929cccb",
+  "last_modified": "2026-09-19T08:18:15.429Z",
+  "size": 625150,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-18T17:47:53.061Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/01. 课程导言.mp4",
+  "etag": "05aa74d0575412356132ce3fbc6a1218",
+  "last_modified": "2026-09-18T17:49:14.104Z",
+  "size": 3741407,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/02. Jupyter.mp4",
+  "etag": "55aed8382f475c6cd6aef6242c0eeb13",
+  "last_modified": "2026-09-18T17:56:09.503Z",
+  "size": 19868611,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/03. Numpy - 核心概念.mp4",
+  "etag": "45a2d4271105bd3f404ebd02a9e4ba7a",
+  "last_modified": "2026-09-19T03:08:55.623Z",
+  "size": 131386092,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/04. Numpy - 数据操作.mp4",
+  "etag": "a348c11a49e58fbae2238a2b6934b17e",
+  "last_modified": "2026-09-19T03:09:34.125Z",
+  "size": 162461379,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/05. Pandas - 数据类型.mp4",
+  "etag": "890c1a77ea76a16c2f1e733007c67062",
+  "last_modified": "2026-09-19T03:07:45.293Z",
+  "size": 80726330,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/06. Pandas - 数据清洗.mp4",
+  "etag": "62636d3df8cbd5c3ab49580c34b68aa6",
+  "last_modified": "2026-09-19T03:08:58.643Z",
+  "size": 135538785,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/07. Matplotlib - 核心概念.mp4",
+  "etag": "14b976033045d5ff9eb08f295954996e",
+  "last_modified": "2026-09-19T03:09:39.658Z",
+  "size": 166556531,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/08. Matplotlib - 动画.mp4",
+  "etag": "28350b93094f84b3f1076fb1123b2ab3",
+  "last_modified": "2026-09-19T03:09:42.957Z",
+  "size": 86222786,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/09. Matplotlib - 交互式组件.mp4",
+  "etag": "0c226d8f7850b172a3e20bdbcbc21074",
+  "last_modified": "2026-09-19T03:10:09.552Z",
+  "size": 107994461,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/10. Seaborn.mp4",
+  "etag": "cef2720fa1628bf230cd43edc6785ecd",
+  "last_modified": "2026-09-19T03:10:06.016Z",
+  "size": 89655533,
+  "http_metadata": {
+   "contentType": "video/mp4"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-18T17:48:00.015Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/封面/数据科学工具包-合集封面-16x9.png",
+  "etag": "8e1ea2aeeaad2a5ebb7ef857c3dc820d",
+  "last_modified": "2026-09-19T08:20:56.845Z",
+  "size": 1350225,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/python/math-tools/duyi-edu/封面/数据科学工具包-合集封面-4x3.png",
+  "etag": "41714b9f268366430f252155e1121d88",
+  "last_modified": "2026-09-19T08:21:05.871Z",
+  "size": 990229,
+  "http_metadata": {
+   "contentType": "image/png"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ },
+ {
+  "key": "videos/rust/",
+  "etag": "d41d8cd98f00b204e9800998ecf8427e",
+  "last_modified": "2026-09-15T15:33:15.045Z",
+  "size": 0,
+  "http_metadata": {
+   "contentType": "application/octet-stream"
+  },
+  "custom_metadata": {},
+  "storage_class": "Standard"
+ }
+]

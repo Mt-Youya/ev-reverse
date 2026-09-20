@@ -8,9 +8,10 @@ use anyhow::{anyhow, bail, Result};
 use evmedia_contract::Reporter;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     io::{Read, Write},
     path::Path,
+    sync::{atomic::{AtomicUsize, Ordering}, mpsc},
 };
 
 #[derive(Debug, Deserialize)]
@@ -22,7 +23,7 @@ pub struct EvManifest {
     pub segments: Vec<EvSegment>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EvSegment {
     pub index: u32,
     pub file: String,
@@ -191,6 +192,19 @@ pub fn list_input_names(input: &Path) -> Result<Vec<String>> {
 }
 
 pub fn decode_ev(input: &Path, manifest: EvManifest, output: &Path, reporter: &Reporter) -> Result<()> {
+    let jobs = std::thread::available_parallelism().map(|count| count.get()).unwrap_or(1);
+    decode_ev_parallel(input, manifest, output, jobs, reporter)
+}
+
+/// Decode independent segments on several CPU threads, but write their bytes in lesson-index order.
+/// The bounded channel keeps memory at roughly one worker window instead of buffering a whole lesson.
+pub fn decode_ev_parallel(
+    input: &Path,
+    manifest: EvManifest,
+    output: &Path,
+    jobs: usize,
+    reporter: &Reporter,
+) -> Result<()> {
     if !manifest.tool.contains("EVPlayer2 5.0.5") && manifest.variant != "xor16_then_aes256ecb_hash_padding" {
         bail!("manifest is not from a supported EVPlayer2 5.0.5 collector");
     }
@@ -210,9 +224,47 @@ pub fn decode_ev(input: &Path, manifest: EvManifest, output: &Path, reporter: &R
         .write(true)
         .create_new(true)
         .open(&partial)?;
-    for item in &items {
-        destination.write_all(&decode_segment(&find_input_bytes(input, &item.file)?, item)?)?;
-    }
+    let workers = jobs.max(1).min(items.len());
+    let next = AtomicUsize::new(0);
+    let (sender, receiver) = mpsc::sync_channel(workers);
+    std::thread::scope(|scope| -> Result<()> {
+        for _ in 0..workers {
+            let sender = sender.clone();
+            let items = &items;
+            let next = &next;
+            scope.spawn(move || loop {
+                let position = next.fetch_add(1, Ordering::Relaxed);
+                if position >= items.len() {
+                    return;
+                }
+                let item = &items[position];
+                let outcome = find_input_bytes(input, &item.file)
+                    .and_then(|bytes| decode_segment(&bytes, item))
+                    .map(|bytes| (item.index, bytes));
+                if sender.send(outcome).is_err() {
+                    return;
+                }
+            });
+        }
+        drop(sender);
+
+        let mut expected = 0u32;
+        let mut ready = BTreeMap::new();
+        for _ in 0..items.len() {
+            if reporter.stopped() {
+                bail!("export stopped");
+            }
+            let (index, bytes) = receiver
+                .recv()
+                .map_err(|_| anyhow!("decode worker stopped before producing every segment"))??;
+            ready.insert(index, bytes);
+            while let Some(bytes) = ready.remove(&expected) {
+                destination.write_all(&bytes)?;
+                expected += 1;
+            }
+        }
+        Ok(())
+    })?;
     destination.flush()?;
     std::fs::rename(partial, output)?;
     reporter.info(format!(

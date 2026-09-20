@@ -26,6 +26,7 @@ pub enum ReporterMode {
     Null,
 }
 
+#[derive(Clone)]
 pub struct Reporter {
     mode: ReporterMode,
     stop: Option<PathBuf>,

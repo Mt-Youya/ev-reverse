@@ -52,6 +52,8 @@ pub enum Command {
     DownloadEvs(crate::DownloadEvsArgs),
     /// Download one authorized EVS file and export it to MP4/MKV without the player.
     ExportEvs(crate::ExportEvsArgs),
+    /// Export all videos in a plan through one cross-video segment queue.
+    ExportBatch(crate::ExportBatchArgs),
     /// Download all listed segments concurrently with resume-safe atomic files.
     Download(DownloadArgs),
     /// Decode an EVPlayer2 5.0.5 segment ZIP/directory using a live-captured manifest.
@@ -266,6 +268,7 @@ impl ToArgv for Command {
             Command::Catalog(args) => args.to_argv(),
             Command::DownloadEvs(args) => args.to_argv(),
             Command::ExportEvs(args) => args.to_argv(),
+            Command::ExportBatch(args) => args.to_argv(),
             Command::Download(args) => args.to_argv(),
             Command::DecodeEv(args) => args.to_argv(),
             Command::CaptureEv(args) => args.to_argv(),

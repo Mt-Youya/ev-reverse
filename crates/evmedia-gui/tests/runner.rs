@@ -198,3 +198,25 @@ fn a_rerun_replaces_its_transcript() {
     );
     let _ = std::fs::remove_dir_all(&fixture.root);
 }
+
+#[test]
+fn a_downloaded_lesson_starts_conversion_without_waiting_for_the_next_one() {
+    let fixture = Fixture::new("two-phase");
+    let first = fixture.item("first");
+    let mut second = fixture.item("second");
+    second.id = "315187:903781".to_string();
+    second.file = 903781;
+    second.work = evmedia_gui::plan::work_of(&fixture.root, second.course, second.file);
+    fixture.queue.start(
+        vec![Fixture::row(first.clone()), Fixture::row(second.clone())],
+        fixture.options.clone(),
+        1,
+        STUB.to_string(),
+    );
+    assert!(fixture.queue.wait_idle(Duration::from_secs(60)), "the batch never finished");
+    assert_eq!(fixture.snapshot().items.iter().filter(|item| item.status == JobStatus::Complete).count(), 2);
+    let second_download = std::fs::metadata(second.work.join("stub-download.ready")).unwrap().modified().unwrap();
+    let first_convert = std::fs::metadata(first.work.join("stub-convert.started")).unwrap().modified().unwrap();
+    assert!(first_convert <= second_download, "conversion waited for an unrelated lesson download");
+    let _ = std::fs::remove_dir_all(&fixture.root);
+}

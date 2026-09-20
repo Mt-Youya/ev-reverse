@@ -28,7 +28,7 @@ pub struct RemoteVideo {
     pub segments: Vec<RemoteSegment>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct RemoteSegment {
     pub index: u32,
     pub url: String,
@@ -55,7 +55,7 @@ pub fn load_input(path: &std::path::Path) -> Result<DownloadManifest> {
     serde_json::from_value(value).with_context(|| format!("parse {} as a download manifest", path.display()))
 }
 
-async fn download_segment(client: reqwest::Client, segment: RemoteSegment, target: PathBuf) -> Result<()> {
+pub(crate) async fn download_segment(client: reqwest::Client, segment: RemoteSegment, target: PathBuf) -> Result<()> {
     if !matches!(Url::parse(&segment.url)?.scheme(), "https" | "http") {
         bail!("unsupported URL scheme");
     }
