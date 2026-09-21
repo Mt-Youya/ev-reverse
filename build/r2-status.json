@@ -1,1 +1,1872 @@
-{}
+{
+ "前端架构课程\\LangChain": {
+  "prefix": "videos/ai/agents/duyi-edu/",
+  "missing": [
+   {
+    "number": 35,
+    "name": "35. Zod基础.mp4",
+    "size": 220254428
+   },
+   {
+    "number": 36,
+    "name": "36. LangChain中使用工具.mp4",
+    "size": 167342363
+   },
+   {
+    "number": 37,
+    "name": "37. 重新认识Agent.mp4",
+    "size": 341579830
+   },
+   {
+    "number": 38,
+    "name": "38. LangChain中创建Agent.mp4",
+    "size": 346344027
+   },
+   {
+    "number": 39,
+    "name": "39. Agent实践.mp4",
+    "size": 196096298
+   },
+   {
+    "number": 40,
+    "name": "40. [补充]回退机制.mp4",
+    "size": 102737810
+   },
+   {
+    "number": 41,
+    "name": "41. [补充]回调机制.mp4",
+    "size": 81165050
+   },
+   {
+    "number": 42,
+    "name": "42. 课程收官.mp4",
+    "size": 41941564
+   }
+  ]
+ },
+ "前端架构课程\\NestJS": {
+  "prefix": "videos/python/basic/duyi-edu/",
+  "missing": [
+   {
+    "number": 33,
+    "name": "33.面向切面的日志处理.mp4",
+    "size": 140565795
+   },
+   {
+    "number": 34,
+    "name": "34.GraphQL快速入门.mp4",
+    "size": 239447269
+   },
+   {
+    "number": 35,
+    "name": "35.在Nest中使用GraphQL.mp4",
+    "size": 265529787
+   }
+  ]
+ },
+ "前端架构课程\\企业级监控平台全栈架构设计": {
+  "prefix": "videos/python/math-tools/duyi-edu/",
+  "missing": [
+   {
+    "number": 12,
+    "name": "12.API请求采集插件处理.mp4",
+    "size": 109948582
+   }
+  ]
+ },
+ "前端架构课程\\LangGraph\\第三章 细节补充": {
+  "prefix": "videos/database/postgresql/duyi-edu/",
+  "missing": [
+   {
+    "number": 11,
+    "name": "11. 短期记忆.mp4",
+    "size": 151905131
+   },
+   {
+    "number": 12,
+    "name": "12. 自定义checkpointer-part1.mp4",
+    "size": 226537730
+   },
+   {
+    "number": 17,
+    "name": "17. 阻塞式中断.mp4",
+    "size": 124049145
+   },
+   {
+    "number": 18,
+    "name": "18. 非阻塞式中断.mp4",
+    "size": 220074406
+   }
+  ]
+ },
+ "WebGIS课程\\Cesium基础入门": {
+  "prefix": "videos/ai/langgraph/duyi-edu/",
+  "missing": [
+   {
+    "number": 15,
+    "name": "15. 实体创建广告牌.mp4",
+    "size": 73968181
+   },
+   {
+    "number": 26,
+    "name": "26. 事件案例之绘制矩形.mp4",
+    "size": 157318835
+   },
+   {
+    "number": 29,
+    "name": "29. 加载GeoJSON（3）.mp4",
+    "size": 61486497
+   },
+   {
+    "number": 30,
+    "name": "30. 加载KML数据.mp4",
+    "size": 63113129
+   }
+  ]
+ },
+ "WebGIS课程\\Cesium项目实战": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 项目演示与搭建脚手架.mp4",
+    "size": 69467275
+   },
+   {
+    "number": 2,
+    "name": "02. 地球初始化及相关配置.mp4",
+    "size": 27231126
+   },
+   {
+    "number": 3,
+    "name": "03. 复用封装及控件配置.mp4",
+    "size": 39551024
+   },
+   {
+    "number": 4,
+    "name": "04. 锁定农场位置与角度.mp4",
+    "size": 61952359
+   },
+   {
+    "number": 5,
+    "name": "05. 点击获取经纬度.mp4",
+    "size": 25798681
+   },
+   {
+    "number": 6,
+    "name": "06. 相机范围与底图loading.mp4",
+    "size": 50948225
+   },
+   {
+    "number": 7,
+    "name": "07. 设置围墙实体.mp4",
+    "size": 50883522
+   },
+   {
+    "number": 8,
+    "name": "08. 突出显示农场区域.mp4",
+    "size": 80082659
+   },
+   {
+    "number": 9,
+    "name": "09. 添加温室大棚模型.mp4",
+    "size": 57236023
+   },
+   {
+    "number": 10,
+    "name": "10. 添加监控设备.mp4",
+    "size": 93006898
+   },
+   {
+    "number": 11,
+    "name": "11. 监控设备提示框.mp4",
+    "size": 68290963
+   },
+   {
+    "number": 12,
+    "name": "12. 监控数据弹窗展示.mp4",
+    "size": 69576532
+   },
+   {
+    "number": 13,
+    "name": "13. 监控数据范围展示.mp4",
+    "size": 49039125
+   },
+   {
+    "number": 14,
+    "name": "14. 添加农作物广告牌.mp4",
+    "size": 68811682
+   },
+   {
+    "number": 15,
+    "name": "15. 添加农作物区域颜色.mp4",
+    "size": 43796345
+   },
+   {
+    "number": 16,
+    "name": "16. 添加农作物的交互.mp4",
+    "size": 77829340
+   },
+   {
+    "number": 17,
+    "name": "17. 封装头部组件.mp4",
+    "size": 49876519
+   },
+   {
+    "number": 18,
+    "name": "18. 详情页地图初始化.mp4",
+    "size": 35004218
+   },
+   {
+    "number": 19,
+    "name": "19. 详情页菜单布局.mp4",
+    "size": 50859316
+   },
+   {
+    "number": 20,
+    "name": "20. 切换农作物区域.mp4",
+    "size": 56050792
+   },
+   {
+    "number": 21,
+    "name": "21. 添加农作物模型.mp4",
+    "size": 83014967
+   },
+   {
+    "number": 22,
+    "name": "22. 灌溉粒子效果.mp4",
+    "size": 56257724
+   },
+   {
+    "number": 23,
+    "name": "23. 详情页灌溉监测.mp4",
+    "size": 73445693
+   },
+   {
+    "number": 24,
+    "name": "24. 详情页健康指数.mp4",
+    "size": 71572538
+   },
+   {
+    "number": 25,
+    "name": "25. 详情页生长阶段.mp4",
+    "size": 52413731
+   },
+   {
+    "number": 26,
+    "name": "26. 首页气象与大棚.mp4",
+    "size": 49183929
+   },
+   {
+    "number": 27,
+    "name": "27. 首页告警与无人机.mp4",
+    "size": 40875999
+   },
+   {
+    "number": 28,
+    "name": "28. 首页作物面积占比.mp4",
+    "size": 52584964
+   },
+   {
+    "number": 29,
+    "name": "29. 首页产量历史占比.mp4",
+    "size": 51096813
+   },
+   {
+    "number": 30,
+    "name": "30. 无人机运动轨迹.mp4",
+    "size": 79463579
+   },
+   {
+    "number": 31,
+    "name": "31. 无人机喷洒农药.mp4",
+    "size": 77867447
+   },
+   {
+    "number": 32,
+    "name": "32. 项目简历指导.mp4",
+    "size": 31329202
+   }
+  ]
+ },
+ "WebGIS课程\\Cesium高级进阶": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. ion云平台内置资源.mp4",
+    "size": 220045352
+   },
+   {
+    "number": 2,
+    "name": "02. ion云平台上传资源.mp4",
+    "size": 110718616
+   },
+   {
+    "number": 3,
+    "name": "03. ion REST API（1）.mp4",
+    "size": 42585503
+   },
+   {
+    "number": 4,
+    "name": "04. ion REST API（2）.mp4",
+    "size": 51741730
+   },
+   {
+    "number": 5,
+    "name": "05. ion云平台辅助工具.mp4",
+    "size": 153761163
+   },
+   {
+    "number": 6,
+    "name": "06. 什么是3D Tiles.mp4",
+    "size": 75190962
+   },
+   {
+    "number": 7,
+    "name": "07. 数据转换3D Tiles.mp4",
+    "size": 74054198
+   },
+   {
+    "number": 8,
+    "name": "08. 3D Tiles样式控制.mp4",
+    "size": 110498063
+   },
+   {
+    "number": 9,
+    "name": "09. 3D Tiles交互控制.mp4",
+    "size": 70805478
+   },
+   {
+    "number": 10,
+    "name": "10. 3D Tiles之点云数据.mp4",
+    "size": 499088193
+   },
+   {
+    "number": 11,
+    "name": "11. 3D Tiles之shp文件.mp4",
+    "size": 73414407
+   },
+   {
+    "number": 12,
+    "name": "12. 实体的运动轨迹（1）.mp4",
+    "size": 136070922
+   },
+   {
+    "number": 13,
+    "name": "13. 实体的运动轨迹（2）.mp4",
+    "size": 95901230
+   },
+   {
+    "number": 14,
+    "name": "14. 高德API+运动轨迹.mp4",
+    "size": 105953626
+   },
+   {
+    "number": 15,
+    "name": "15. GeoJSON+运动轨迹.mp4",
+    "size": 69122591
+   },
+   {
+    "number": 16,
+    "name": "16. CZML+运动轨迹.mp4",
+    "size": 55677725
+   },
+   {
+    "number": 17,
+    "name": "17. 粒子系统与配置.mp4",
+    "size": 79071590
+   },
+   {
+    "number": 18,
+    "name": "18. 粒子的发射器类型.mp4",
+    "size": 83654538
+   },
+   {
+    "number": 19,
+    "name": "19. 粒子方向与位置.mp4",
+    "size": 101825909
+   },
+   {
+    "number": 20,
+    "name": "20. 粒子+运动轨迹.mp4",
+    "size": 111160666
+   },
+   {
+    "number": 21,
+    "name": "21. 着色器基本语法.mp4",
+    "size": 18751854
+   },
+   {
+    "number": 22,
+    "name": "22. 图元设置着色器.mp4",
+    "size": 38054727
+   },
+   {
+    "number": 23,
+    "name": "23. glsl着色器文件.mp4",
+    "size": 24267813
+   },
+   {
+    "number": 24,
+    "name": "24. 图元的fabric设置.mp4",
+    "size": 36084735
+   },
+   {
+    "number": 25,
+    "name": "25. tiles设置着色器（1）.mp4",
+    "size": 99811934
+   },
+   {
+    "number": 26,
+    "name": "26. tiles设置着色器（2）.mp4",
+    "size": 70498136
+   },
+   {
+    "number": 27,
+    "name": "27. 内置的后期处理.mp4",
+    "size": 47321047
+   },
+   {
+    "number": 28,
+    "name": "28. 自定义后期处理.mp4",
+    "size": 56699898
+   }
+  ]
+ },
+ "WebGIS课程\\Leaflet框架详解": {
+  "prefix": "videos/ai/langchain/duyi-edu/",
+  "missing": [
+   {
+    "number": 3,
+    "name": "03. 加载GeoJSON数据.mp4",
+    "size": 52815735
+   },
+   {
+    "number": 8,
+    "name": "08. 自定义矢量数据.mp4",
+    "size": 40244970
+   },
+   {
+    "number": 11,
+    "name": "11. chinatms插件.mp4",
+    "size": 38810634
+   },
+   {
+    "number": 12,
+    "name": "12. cluster插件.mp4",
+    "size": 104073744
+   },
+   {
+    "number": 13,
+    "name": "13. draw插件.mp4",
+    "size": 104023484
+   },
+   {
+    "number": 14,
+    "name": "14. 地图控件.mp4",
+    "size": 72483158
+   }
+  ]
+ },
+ "WebGIS课程\\Mapbox框架详解": {
+  "prefix": "videos/auth/oauth2/duyi-edu/",
+  "missing": [
+   {
+    "number": 9,
+    "name": "09. marker标记点.mp4",
+    "size": 53521345
+   },
+   {
+    "number": 10,
+    "name": "10. 实现地图下钻.mp4",
+    "size": 55291826
+   },
+   {
+    "number": 11,
+    "name": "11. 实现热力图.mp4",
+    "size": 64562707
+   },
+   {
+    "number": 12,
+    "name": "12. draw绘制插件.mp4",
+    "size": 45809054
+   },
+   {
+    "number": 13,
+    "name": "13. 动画弹窗插件.mp4",
+    "size": 34709791
+   }
+  ]
+ },
+ "WebGIS课程\\OpenLayers框架详解": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 初始化地图.mp4",
+    "size": 46546029
+   },
+   {
+    "number": 2,
+    "name": "02. 加载天地图.mp4",
+    "size": 37534517
+   },
+   {
+    "number": 3,
+    "name": "03. 投影坐标转换.mp4",
+    "size": 63014985
+   },
+   {
+    "number": 4,
+    "name": "04. GeoTIFF数据.mp4",
+    "size": 26734951
+   },
+   {
+    "number": 5,
+    "name": "05. ImageStatic数据.mp4",
+    "size": 35799969
+   },
+   {
+    "number": 6,
+    "name": "06. GeoJSON数据.mp4",
+    "size": 42272469
+   },
+   {
+    "number": 7,
+    "name": "07. 异步加载GeoJSON.mp4",
+    "size": 28199198
+   },
+   {
+    "number": 8,
+    "name": "08. 组件的方法与事件.mp4",
+    "size": 49177080
+   },
+   {
+    "number": 9,
+    "name": "09. 矢量图层样式.mp4",
+    "size": 26394980
+   },
+   {
+    "number": 10,
+    "name": "10. 添加动态样式.mp4",
+    "size": 142987774
+   },
+   {
+    "number": 11,
+    "name": "11. WKT数据.mp4",
+    "size": 55681566
+   },
+   {
+    "number": 12,
+    "name": "12. 自定义矢量数据.mp4",
+    "size": 36980416
+   },
+   {
+    "number": 13,
+    "name": "13. 添加icon图标.mp4",
+    "size": 83803165
+   },
+   {
+    "number": 14,
+    "name": "14. Overlay叠加层.mp4",
+    "size": 74180848
+   },
+   {
+    "number": 15,
+    "name": "15. Link交互.mp4",
+    "size": 48602093
+   },
+   {
+    "number": 16,
+    "name": "16. DragAndDrop交互.mp4",
+    "size": 76973395
+   },
+   {
+    "number": 17,
+    "name": "17. Translate交互.mp4",
+    "size": 21224639
+   },
+   {
+    "number": 18,
+    "name": "18. Draw交互.mp4",
+    "size": 86863780
+   },
+   {
+    "number": 19,
+    "name": "19. 下载绘制的图形.mp4",
+    "size": 69922694
+   },
+   {
+    "number": 20,
+    "name": "20. 计算绘制的面积.mp4",
+    "size": 37911483
+   },
+   {
+    "number": 21,
+    "name": "21. control地图控件.mp4",
+    "size": 74532376
+   },
+   {
+    "number": 22,
+    "name": "22. OverviewMap鹰眼图.mp4",
+    "size": 114165665
+   },
+   {
+    "number": 23,
+    "name": "23. 切换地图底图.mp4",
+    "size": 51625044
+   },
+   {
+    "number": 24,
+    "name": "24. 添加动画效果.mp4",
+    "size": 34948976
+   },
+   {
+    "number": 25,
+    "name": "25. 添加热力图.mp4",
+    "size": 27615168
+   }
+  ]
+ },
+ "WebGIS课程\\OpenLayers项目实战": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 项目演示与搭建脚手架.mp4",
+    "size": 56699794
+   },
+   {
+    "number": 2,
+    "name": "02. 初始化地图和UI组件库.mp4",
+    "size": 75826916
+   },
+   {
+    "number": 3,
+    "name": "03. 渲染城市矢量图层.mp4",
+    "size": 46964834
+   },
+   {
+    "number": 4,
+    "name": "04. 点击地图切换城市.mp4",
+    "size": 46525587
+   },
+   {
+    "number": 5,
+    "name": "05. 城市菜单联动地图.mp4",
+    "size": 78471659
+   },
+   {
+    "number": 6,
+    "name": "06. 添加地图控件.mp4",
+    "size": 70608081
+   },
+   {
+    "number": 7,
+    "name": "07. 监测点mock数据.mp4",
+    "size": 51745401
+   },
+   {
+    "number": 8,
+    "name": "08. 监测点渲染到地图.mp4",
+    "size": 52918024
+   },
+   {
+    "number": 9,
+    "name": "09. 添加监测点数据面板.mp4",
+    "size": 64595556
+   },
+   {
+    "number": 10,
+    "name": "10. 回显数据和拖拽交互.mp4",
+    "size": 98344261
+   },
+   {
+    "number": 11,
+    "name": "11. 完善数据面板表单项.mp4",
+    "size": 102831365
+   },
+   {
+    "number": 12,
+    "name": "12. 更新监测点数据.mp4",
+    "size": 83181199
+   },
+   {
+    "number": 13,
+    "name": "13. 删除监测点数据.mp4",
+    "size": 46242615
+   },
+   {
+    "number": 14,
+    "name": "14. 添加监测点功能.mp4",
+    "size": 61165846
+   },
+   {
+    "number": 15,
+    "name": "15. 绘制图形得到监测面积.mp4",
+    "size": 118620751
+   },
+   {
+    "number": 16,
+    "name": "16. 清除绘制图形.mp4",
+    "size": 34958711
+   },
+   {
+    "number": 17,
+    "name": "17. 大屏头部布局实现.mp4",
+    "size": 50428931
+   },
+   {
+    "number": 18,
+    "name": "18. 大屏头部交互实现.mp4",
+    "size": 40168544
+   },
+   {
+    "number": 19,
+    "name": "19. 大屏地图渲染.mp4",
+    "size": 51896533
+   },
+   {
+    "number": 20,
+    "name": "20. 大屏地图下钻实现.mp4",
+    "size": 73311351
+   },
+   {
+    "number": 21,
+    "name": "21. 监测点数量与颜色设置.mp4",
+    "size": 54431109
+   },
+   {
+    "number": 22,
+    "name": "22. 质量热力与面积动画.mp4",
+    "size": 69013039
+   },
+   {
+    "number": 23,
+    "name": "23. 地图叠加层展示信息.mp4",
+    "size": 67799235
+   },
+   {
+    "number": 24,
+    "name": "24. 监测点分布柱状图.mp4",
+    "size": 59643551
+   },
+   {
+    "number": 25,
+    "name": "25. 面积覆盖率饼图.mp4",
+    "size": 46257730
+   },
+   {
+    "number": 26,
+    "name": "26. 土壤等级环形图.mp4",
+    "size": 39076062
+   },
+   {
+    "number": 27,
+    "name": "27. 每月监测统计折线图.mp4",
+    "size": 44158091
+   },
+   {
+    "number": 28,
+    "name": "28. 启动设备数仪表盘.mp4",
+    "size": 40824405
+   },
+   {
+    "number": 29,
+    "name": "29. 水情变化折线图.mp4",
+    "size": 56113034
+   },
+   {
+    "number": 30,
+    "name": "30. 项目简历指导.mp4",
+    "size": 29498391
+   }
+  ]
+ },
+ "WebGIS课程\\WebGIS地理概念": {
+  "prefix": "videos/auth/RBAC/duyi-edu/",
+  "missing": [
+   {
+    "number": 6,
+    "name": "06. GeoJSON.mp4",
+    "size": 45258097
+   },
+   {
+    "number": 7,
+    "name": "07. 地图组成.mp4",
+    "size": 28243001
+   },
+   {
+    "number": 8,
+    "name": "08. 空间分析.mp4",
+    "size": 26027670
+   },
+   {
+    "number": 9,
+    "name": "09. OGC标准.mp4",
+    "size": 43662942
+   },
+   {
+    "number": 10,
+    "name": "10. GIS全栈.mp4",
+    "size": 36767901
+   }
+  ]
+ },
+ "WebGIS课程\\地理图形设计与数据服务": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 全栈概述与QGIS安装.mp4",
+    "size": 83348869
+   },
+   {
+    "number": 2,
+    "name": "02. 绘制图形与底图添加.mp4",
+    "size": 132565986
+   },
+   {
+    "number": 3,
+    "name": "03. QGIS绘制地图图片.mp4",
+    "size": 113560823
+   },
+   {
+    "number": 4,
+    "name": "04. PostGIS安装.mp4",
+    "size": 47366462
+   },
+   {
+    "number": 5,
+    "name": "05. QGIS联动PostGIS.mp4",
+    "size": 44541258
+   },
+   {
+    "number": 6,
+    "name": "06. GeoServer安装.mp4",
+    "size": 67533756
+   },
+   {
+    "number": 7,
+    "name": "07. GeoServer发布服务.mp4",
+    "size": 69065650
+   },
+   {
+    "number": 8,
+    "name": "08. 前端加载WMS标准.mp4",
+    "size": 92107670
+   },
+   {
+    "number": 9,
+    "name": "09. 前端加载WFS标准.mp4",
+    "size": 69243307
+   },
+   {
+    "number": 10,
+    "name": "10. PostGIS空间分析.mp4",
+    "size": 55886493
+   },
+   {
+    "number": 11,
+    "name": "11. WebGIS全栈开发实战（1）.mp4",
+    "size": 107072303
+   },
+   {
+    "number": 12,
+    "name": "12. WebGIS全栈开发实战（2）.mp4",
+    "size": 121698351
+   },
+   {
+    "number": 13,
+    "name": "13. WebGIS全栈开发实战（3）.mp4",
+    "size": 83936673
+   },
+   {
+    "number": 14,
+    "name": "14. WebGIS全栈开发实战（4）.mp4",
+    "size": 75080647
+   }
+  ]
+ },
+ "WebGIS课程\\高德 API与AntV L7": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. Web服务 API.mp4",
+    "size": 13321598
+   },
+   {
+    "number": 2,
+    "name": "02. 地理与逆地理编码.mp4",
+    "size": 58806574
+   },
+   {
+    "number": 3,
+    "name": "03. 添加数字签名.mp4",
+    "size": 42228548
+   },
+   {
+    "number": 4,
+    "name": "04. 路径规划 2.0.mp4",
+    "size": 28388618
+   },
+   {
+    "number": 5,
+    "name": "05. 静态图片.mp4",
+    "size": 24082615
+   },
+   {
+    "number": 6,
+    "name": "06. 搜索POI 2.0.mp4",
+    "size": 27658318
+   },
+   {
+    "number": 7,
+    "name": "07. 天气查询.mp4",
+    "size": 17033751
+   },
+   {
+    "number": 8,
+    "name": "08. 与地图框架结合（1）.mp4",
+    "size": 83828837
+   },
+   {
+    "number": 9,
+    "name": "09. 与地图框架结合（2）.mp4",
+    "size": 57477339
+   },
+   {
+    "number": 10,
+    "name": "10. 地图 JS API 2.0.mp4",
+    "size": 41087434
+   },
+   {
+    "number": 11,
+    "name": "11. 点标记与信息弹窗.mp4",
+    "size": 24696677
+   },
+   {
+    "number": 12,
+    "name": "12. 添加图层到地图.mp4",
+    "size": 31369339
+   },
+   {
+    "number": 13,
+    "name": "13. 地图控件与右键菜单.mp4",
+    "size": 52247580
+   },
+   {
+    "number": 14,
+    "name": "14. 调用服务插件.mp4",
+    "size": 51338862
+   },
+   {
+    "number": 15,
+    "name": "15. 调用工具插件.mp4",
+    "size": 79296710
+   },
+   {
+    "number": 16,
+    "name": "16. L7地理可视化.mp4",
+    "size": 44757785
+   },
+   {
+    "number": 17,
+    "name": "17. L7中使用高德插件.mp4",
+    "size": 25751102
+   },
+   {
+    "number": 18,
+    "name": "18. L7加载GeoJSON.mp4",
+    "size": 51953538
+   },
+   {
+    "number": 19,
+    "name": "19. L7用户交互.mp4",
+    "size": 48956899
+   },
+   {
+    "number": 20,
+    "name": "20. L7标记与弹窗.mp4",
+    "size": 41433449
+   },
+   {
+    "number": 21,
+    "name": "21. L7点图层详解.mp4",
+    "size": 71459265
+   },
+   {
+    "number": 22,
+    "name": "22. L7 Scale 度量.mp4",
+    "size": 59446019
+   }
+  ]
+ },
+ "AI 大全栈\\通识\\OAuth2": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. OAuth2是什么：问题与需求.mp4",
+    "size": 537412432
+   },
+   {
+    "number": 2,
+    "name": "02. OAuth2怎么工作：核心概念和角色.mp4",
+    "size": 579907970
+   },
+   {
+    "number": 3,
+    "name": "03. OAuth2的授权模式与选型.mp4",
+    "size": 361366054
+   },
+   {
+    "number": 4,
+    "name": "04. 授权码模式：流程、参数与设计.mp4",
+    "size": 477723584
+   },
+   {
+    "number": 5,
+    "name": "05. 授权码模式+PKCE：移动端安全增强.mp4",
+    "size": 426735502
+   },
+   {
+    "number": 6,
+    "name": "06. OIDC：在OAuth2上加一层身份认证.mp4",
+    "size": 388799680
+   },
+   {
+    "number": 7,
+    "name": "07. 令牌的生命周期管理和最佳实践.mp4",
+    "size": 383309257
+   },
+   {
+    "number": 8,
+    "name": "08. OAuth2收官实战.mp4",
+    "size": 466165673
+   }
+  ]
+ },
+ "AI 大全栈\\通识\\RBAC": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 权限控制的需求和实现模型.mp4",
+    "size": 246866842
+   },
+   {
+    "number": 2,
+    "name": "02. RBAC核心模型：用户、角色和权限.mp4",
+    "size": 296748563
+   },
+   {
+    "number": 3,
+    "name": "03. RBAC数据库设计.mp4",
+    "size": 337241152
+   },
+   {
+    "number": 4,
+    "name": "04. RBAC API接口层设计.mp4",
+    "size": 362040231
+   },
+   {
+    "number": 5,
+    "name": "05. RBAC收官实战.mp4",
+    "size": 242369406
+   }
+  ]
+ },
+ "AI 大全栈\\通识\\数据库": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. PostgreSQL安装.mp4",
+    "size": 127923640
+   },
+   {
+    "number": 2,
+    "name": "02. DDL.mp4",
+    "size": 116029367
+   },
+   {
+    "number": 3,
+    "name": "03. 表间关系.mp4",
+    "size": 277417255
+   },
+   {
+    "number": 4,
+    "name": "04. DML.mp4",
+    "size": 65213562
+   },
+   {
+    "number": 5,
+    "name": "05. 事务.mp4",
+    "size": 140949876
+   },
+   {
+    "number": 6,
+    "name": "06. 索引.mp4",
+    "size": 53584973
+   },
+   {
+    "number": 7,
+    "name": "07. 拓展知识.mp4",
+    "size": 153222417
+   }
+  ]
+ },
+ "AI 大全栈\\Python\\Python框架": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. Web服务框架.mp4",
+    "size": 286577033
+   },
+   {
+    "number": 2,
+    "name": "02. 优化包结构.mp4",
+    "size": 127665365
+   },
+   {
+    "number": 3,
+    "name": "03. 初识SQLAlchemy.mp4",
+    "size": 221606438
+   },
+   {
+    "number": 4,
+    "name": "04. ORM.mp4",
+    "size": 236428099
+   },
+   {
+    "number": 5,
+    "name": "05. 数据操作.mp4",
+    "size": 285480194
+   },
+   {
+    "number": 6,
+    "name": "06. 数据迁移.mp4",
+    "size": 182302153
+   },
+   {
+    "number": 7,
+    "name": "07. 业务逻辑.mp4",
+    "size": 160293490
+   },
+   {
+    "number": 8,
+    "name": "08. 依赖注入.mp4",
+    "size": 199831254
+   },
+   {
+    "number": 9,
+    "name": "09. 统一异常处理.mp4",
+    "size": 217369517
+   },
+   {
+    "number": 10,
+    "name": "10. 中间件.mp4",
+    "size": 178630810
+   },
+   {
+    "number": 11,
+    "name": "11. 测试框架.mp4",
+    "size": 282686718
+   },
+   {
+    "number": 12,
+    "name": "12. 测试方案.mp4",
+    "size": 282353494
+   },
+   {
+    "number": 13,
+    "name": "13. 三层架构.mp4",
+    "size": 115530029
+   },
+   {
+    "number": 14,
+    "name": "14. 文件上传.mp4",
+    "size": 442432891
+   },
+   {
+    "number": 15,
+    "name": "15. 系统设置.mp4",
+    "size": 185694416
+   },
+   {
+    "number": 16,
+    "name": "16. 长事务和短事务.mp4",
+    "size": 358986141
+   },
+   {
+    "number": 17,
+    "name": "17. 用户系统.mp4",
+    "size": 356856682
+   },
+   {
+    "number": 18,
+    "name": "18. 日志.mp4",
+    "size": 268408497
+   },
+   {
+    "number": 19,
+    "name": "19. AI导购.mp4",
+    "size": 139220455
+   },
+   {
+    "number": 20,
+    "name": "20. 流式响应.mp4",
+    "size": 300560514
+   },
+   {
+    "number": 21,
+    "name": "21. 部署-认识Docker.mp4",
+    "size": 268795166
+   },
+   {
+    "number": 22,
+    "name": "22. 部署-云资产.mp4",
+    "size": 319326458
+   },
+   {
+    "number": 23,
+    "name": "23. 部署-k8s.mp4",
+    "size": 373741714
+   },
+   {
+    "number": 24,
+    "name": "24. 部署-CICD.mp4",
+    "size": 293472038
+   },
+   {
+    "number": 25,
+    "name": "25. 部署-总结.mp4",
+    "size": 84792362
+   },
+   {
+    "number": 26,
+    "name": "26. python收官检验.mp4",
+    "size": 265583982
+   }
+  ]
+ },
+ "AI 大全栈\\Python\\Python语言核心精讲": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 课程导言.mp4",
+    "size": 43133957
+   },
+   {
+    "number": 2,
+    "name": "02. python环境安装.mp4",
+    "size": 129490947
+   },
+   {
+    "number": 3,
+    "name": "03. python基本语法.mp4",
+    "size": 170711366
+   },
+   {
+    "number": 4,
+    "name": "04. 容器类型.mp4",
+    "size": 157246013
+   },
+   {
+    "number": 5,
+    "name": "05. 函数.mp4",
+    "size": 82437140
+   },
+   {
+    "number": 6,
+    "name": "06. 作用域.mp4",
+    "size": 75673969
+   },
+   {
+    "number": 7,
+    "name": "07. lambda表达式.mp4",
+    "size": 126246626
+   },
+   {
+    "number": 8,
+    "name": "08. 类和对象.mp4",
+    "size": 151533852
+   },
+   {
+    "number": 9,
+    "name": "09. 对象的类型.mp4",
+    "size": 99610034
+   },
+   {
+    "number": 10,
+    "name": "10. 对象的创建过程.mp4",
+    "size": 54749345
+   },
+   {
+    "number": 11,
+    "name": "11. 可调用对象.mp4",
+    "size": 56995804
+   },
+   {
+    "number": 12,
+    "name": "12. 元类.mp4",
+    "size": 124318745
+   },
+   {
+    "number": 13,
+    "name": "13. 装饰器.mp4",
+    "size": 65931646
+   },
+   {
+    "number": 14,
+    "name": "14. 魔术方法.mp4",
+    "size": 52311374
+   },
+   {
+    "number": 15,
+    "name": "15. 描述符.mp4",
+    "size": 250206726
+   },
+   {
+    "number": 16,
+    "name": "16. 异常处理.mp4",
+    "size": 48748455
+   },
+   {
+    "number": 17,
+    "name": "17. 迭代器与生成器.mp4",
+    "size": 228687341
+   },
+   {
+    "number": 18,
+    "name": "18. 上下文管理器.mp4",
+    "size": 76928351
+   },
+   {
+    "number": 19,
+    "name": "19. ABC.mp4",
+    "size": 82849006
+   },
+   {
+    "number": 20,
+    "name": "20. 类型标注.mp4",
+    "size": 42778869
+   },
+   {
+    "number": 21,
+    "name": "21. 模块化.mp4",
+    "size": 82689019
+   },
+   {
+    "number": 22,
+    "name": "22. 标准库.mp4",
+    "size": 77308538
+   },
+   {
+    "number": 23,
+    "name": "23. 第三方库.mp4",
+    "size": 210961559
+   },
+   {
+    "number": 24,
+    "name": "24. 事件循环.mp4",
+    "size": 160325689
+   },
+   {
+    "number": 25,
+    "name": "25. Future类.mp4",
+    "size": 170981789
+   },
+   {
+    "number": 26,
+    "name": "26. 协程 Coroutine.mp4",
+    "size": 185594645
+   },
+   {
+    "number": 27,
+    "name": "27. 异步编程.mp4",
+    "size": 215349689
+   },
+   {
+    "number": 28,
+    "name": "28. 多线程与多进程.mp4",
+    "size": 60682094
+   },
+   {
+    "number": 29,
+    "name": "29. 构建发布.mp4",
+    "size": 237427151
+   },
+   {
+    "number": 30,
+    "name": "30. 项目管理工具.mp4",
+    "size": 126955772
+   },
+   {
+    "number": 31,
+    "name": "31. monorepo.mp4",
+    "size": 126917275
+   },
+   {
+    "number": 32,
+    "name": "32. 断点调试.mp4",
+    "size": 91303113
+   }
+  ]
+ },
+ "AI 大全栈\\Python\\数据科学工具包": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 课程导言.mp4",
+    "size": 3741407
+   },
+   {
+    "number": 2,
+    "name": "02. Jupyter.mp4",
+    "size": 19868611
+   },
+   {
+    "number": 3,
+    "name": "03. Numpy - 核心概念.mp4",
+    "size": 131386092
+   },
+   {
+    "number": 4,
+    "name": "04. Numpy - 数据操作.mp4",
+    "size": 162461379
+   },
+   {
+    "number": 5,
+    "name": "05. Pandas - 数据类型.mp4",
+    "size": 80726330
+   },
+   {
+    "number": 6,
+    "name": "06. Pandas - 数据清洗.mp4",
+    "size": 135538785
+   },
+   {
+    "number": 7,
+    "name": "07. Matplotlib - 核心概念.mp4",
+    "size": 166556531
+   },
+   {
+    "number": 8,
+    "name": "08. Matplotlib - 动画.mp4",
+    "size": 86222786
+   },
+   {
+    "number": 9,
+    "name": "09. Matplotlib - 交互式组件.mp4",
+    "size": 107994461
+   },
+   {
+    "number": 10,
+    "name": "10. Seaborn.mp4",
+    "size": 89655533
+   }
+  ]
+ },
+ "AI 大全栈\\AI\\Agents底层逻辑": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 必看导言.mp4",
+    "size": 194501328
+   },
+   {
+    "number": 2,
+    "name": "02. AI的分类.mp4",
+    "size": 479097273
+   },
+   {
+    "number": 3,
+    "name": "03. 神经元.mp4",
+    "size": 261921447
+   },
+   {
+    "number": 4,
+    "name": "04. 前向传播.mp4",
+    "size": 377491684
+   },
+   {
+    "number": 5,
+    "name": "05. 梯度下降.mp4",
+    "size": 438094608
+   },
+   {
+    "number": 6,
+    "name": "06. 训练模式和框架.mp4",
+    "size": 285416159
+   },
+   {
+    "number": 7,
+    "name": "07. 词元.mp4",
+    "size": 426760913
+   },
+   {
+    "number": 8,
+    "name": "08. token统计.mp4",
+    "size": 333905840
+   },
+   {
+    "number": 9,
+    "name": "09. 神经网络的本质.mp4",
+    "size": 266427024
+   },
+   {
+    "number": 10,
+    "name": "10. 词嵌入.mp4",
+    "size": 472128481
+   },
+   {
+    "number": 11,
+    "name": "11. 注意力机制.mp4",
+    "size": 483465462
+   },
+   {
+    "number": 12,
+    "name": "12. Transformer的完整训练流程.mp4",
+    "size": 366737367
+   },
+   {
+    "number": 13,
+    "name": "13. 推理机制.mp4",
+    "size": 373459891
+   },
+   {
+    "number": 14,
+    "name": "14. 训练阶段.mp4",
+    "size": 181329130
+   },
+   {
+    "number": 15,
+    "name": "15. Ollama.mp4",
+    "size": 938347213
+   },
+   {
+    "number": 16,
+    "name": "16. 系统提示词.mp4",
+    "size": 379450165
+   },
+   {
+    "number": 17,
+    "name": "17. 会话.mp4",
+    "size": 340848980
+   },
+   {
+    "number": 18,
+    "name": "18. tools.mp4",
+    "size": 391506069
+   },
+   {
+    "number": 19,
+    "name": "19. 封装tools.mp4",
+    "size": 983049190
+   },
+   {
+    "number": 20,
+    "name": "20. ReAct.mp4",
+    "size": 246530332
+   },
+   {
+    "number": 21,
+    "name": "21. Agent.mp4",
+    "size": 160561755
+   },
+   {
+    "number": 22,
+    "name": "22. Agent 搜索引擎.mp4",
+    "size": 563845640
+   },
+   {
+    "number": 23,
+    "name": "23. Skill.mp4",
+    "size": 586045862
+   },
+   {
+    "number": 24,
+    "name": "24. MCP协议.mp4",
+    "size": 355973266
+   },
+   {
+    "number": 25,
+    "name": "25. MCP Client.mp4",
+    "size": 667046979
+   },
+   {
+    "number": 26,
+    "name": "26. Agent接入MCP.mp4",
+    "size": 160474986
+   },
+   {
+    "number": 27,
+    "name": "27. 实现MCP服务器.mp4",
+    "size": 182336634
+   },
+   {
+    "number": 28,
+    "name": "28. Skill VS MCP.mp4",
+    "size": 500952806
+   },
+   {
+    "number": 29,
+    "name": "29. 子代理.mp4",
+    "size": 385729466
+   },
+   {
+    "number": 30,
+    "name": "30. Prompt Engeering.mp4",
+    "size": 103134702
+   },
+   {
+    "number": 31,
+    "name": "31. Context Engeering.mp4",
+    "size": 94567048
+   },
+   {
+    "number": 32,
+    "name": "32. Harness Engeering.mp4",
+    "size": 238264427
+   },
+   {
+    "number": 33,
+    "name": "33. Loop Engeering.mp4",
+    "size": 47796319
+   },
+   {
+    "number": 34,
+    "name": "34. Graph Engeering.mp4",
+    "size": 33056497
+   }
+  ]
+ },
+ "AI 大全栈\\AI\\LangChain + DeepAgent 开发实战": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 课程导言.mp4",
+    "size": 25272460
+   },
+   {
+    "number": 2,
+    "name": "02. 认识 Agent.mp4",
+    "size": 92673050
+   },
+   {
+    "number": 4,
+    "name": "04. 中间件.mp4",
+    "size": 338231521
+   },
+   {
+    "number": 5,
+    "name": "05. 动态提示词.mp4",
+    "size": 208044172
+   },
+   {
+    "number": 6,
+    "name": "06. 动态模型.mp4",
+    "size": 313704151
+   },
+   {
+    "number": 7,
+    "name": "07. 预置中间件.mp4",
+    "size": 122177927
+   },
+   {
+    "number": 9,
+    "name": "09. 阶段总结.mp4",
+    "size": 27163623
+   },
+   {
+    "number": 10,
+    "name": "10. 认识 deepagent.mp4",
+    "size": 144163661
+   }
+  ]
+ },
+ "AI 大全栈\\AI\\LangGraph工作流开发": {
+  "prefix": null,
+  "missing": [
+   {
+    "number": 1,
+    "name": "01. 必看导言.mp4",
+    "size": 84256557
+   },
+   {
+    "number": 2,
+    "name": "02. langgraph核心概念.mp4",
+    "size": 269910458
+   },
+   {
+    "number": 3,
+    "name": "03. 环境搭建.mp4",
+    "size": 221007934
+   },
+   {
+    "number": 4,
+    "name": "04. 模型.mp4",
+    "size": 808982236
+   },
+   {
+    "number": 5,
+    "name": "05. 消息.mp4",
+    "size": 247075114
+   },
+   {
+    "number": 6,
+    "name": "06. Reducer.mp4",
+    "size": 392219229
+   },
+   {
+    "number": 7,
+    "name": "07. Agent Server.mp4",
+    "size": 130406289
+   },
+   {
+    "number": 8,
+    "name": "08. 超步.mp4",
+    "size": 212921683
+   },
+   {
+    "number": 9,
+    "name": "09. 线程和检查点.mp4",
+    "size": 364091316
+   },
+   {
+    "number": 10,
+    "name": "10. 工具节点.mp4",
+    "size": 211264957
+   },
+   {
+    "number": 11,
+    "name": "11. Mock Model.mp4",
+    "size": 191390727
+   },
+   {
+    "number": 12,
+    "name": "12. 部署模式和学习重心.mp4",
+    "size": 90555854
+   },
+   {
+    "number": 13,
+    "name": "13. 断点调试.mp4",
+    "size": 21936661
+   },
+   {
+    "number": 14,
+    "name": "14. 模型配置的动态切换.mp4",
+    "size": 218783490
+   },
+   {
+    "number": 16,
+    "name": "16. Runtime.mp4",
+    "size": 339716314
+   },
+   {
+    "number": 17,
+    "name": "17. Assistant API.mp4",
+    "size": 664648579
+   },
+   {
+    "number": 18,
+    "name": "18. 子图.mp4",
+    "size": 432279321
+   },
+   {
+    "number": 19,
+    "name": "19. Thread API.mp4",
+    "size": 527193435
+   },
+   {
+    "number": 20,
+    "name": "20. Run API.mp4",
+    "size": 426398242
+   },
+   {
+    "number": 21,
+    "name": "21. Cron API.mp4",
+    "size": 192529554
+   },
+   {
+    "number": 22,
+    "name": "22. System API.mp4",
+    "size": 42459577
+   },
+   {
+    "number": 23,
+    "name": "23. MCP API.mp4",
+    "size": 41481009
+   },
+   {
+    "number": 24,
+    "name": "24. 时间旅行.mp4",
+    "size": 1196795438
+   },
+   {
+    "number": 25,
+    "name": "25. 手动错误重试.mp4",
+    "size": 148550127
+   },
+   {
+    "number": 27,
+    "name": "27. Command.mp4",
+    "size": 175222193
+   },
+   {
+    "number": 28,
+    "name": "28. 中断.mp4",
+    "size": 984430728
+   },
+   {
+    "number": 31,
+    "name": "31. 运行取消.mp4",
+    "size": 101389851
+   },
+   {
+    "number": 32,
+    "name": "32. 多任务策略.mp4",
+    "size": 149518122
+   },
+   {
+    "number": 33,
+    "name": "33. 事件流.mp4",
+    "size": 747057532
+   },
+   {
+    "number": 34,
+    "name": "34. Store.mp4",
+    "size": 168942970
+   },
+   {
+    "number": 35,
+    "name": "35. 长期记忆.mp4",
+    "size": 429615380
+   },
+   {
+    "number": 36,
+    "name": "36. A2A协议.mp4",
+    "size": 240311988
+   },
+   {
+    "number": 37,
+    "name": "37. Agent 部署.mp4",
+    "size": 168124567
+   },
+   {
+    "number": 38,
+    "name": "38. 课程总结.mp4",
+    "size": 123487363
+   }
+  ]
+ }
+}

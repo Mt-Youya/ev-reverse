@@ -3,12 +3,17 @@
     "One entry per collection cover. This file is the single source of truth:",
     "render.mjs lays the card out from it and backgrounds.ps1 turns `bg` into the",
     "art prompt, so the words on a poster and the picture behind them cannot drift",
-    "apart. Episode counts and runtimes are read from verify_fresh/catalog.json,",
-    "which is the platform's own listing, not from the exported folders -- the",
-    "folders are still filling up while an export runs.",
-    "`out` is relative to the export root passed to deliver.ps1."
+    "apart.",
+    "",
+    "Counts and runtimes come from verify_fresh/catalog.json -- the platform's own",
+    "listing -- not from the exported folders, which fill up over hours while an",
+    "export runs and would put a different number on the poster each time.",
+    "",
+    "`out` is relative to `root` and mirrors the catalog: <category>/<sub>/<collection>",
+    "where a sub-category exists. On a poster `en` has to fit the narrower layout,",
+    "so it stays under about 22 monospaced characters."
   ],
-  "root": "verify_fresh/out/AI 大全栈",
+  "root": "verify_fresh/out",
   "_naming": [
     "Kept here rather than in the scripts on purpose. Windows PowerShell 5.1 decodes a .ps1 file",
     "without a BOM as ANSI, so a Chinese literal in a script is read as mojibake and creates a",
@@ -20,14 +25,14 @@
   "cards": [
     {
       "key": "langgraph",
-      "out": "AI/LangGraph工作流开发",
+      "out": "AI 大全栈/AI/LangGraph工作流开发",
       "title": "LangGraph 工作流开发",
       "en": "FROM ZERO TO RUNTIME",
       "tags": ["StateGraph", "Reducer", "Checkpointer", "ToolNode"],
-      "epLabel": "SERIES / COMPLETE COURSE",
-      "ghost": "ALL",
+      "epLabel": "SERIES / 38 EPISODES",
+      "ghost": "38",
       "eyebrow": "AI 全栈 · 视频课程",
-      "footerLeft": "Python · LangGraph · LangChain · LangSmith",
+      "footerLeft": "共 38 集 · 总时长 14 小时 52 分",
       "footerRight": "LangGraph 工作流开发",
       "bg": {
         "scene": "a wide isometric workflow graph of many glowing nodes and wired edges with several paths lit at once",
@@ -36,7 +41,7 @@
     },
     {
       "key": "agents",
-      "out": "AI/Agents底层逻辑",
+      "out": "AI 大全栈/AI/Agents底层逻辑",
       "title": "Agents 底层逻辑",
       "en": "FROM NEURONS TO AGENTS",
       "tags": ["Transformer", "ReAct", "MCP", "Harness"],
@@ -51,8 +56,56 @@
       }
     },
     {
+      "key": "lc-deepagent",
+      "out": "AI 大全栈/AI/LangChain + DeepAgent 开发实战",
+      "title": "LangChain + DeepAgent 开发实战",
+      "en": "AGENTS & DEEPAGENT",
+      "tags": ["中间件", "deepagent", "沙箱", "handoff"],
+      "epLabel": "SERIES / 36 EPISODES",
+      "ghost": "36",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 36 集 · 总时长 13 小时 24 分",
+      "footerRight": "LangChain + DeepAgent",
+      "bg": {
+        "scene": "a central agent core wrapped in interchangeable middleware rings, one ring opening into a sealed sandbox workspace",
+        "palette": "cyan and amber"
+      }
+    },
+    {
+      "key": "py-core",
+      "out": "AI 大全栈/Python/Python语言核心精讲",
+      "title": "Python 语言核心精讲",
+      "en": "PYTHON IN DEPTH",
+      "tags": ["装饰器", "生成器", "上下文管理器", "类型标注"],
+      "epLabel": "SERIES / 32 EPISODES",
+      "ghost": "32",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 32 集 · 总时长 18 小时 12 分",
+      "footerRight": "Python 语言核心精讲",
+      "bg": {
+        "scene": "nested translucent shells of rising complexity, from one small block at the base to a dense crystalline lattice above",
+        "palette": "python blue and yellow"
+      }
+    },
+    {
+      "key": "py-framework",
+      "out": "AI 大全栈/Python/Python框架",
+      "title": "Python 框架",
+      "en": "SERVICES TO DEPLOYMENT",
+      "tags": ["SQLAlchemy", "依赖注入", "中间件", "Docker"],
+      "epLabel": "SERIES / 26 EPISODES",
+      "ghost": "26",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 26 集 · 总时长 23 小时 38 分",
+      "footerRight": "Python 框架",
+      "bg": {
+        "scene": "a layered service stack: a request gateway on top, a translucent database core below, container crates stacked beside it",
+        "palette": "deep green and slate"
+      }
+    },
+    {
       "key": "ds",
-      "out": "Python/数据科学工具包",
+      "out": "AI 大全栈/Python/数据科学工具包",
       "title": "数据科学工具包",
       "en": "FROM NUMPY TO SEABORN",
       "tags": ["Jupyter", "NumPy", "Pandas", "Matplotlib"],
@@ -68,7 +121,7 @@
     },
     {
       "key": "db",
-      "out": "通识/数据库",
+      "out": "AI 大全栈/通识/数据库",
       "title": "数据库",
       "en": "POSTGRESQL IN DEPTH",
       "tags": ["DDL", "DML", "事务", "索引"],
@@ -84,14 +137,14 @@
     },
     {
       "key": "oauth2",
-      "out": "通识/OAuth2",
+      "out": "AI 大全栈/通识/OAuth2",
       "title": "OAuth2",
       "en": "GRANTS, TOKENS, OIDC",
       "tags": ["PKCE", "OIDC", "授权码", "Token"],
       "epLabel": "SERIES / 08 EPISODES",
       "ghost": "08",
       "eyebrow": "AI 全栈 · 通识课",
-      "footerLeft": "共 08 集 · 总时长 8 小时 56 分",
+      "footerLeft": "共 08 集 · 总时长 7 小时 56 分",
       "footerRight": "OAuth2",
       "bg": {
         "scene": "a glowing authorization handshake between two glass terminals, a key exchanged for a luminous token that travels along a secured circuit with a shield checkpoint",
@@ -100,7 +153,7 @@
     },
     {
       "key": "rbac",
-      "out": "通识/RBAC",
+      "out": "AI 大全栈/通识/RBAC",
       "title": "RBAC",
       "en": "ROLES & PERMISSIONS",
       "tags": ["User", "Role", "Permission", "API"],
@@ -112,6 +165,214 @@
       "bg": {
         "scene": "a crystalline access-control lattice: nested rings of roles gating one central resource, with permission keys fanning out to small user nodes",
         "palette": "crimson and rose"
+      }
+    },
+    {
+      "key": "fe-langchain",
+      "out": "前端架构课程/LangChain",
+      "title": "LangChain",
+      "en": "LCEL, RAG & AGENTS",
+      "tags": ["LCEL", "RAG", "Memory", "Tools"],
+      "epLabel": "SERIES / 42 EPISODES",
+      "ghost": "42",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 42 集 · 总时长 20 小时 41 分",
+      "footerRight": "LangChain",
+      "bg": {
+        "scene": "a chain of glowing linked runnables forming a pipeline, with a retrieval branch and a memory vault beside it",
+        "palette": "cyan and indigo"
+      }
+    },
+    {
+      "key": "fe-langgraph",
+      "out": "前端架构课程/LangGraph",
+      "title": "LangGraph",
+      "en": "GRAPHS & CHECKPOINTS",
+      "tags": ["StateGraph", "checkpoint", "子图", "Functional"],
+      "epLabel": "SERIES / 52 EPISODES",
+      "ghost": "52",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 52 集 · 总时长 25 小时 21 分",
+      "footerRight": "LangGraph",
+      "bg": {
+        "scene": "a branching state graph with checkpoint discs strung along its edges and a nested subgraph inside one node",
+        "palette": "indigo and teal"
+      }
+    },
+    {
+      "key": "nestjs",
+      "out": "前端架构课程/NestJS",
+      "title": "NestJS",
+      "en": "IOC, AOP, GRAPHQL",
+      "tags": ["IoC", "AOP", "装饰器", "GraphQL"],
+      "epLabel": "SERIES / 35 EPISODES",
+      "ghost": "35",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 35 集 · 总时长 16 小时 21 分",
+      "footerRight": "NestJS",
+      "bg": {
+        "scene": "a modular server architecture: glowing modules nested in layers with request pipes threading through them",
+        "palette": "red and steel"
+      }
+    },
+    {
+      "key": "webgis-concepts",
+      "out": "WebGIS课程/WebGIS地理概念",
+      "title": "WebGIS 地理概念",
+      "en": "PROJECTIONS & OGC",
+      "tags": ["地图投影", "EPSG", "GeoJSON", "OGC"],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 10 集 · 总时长 1 小时 27 分",
+      "footerRight": "WebGIS 地理概念",
+      "bg": {
+        "scene": "a glowing globe graticule with latitude and longitude rings, a flat projected map unfolding beside it",
+        "palette": "cyan and green"
+      }
+    },
+    {
+      "key": "ol-framework",
+      "out": "WebGIS课程/OpenLayers框架详解",
+      "title": "OpenLayers 框架详解",
+      "en": "LAYERS & INTERACTIONS",
+      "tags": ["GeoJSON", "WKT", "Draw", "Overlay"],
+      "epLabel": "SERIES / 25 EPISODES",
+      "ghost": "25",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 25 集 · 总时长 4 小时 33 分",
+      "footerRight": "OpenLayers 框架详解",
+      "bg": {
+        "scene": "stacked translucent map layers floating in isometric view, carrying vector polygons and glowing pins",
+        "palette": "cyan and blue"
+      }
+    },
+    {
+      "key": "ol-project",
+      "out": "WebGIS课程/OpenLayers项目实战",
+      "title": "OpenLayers 项目实战",
+      "en": "MAP + DATA DASHBOARD",
+      "tags": ["矢量图层", "监测点", "数据面板", "地图联动"],
+      "epLabel": "SERIES / 30 EPISODES",
+      "ghost": "30",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 30 集 · 总时长 6 小时 44 分",
+      "footerRight": "OpenLayers 项目实战",
+      "bg": {
+        "scene": "an isometric monitoring dashboard: a glowing map plane with pins, ringed by floating chart cards",
+        "palette": "blue and violet"
+      }
+    },
+    {
+      "key": "leaflet",
+      "out": "WebGIS课程/Leaflet框架详解",
+      "title": "Leaflet 框架详解",
+      "en": "MARKERS & PLUGINS",
+      "tags": ["GeoJSON", "marker", "cluster", "draw"],
+      "epLabel": "SERIES / 14 EPISODES",
+      "ghost": "14",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 14 集 · 总时长 2 小时 04 分",
+      "footerRight": "Leaflet 框架详解",
+      "bg": {
+        "scene": "a light map plane with clustered glowing markers and small popup cards rising from it",
+        "palette": "green and lime"
+      }
+    },
+    {
+      "key": "mapbox",
+      "out": "WebGIS课程/Mapbox框架详解",
+      "title": "Mapbox 框架详解",
+      "en": "STYLE EXPRESSIONS",
+      "tags": ["表达式", "符号图层", "热力图", "地图下钻"],
+      "epLabel": "SERIES / 13 EPISODES",
+      "ghost": "13",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 13 集 · 总时长 2 小时 26 分",
+      "footerRight": "Mapbox 框架详解",
+      "bg": {
+        "scene": "a dark vector map plane whose layers glow with data-driven styling, a heat cloud blooming above it",
+        "palette": "violet and blue"
+      }
+    },
+    {
+      "key": "gis-design",
+      "out": "WebGIS课程/地理图形设计与数据服务",
+      "title": "地理图形设计与数据服务",
+      "en": "QGIS TO GEOSERVER",
+      "tags": ["QGIS", "PostGIS", "GeoServer", "WMS"],
+      "epLabel": "SERIES / 14 EPISODES",
+      "ghost": "14",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 14 集 · 总时长 2 小时 57 分",
+      "footerRight": "地理图形设计与数据服务",
+      "bg": {
+        "scene": "a map authoring pipeline: a drawing plane feeding a spatial database cylinder, which feeds a service hub",
+        "palette": "emerald and teal"
+      }
+    },
+    {
+      "key": "amap-l7",
+      "out": "WebGIS课程/高德 API与AntV L7",
+      "title": "高德 API 与 AntV L7",
+      "en": "AMAP API + ANT V L7",
+      "tags": ["路径规划", "POI", "L7", "图层"],
+      "epLabel": "SERIES / 22 EPISODES",
+      "ghost": "22",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 22 集 · 总时长 4 小时 02 分",
+      "footerRight": "高德 API 与 AntV L7",
+      "bg": {
+        "scene": "a glowing route drawn across a map plane with POI pins, beside a stacked point-cloud layer",
+        "palette": "amber and cyan"
+      }
+    },
+    {
+      "key": "cesium-basic",
+      "out": "WebGIS课程/Cesium基础入门",
+      "title": "Cesium 基础入门",
+      "en": "3D GLOBE BASICS",
+      "tags": ["三维地球", "相机", "实体", "GeoJSON"],
+      "epLabel": "SERIES / 32 EPISODES",
+      "ghost": "32",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 32 集 · 总时长 6 小时 07 分",
+      "footerRight": "Cesium 基础入门",
+      "bg": {
+        "scene": "a glowing wireframe globe in dark space with an orbiting camera path and simple geometric primitives",
+        "palette": "blue and cyan"
+      }
+    },
+    {
+      "key": "cesium-advanced",
+      "out": "WebGIS课程/Cesium高级进阶",
+      "title": "Cesium 高级进阶",
+      "en": "3D TILES & SHADERS",
+      "tags": ["3D Tiles", "点云", "着色器", "ion"],
+      "epLabel": "SERIES / 28 EPISODES",
+      "ghost": "28",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 28 集 · 总时长 6 小时 04 分",
+      "footerRight": "Cesium 高级进阶",
+      "bg": {
+        "scene": "a glass 3D-tiles city block with a point-cloud plume and volumetric light shafts",
+        "palette": "violet and cyan"
+      }
+    },
+    {
+      "key": "cesium-project",
+      "out": "WebGIS课程/Cesium项目实战",
+      "title": "Cesium 项目实战",
+      "en": "SMART FARM ON A GLOBE",
+      "tags": ["三维农场", "无人机", "轨迹", "监控"],
+      "epLabel": "SERIES / 32 EPISODES",
+      "ghost": "32",
+      "eyebrow": "WebGIS 课程",
+      "footerLeft": "共 32 集 · 总时长 6 小时 40 分",
+      "footerRight": "Cesium 项目实战",
+      "bg": {
+        "scene": "an isometric smart-farm block on a dark globe with a drone flight path arcing over greenhouse volumes",
+        "palette": "green and blue"
       }
     }
   ]

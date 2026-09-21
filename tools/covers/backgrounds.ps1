@@ -15,11 +15,19 @@
 # therefore connects direct and dies on a poisoned DNS answer -- which is exactly what
 # happened here, and why the proxy is mirrored into the environment below.
 #
-#   powershell -ExecutionPolicy Bypass -File tools/covers/backgrounds.ps1 [-Key <key> ...]
+#   powershell -ExecutionPolicy Bypass -File tools/covers/backgrounds.ps1 -Key a,b,c
 #
 # Existing images are skipped, so this is safe to re-run after adding a card.
+#
+# -Key arrives differently depending on how the script is started: `& script.ps1 -Key a,b`
+# binds a real array, while `powershell -File script.ps1 -Key a,b` hands over the single
+# string "a,b" because -File passes every argument verbatim. Splitting here means both
+# spellings select the same cards; without it the -File form silently matched nothing and
+# the script reported success having generated no art.
 
 param([string[]]$Key)
+
+$Key = @($Key | ForEach-Object { $_ -split ',' } | Where-Object { $_ } | ForEach-Object { $_.Trim() })
 
 $ErrorActionPreference = 'Continue'
 
@@ -54,7 +62,13 @@ STRICT: absolutely no text, no letters, no numbers, no symbols, no logos, no wat
 Output a single image.
 '@
 
-$targets = $cards | Where-Object { -not $Key -or $Key -contains $_.key }
+$targets = @($cards | Where-Object { -not $Key -or $Key -contains $_.key })
+if (-not $targets) {
+  $known = ($cards | ForEach-Object { $_.key }) -join ', '
+  Write-Output "no card matched -Key '$($Key -join ',')'"
+  Write-Output "known keys: $known"
+  exit 1
+}
 
 foreach ($card in $targets) {
   $target = Join-Path $bgDir "$($card.key).png"

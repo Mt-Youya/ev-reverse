@@ -26,6 +26,20 @@ BASE = REPO / "verify_fresh" / "out" / "WebGIS课程"
 PYTHON = r"D:\DevelopmentTools\Anaconda\python.exe"
 UPLOADER = REPO / "tools" / "upload_to_r2.py"
 CATALOG = REPO / "verify_fresh" / "catalog.json"
+BUCKET = "cyrus-media-private"
+
+sys.path.insert(0, str(REPO / "tools"))
+import upload_to_r2  # noqa: E402  (needs the path above)
+
+_S3 = None
+
+
+def s3_client():
+    """Built once, on first use, so importing this module has no side effects."""
+    global _S3
+    if _S3 is None:
+        _S3 = upload_to_r2.client(upload_to_r2.credentials())
+    return _S3
 
 # Local course folder -> R2 prefix. The prefixes are the empty folder markers that already
 # existed under videos/3D/, which line up one-to-one with the ten courses in the catalog.
@@ -62,11 +76,25 @@ def catalog_counts() -> dict[str, int]:
     return counts
 
 
-def local_count(name: str) -> int:
+VIDEO_SUFFIXES = (".mp4", ".mkv", ".ts")
+
+
+def local_videos(name: str) -> int:
+    """Videos in the local folder, ignoring anything else.
+
+    Counting every file made a course look finished two files early once a `封面/` folder
+    with its two posters appeared inside it, so the covers are excluded by suffix.
+    """
     folder = BASE / name
     if not folder.exists():
         return 0
-    return sum(1 for p in folder.rglob("*") if p.is_file())
+    return sum(1 for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES)
+
+
+def remote_videos(prefix: str) -> int:
+    """Objects under the prefix that carry bytes; the folder markers are zero-length."""
+    found = upload_to_r2.list_remote(s3_client(), BUCKET, prefix)
+    return sum(1 for size, _etag in found.values() if size > 0)
 
 
 def upload(name: str, prefix: str) -> str:
@@ -75,10 +103,10 @@ def upload(name: str, prefix: str) -> str:
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     for line in result.stdout.splitlines():
-        if line.startswith(("uploaded ", "SKIP", "UPLOAD ")):
-            if line.startswith(("uploaded ", "SKIP")):
-                return " ".join(line.split())
-    return f"no uploads ({result.stdout.strip().splitlines()[-1] if result.stdout.strip() else 'no output'})"
+        if line.startswith(("uploaded ", "SKIP")):
+            return " ".join(line.split())
+    tail = result.stdout.strip().splitlines()
+    return f"no uploads ({tail[-1].strip() if tail else 'no output'})"
 
 
 def main() -> int:
@@ -94,18 +122,25 @@ def main() -> int:
     for name in COURSES:
         (BASE / name).mkdir(parents=True, exist_ok=True)
 
+    # The loop tracks upload debt -- local videos the bucket does not hold yet -- rather than
+    # how much of the course has been downloaded. The first version stopped when every folder
+    # matched the catalog, which said nothing about the bucket: two courses finished
+    # downloading after their round had passed them by, and the watcher exited "complete"
+    # with 126 videos never uploaded.
     for round_no in range(1, args.max_rounds + 1):
-        short = [(n, local_count(n), want.get(n, 0)) for n in COURSES]
-        short = [(n, have, need) for n, have, need in short if need and have < need]
+        short = [(n, local_videos(n), remote_videos(COURSES[n])) for n in COURSES]
+        short = [(n, have, up) for n, have, up in short if up < have]
         stamp = time.strftime("%H:%M:%S")
+        total_debt = sum(h - u for _n, h, u in short)
 
         if not short:
-            print(f"[{stamp}] round {round_no}: all {len(COURSES)} courses complete")
+            print(f"[{stamp}] round {round_no}: bucket holds every downloaded video "
+                  f"({sum(local_videos(n) for n in COURSES)} across {len(COURSES)} courses)")
             return 0
 
-        print(f"[{stamp}] round {round_no}: {len(short)} short -> "
-              + ", ".join(f"{n} {h}/{w}" for n, h, w in short), flush=True)
-        for name, have, need in short:
+        print(f"[{stamp}] round {round_no}: {len(short)} course(s) behind, {total_debt} video(s) to go -> "
+              + ", ".join(f"{n} {u}/{h}" for n, h, u in short), flush=True)
+        for name, have, up in short:
             if have == 0:
                 continue
             print(f"           {name:<24} {upload(name, COURSES[name])}", flush=True)
