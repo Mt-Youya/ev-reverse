@@ -2,7 +2,7 @@ use super::{authorized_video, remove_if_present};
 use anyhow::Result;
 use evmedia_contract::{Event, ExportBatchArgs, ExportBatchPlan, ExportBatchVideo, Reporter, Stage, StageState};
 use evmedia_core::{api, catalog_api::CatalogApi, crypto, decode, evs_manifest::Descriptor, playlist, read_json, segment_queue};
-use std::{collections::BTreeMap, io::Write, path::PathBuf, sync::mpsc, thread};
+use std::{collections::{BTreeMap, BTreeSet}, io::Write, path::PathBuf, sync::mpsc, thread};
 
 struct Lesson { output: PathBuf, work: PathBuf, vod: evmedia_core::vod::Vod, total: usize, next: u32, received: usize, pending: BTreeMap<u32, Vec<u8>>, partial: std::fs::File }
 struct ReadyLesson { id: String, output: PathBuf, work: PathBuf, vod: evmedia_core::vod::Vod }
@@ -14,7 +14,7 @@ pub async fn run(args: ExportBatchArgs, reporter: &Reporter) -> Result<()> {
     if plan.videos.is_empty() { anyhow::bail!("batch plan contains no videos"); }
     let session = read_json(&args.session)?;
     let api = CatalogApi::new(session)?;
-    let mut tasks = Vec::new(); let mut lessons = BTreeMap::new(); let mut failures = Vec::new();
+    let mut tasks = Vec::new(); let mut lessons = BTreeMap::new(); let mut failures = Vec::new(); let mut failed_lessons = BTreeSet::new();
     // Publishing is deliberately serial: FFmpeg/NVENC is the expensive shared resource. Its
     // worker receives a lesson as soon as that lesson's ordered merge closes; it never waits for
     // unrelated downloads still in the global segment queue.
@@ -40,18 +40,24 @@ pub async fn run(args: ExportBatchArgs, reporter: &Reporter) -> Result<()> {
     reporter.event(&Event::Stage { name: Stage::Scan, state: StageState::End, detail: format!("{total} segment(s) ready") });
     reporter.event(&Event::Stage { name: Stage::Download, state: StageState::Begin, detail: format!("0/0 segment(s) of {total}") });
     let queued = segment_queue::run(tasks, args.download_jobs, args.decrypt_jobs, |segment| {
-        let lesson = lessons.get_mut(&segment.lesson).ok_or_else(|| anyhow::anyhow!("unknown lesson {}", segment.lesson))?;
-        lesson.received += 1; lesson.pending.insert(segment.index, segment.bytes);
+        let lesson_id = segment.lesson;
+        if let Err(error) = segment.result {
+            if failed_lessons.insert(lesson_id.clone()) { failures.push(format!("{lesson_id} segment {}: {error}", segment.index)); }
+            return Ok(());
+        }
+        if failed_lessons.contains(&lesson_id) { return Ok(()); }
+        let lesson = lessons.get_mut(&lesson_id).ok_or_else(|| anyhow::anyhow!("unknown lesson {lesson_id}"))?;
+        lesson.received += 1; lesson.pending.insert(segment.index, segment.result.expect("handled above"));
         while let Some(bytes) = lesson.pending.remove(&lesson.next) { lesson.partial.write_all(&bytes)?; lesson.next += 1; }
         done += 1;
         if lesson.received == lesson.total {
-            if !lesson.pending.is_empty() || lesson.next as usize != lesson.total { anyhow::bail!("{}: decrypted segment order has a gap", segment.lesson); }
+            if !lesson.pending.is_empty() || lesson.next as usize != lesson.total { anyhow::bail!("{lesson_id}: decrypted segment order has a gap"); }
             // Move this lesson into the publish queue immediately. It no longer occupies a merge
             // buffer while the remaining lessons continue downloading.
-            let mut lesson = lessons.remove(&segment.lesson).expect("lesson was just found");
+            let mut lesson = lessons.remove(&lesson_id).expect("lesson was just found");
             lesson.partial.flush()?; drop(lesson.partial);
             let merged = lesson.work.join("lesson.ts"); remove_if_present(&merged)?; std::fs::rename(lesson.work.join("lesson.partial"), &merged)?;
-            publish_tx.send(ReadyLesson { id: segment.lesson, output: lesson.output, work: lesson.work, vod: lesson.vod }).map_err(|_| anyhow::anyhow!("publish worker stopped"))?;
+            publish_tx.send(ReadyLesson { id: lesson_id, output: lesson.output, work: lesson.work, vod: lesson.vod }).map_err(|_| anyhow::anyhow!("publish worker stopped"))?;
         }
         Ok(())
     }).await;
@@ -59,8 +65,8 @@ pub async fn run(args: ExportBatchArgs, reporter: &Reporter) -> Result<()> {
     let published = publisher.join().map_err(|_| anyhow::anyhow!("publish worker panicked"))?;
     queued?; published?;
     reporter.event(&Event::Stage { name: Stage::Download, state: StageState::End, detail: format!("{done}/{done} segment(s) of {total}") });
-    if !lessons.is_empty() { anyhow::bail!("global segment queue ended before every lesson was complete"); }
-    if !failures.is_empty() { anyhow::bail!("{} lesson(s) could not be prepared; first: {}", failures.len(), failures[0]); }
+    if lessons.keys().any(|id| !failed_lessons.contains(id)) { anyhow::bail!("global segment queue ended before every lesson was complete"); }
+    if !failures.is_empty() { anyhow::bail!("{} lesson(s) failed; first: {}", failures.len(), failures[0]); }
     Ok(())
 }
 
