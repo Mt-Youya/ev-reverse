@@ -313,3 +313,31 @@ fn a_merge_does_not_block_the_next_lesson_download() {
     );
     let _ = std::fs::remove_dir_all(&fixture.root);
 }
+
+/// Once the first lesson enters the remux/publish stage, the merge pool must immediately accept
+/// the next downloaded lesson. No downstream phase may consume an upstream phase's slot.
+#[test]
+fn a_publish_does_not_block_the_next_lesson_merge() {
+    let fixture = Fixture::new("publish-does-not-block-merge");
+    let mut options = fixture.options.clone();
+    options.stub_tail_ms = 800;
+    let first = fixture.item("first");
+    let mut second = fixture.item("second");
+    second.id = "315187:903781".to_string();
+    second.file = 903781;
+    second.work = evmedia_gui::plan::work_of(&fixture.root, second.course, second.file);
+    fixture.queue.start(
+        vec![Fixture::row(first.clone()), Fixture::row(second.clone())],
+        options,
+        1,
+        STUB.to_string(),
+    );
+    assert!(fixture.queue.wait_idle(Duration::from_secs(60)), "the batch never finished");
+    let first_publish_finished = std::fs::metadata(first.work.join("stub-publish.finished")).unwrap().modified().unwrap();
+    let second_merge_started = std::fs::metadata(second.work.join("stub-convert.started")).unwrap().modified().unwrap();
+    assert!(
+        second_merge_started < first_publish_finished,
+        "lesson two waited for lesson one to leave the publish stage"
+    );
+    let _ = std::fs::remove_dir_all(&fixture.root);
+}

@@ -181,6 +181,10 @@ fn run_export(argv: &[String]) {
     }
 
     emit(serde_json::json!({"event":"stage","name":"remux","state":"begin","detail":""}));
+    let _ = std::fs::write(work.join("stub-publish.started"), b"");
+    if phase == "publish" && !tail.is_zero() {
+        std::thread::sleep(tail);
+    }
 
     if let Some(parent) = output.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -197,6 +201,7 @@ fn run_export(argv: &[String]) {
         serde_json::json!({"event":"artifact","kind":"mp4","path":output.display().to_string(),
         "bytes":bytes.len()}),
     );
+    let _ = std::fs::write(work.join("stub-publish.finished"), b"");
     emit(
         serde_json::json!({"event":"finished","status":"complete","exit_code":0,
         "message":format!("merged {segments} segment(s)")}),
