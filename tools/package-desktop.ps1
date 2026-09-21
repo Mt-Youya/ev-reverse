@@ -41,8 +41,8 @@ start "" "%~dp0evmedia-gui.exe"
     'Changes:',
     '- EVC uses lossless NVIDIA NVENC when available, then falls back to CPU encoding.',
     '- EVC compatibility conversion is serialized to prevent CPU/GPU contention.',
-    '- Batch export uses one global segment queue: all videos share download and decrypt permits.',
-    '- A downloaded segment is decrypted immediately and merged in its own lesson order.', '',
+    '- The desktop app runs the selected number of videos concurrently.',
+    '- Each active video uses its configured segment worker count and reports its own progress.', '',
     'The package does not contain sessions, course keys, downloads, or course videos.',
     'FFmpeg source: https://www.gyan.dev/ffmpeg/builds/ ; see FFmpeg-LICENSE.txt.'
 ) | Set-Content -LiteralPath (Join-Path $package 'README.txt') -Encoding utf8

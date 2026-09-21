@@ -17,8 +17,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-mod batch;
-
 /// How often the loop looks at its running processes. Fast enough that a finished lesson frees a
 /// worker slot almost immediately, slow enough to be free.
 const TICK: Duration = Duration::from_millis(200);
@@ -87,12 +85,6 @@ impl KillSwitch {
 
 /// Run workers until the queue is empty. Both the window and the tests use this one loop.
 pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, count: usize) {
-    // The production CLI owns one queue across every selected lesson.  The stub intentionally
-    // stays on the older per-row path because it models a single lesson for the GUI unit tests.
-    if std::path::Path::new(cli).file_stem().and_then(|name| name.to_str()) == Some("evmedia") {
-        batch::run(queue, sink, cli, options, count);
-        return;
-    }
     let mut downloads: BTreeMap<String, Running> = BTreeMap::new();
     let mut conversions: BTreeMap<String, Running> = BTreeMap::new();
     let mut ready_to_convert = std::collections::BTreeSet::new();
