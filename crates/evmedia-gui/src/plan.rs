@@ -66,7 +66,7 @@ pub fn argv(item: &JobItem, options: &Options) -> Vec<String> {
     argv_for_phase(item, options, ExportPhase::All)
 }
 
-/// The GUI runs a batch in two phases: network-heavy downloads first, then bounded local work.
+/// The GUI runs download, merge and publish as separate pipeline phases.
 pub fn argv_for_phase(item: &JobItem, options: &Options, phase: ExportPhase) -> Vec<String> {
     let command = Command::ExportEvs(ExportEvsArgs {
         session: options.session.clone(),
@@ -182,7 +182,10 @@ pub fn sanitize(title: &str) -> String {
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
         "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     ];
-    if RESERVED.iter().any(|name| name.eq_ignore_ascii_case(&capped)) {
+    if RESERVED
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(&capped))
+    {
         capped.push('_');
     }
     capped
@@ -226,8 +229,9 @@ mod tests {
     #[test]
     fn the_argv_is_something_the_cli_parses() {
         let argv = argv(&item(), &options());
-        let parsed = Cli::try_parse_from(std::iter::once("evmedia".to_string()).chain(argv.clone()))
-            .unwrap_or_else(|error| panic!("{argv:?} did not parse: {error}"));
+        let parsed =
+            Cli::try_parse_from(std::iter::once("evmedia".to_string()).chain(argv.clone()))
+                .unwrap_or_else(|error| panic!("{argv:?} did not parse: {error}"));
         match parsed.command {
             Command::ExportEvs(args) => {
                 assert_eq!(args.course, 315187);
@@ -253,7 +257,11 @@ mod tests {
     /// dozen chapters, which is the numbering collision this shape exists to avoid.
     #[test]
     fn the_output_mirrors_the_catalog_structure() {
-        let folders = vec!["前端课程".to_string(), "求职之道极速版".to_string(), "01.必看导言".to_string()];
+        let folders = vec![
+            "前端课程".to_string(),
+            "求职之道极速版".to_string(),
+            "01.必看导言".to_string(),
+        ];
         let path = output_of(Path::new("root"), &folders, "02. 表现力的训练.mp4", "mp4");
         assert_eq!(
             path,
@@ -264,13 +272,20 @@ mod tests {
         let first = output_of(Path::new("root"), &folders, "01. 就业的核心问题.mp4", "mp4");
         let other = output_of(
             Path::new("root"),
-            &["前端课程".to_string(), "求职之道极速版".to_string(), "02.简历".to_string()],
+            &[
+                "前端课程".to_string(),
+                "求职之道极速版".to_string(),
+                "02.简历".to_string(),
+            ],
             "01. 就业的核心问题.mp4",
             "mp4",
         );
         assert_ne!(first, other);
         assert_eq!(first.file_name(), other.file_name());
-        assert!(first.is_file() || !first.exists(), "the same name must not share a directory");
+        assert!(
+            first.is_file() || !first.exists(),
+            "the same name must not share a directory"
+        );
     }
 
     /// The catalog nests a course under a folder of its own name, so the raw chain repeats a level:
@@ -331,7 +346,11 @@ mod tests {
         assert_eq!(sanitize(".."), "__");
         let hostile = vec!["..".to_string(), "..\\..\\Windows".to_string()];
         let path = output_of(Path::new("root"), &hostile, "x.mp4", "mp4");
-        assert!(path.starts_with("root/out"), "{} escaped the root", path.display());
+        assert!(
+            path.starts_with("root/out"),
+            "{} escaped the root",
+            path.display()
+        );
         assert!(
             !path.components().any(|part| part.as_os_str() == ".."),
             "{} still contains a parent reference",
@@ -342,7 +361,10 @@ mod tests {
     /// A title is attacker-adjacent data: it comes from the course API and lands in a path.
     #[test]
     fn illegal_filename_characters_are_replaced() {
-        assert_eq!(sanitize(r#"1-1. 什么是<a/b>:"c"|d?*e"#), "1-1. 什么是_a_b___c__d__e");
+        assert_eq!(
+            sanitize(r#"1-1. 什么是<a/b>:"c"|d?*e"#),
+            "1-1. 什么是_a_b___c__d__e"
+        );
         assert_eq!(sanitize("trailing dots..."), "trailing dots");
         assert_eq!(sanitize("   "), "video");
         assert_eq!(sanitize("CON"), "CON_");

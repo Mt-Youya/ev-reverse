@@ -44,8 +44,8 @@ struct Fixture {
 
 impl Fixture {
     fn new(name: &str) -> Self {
-        let root = std::env::temp_dir()
-            .join(format!("evmedia-gui-runner-{name}-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("evmedia-gui-runner-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         let sink = Arc::new(Collect::default());
@@ -62,7 +62,12 @@ impl Fixture {
             stub_tail_ms: 0,
         };
         std::fs::write(&options.session, "{}").unwrap();
-        Self { root, sink, queue, options }
+        Self {
+            root,
+            sink,
+            queue,
+            options,
+        }
     }
 
     fn item(&self, title: &str) -> JobItem {
@@ -73,13 +78,23 @@ impl Fixture {
             title: title.to_string(),
             duration_seconds: Some(60.0),
             path: vec!["chapter".into()],
-            output: evmedia_gui::plan::output_of(&self.root, &["chapter".to_string()], title, "mp4"),
+            output: evmedia_gui::plan::output_of(
+                &self.root,
+                &["chapter".to_string()],
+                title,
+                "mp4",
+            ),
             work: evmedia_gui::plan::work_of(&self.root, 315187, 903780),
         }
     }
 
     fn row(item: JobItem) -> JobEntry {
-        JobEntry::new(item, vec!["export-evs".into()], JobStatus::Queued, String::new())
+        JobEntry::new(
+            item,
+            vec!["export-evs".into()],
+            JobStatus::Queued,
+            String::new(),
+        )
     }
 
     fn snapshot(&self) -> Snapshot {
@@ -101,7 +116,10 @@ fn a_finished_run_is_complete_and_keeps_its_whole_transcript() {
         1,
         STUB.to_string(),
     );
-    assert!(fixture.queue.wait_idle(Duration::from_secs(60)), "the run never finished");
+    assert!(
+        fixture.queue.wait_idle(Duration::from_secs(60)),
+        "the run never finished"
+    );
 
     let snapshot = fixture.snapshot();
     assert_eq!(snapshot.items[0].status, JobStatus::Complete);
@@ -111,9 +129,15 @@ fn a_finished_run_is_complete_and_keeps_its_whole_transcript() {
         .log_path
         .as_ref()
         .expect("the row must publish where its transcript is");
-    assert_eq!(PathBuf::from(log_path), work.join(evmedia_gui::job::STDERR_LOG));
+    assert_eq!(
+        PathBuf::from(log_path),
+        work.join(evmedia_gui::job::STDERR_LOG)
+    );
     let transcript = std::fs::read_to_string(log_path).expect("the transcript must exist");
-    assert!(transcript.contains("downloaded 4/4"), "unexpected transcript: {transcript}");
+    assert!(
+        transcript.contains("downloaded 4/4"),
+        "unexpected transcript: {transcript}"
+    );
     assert!(
         transcript.contains("would download 4 segment"),
         "the CLI's opening line must be in the transcript: {transcript}"
@@ -137,9 +161,12 @@ fn a_forced_stop_settles_the_row_and_leaves_nothing_running() {
     let mut options = fixture.options.clone();
     // The lesson dawdles after its last segment, so the kill lands while it is genuinely working.
     options.stub_tail_ms = 5000;
-    fixture
-        .queue
-        .start(vec![Fixture::row(fixture.item("a long lesson"))], options, 1, STUB.to_string());
+    fixture.queue.start(
+        vec![Fixture::row(fixture.item("a long lesson"))],
+        options,
+        1,
+        STUB.to_string(),
+    );
 
     // Wait until the worker is up, then stop it the way a user does when "停止" seems ignored.
     let deadline = std::time::Instant::now() + Duration::from_secs(30);
@@ -149,8 +176,14 @@ fn a_forced_stop_settles_the_row_and_leaves_nothing_running() {
         stopped = fixture.queue.kill_running();
     }
     assert!(stopped > 0, "there was no running worker to force");
-    assert!(fixture.queue.snapshot().stopping, "the window must be able to say it is stopping");
-    assert!(fixture.queue.wait_idle(Duration::from_secs(30)), "the runner never settled");
+    assert!(
+        fixture.queue.snapshot().stopping,
+        "the window must be able to say it is stopping"
+    );
+    assert!(
+        fixture.queue.wait_idle(Duration::from_secs(30)),
+        "the runner never settled"
+    );
 
     let snapshot = fixture.snapshot();
     assert!(!snapshot.running);
@@ -158,7 +191,8 @@ fn a_forced_stop_settles_the_row_and_leaves_nothing_running() {
     // Nothing was reported complete, so nothing may claim to be: a killed run is a failure.
     assert_eq!(snapshot.items[0].status, JobStatus::Failed);
     assert!(
-        snapshot.items[0].message.contains("强制结束") || snapshot.items[0].message.contains("没有报告"),
+        snapshot.items[0].message.contains("强制结束")
+            || snapshot.items[0].message.contains("没有报告"),
         "unexpected message: {}",
         snapshot.items[0].message
     );
@@ -188,7 +222,9 @@ fn a_rerun_replaces_its_transcript() {
     // Forget the output so the second run actually runs, then look at the file again.
     let _ = std::fs::remove_file(&item.output);
     fixture.queue.retry_finished();
-    fixture.queue.start_with_existing(fixture.options.clone(), 1, STUB.to_string());
+    fixture
+        .queue
+        .start_with_existing(fixture.options.clone(), 1, STUB.to_string());
     assert!(fixture.queue.wait_idle(Duration::from_secs(60)));
     let second = std::fs::read_to_string(&log_path).unwrap();
     assert_eq!(
@@ -213,10 +249,67 @@ fn a_downloaded_lesson_starts_conversion_without_waiting_for_the_next_one() {
         1,
         STUB.to_string(),
     );
-    assert!(fixture.queue.wait_idle(Duration::from_secs(60)), "the batch never finished");
-    assert_eq!(fixture.snapshot().items.iter().filter(|item| item.status == JobStatus::Complete).count(), 2);
-    let second_download = std::fs::metadata(second.work.join("stub-download.ready")).unwrap().modified().unwrap();
-    let first_convert = std::fs::metadata(first.work.join("stub-convert.started")).unwrap().modified().unwrap();
-    assert!(first_convert <= second_download, "conversion waited for an unrelated lesson download");
+    assert!(
+        fixture.queue.wait_idle(Duration::from_secs(60)),
+        "the batch never finished"
+    );
+    assert_eq!(
+        fixture
+            .snapshot()
+            .items
+            .iter()
+            .filter(|item| item.status == JobStatus::Complete)
+            .count(),
+        2
+    );
+    let second_download = std::fs::metadata(second.work.join("stub-download.ready"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    let first_convert = std::fs::metadata(first.work.join("stub-convert.started"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    assert!(
+        first_convert <= second_download,
+        "conversion waited for an unrelated lesson download"
+    );
+    let _ = std::fs::remove_dir_all(&fixture.root);
+}
+
+/// `同时导出` is a limit per pipeline stage, not one limit shared by the whole batch. With one
+/// slot in each stage, lesson two must start downloading while lesson one is still merging.
+#[test]
+fn a_merge_does_not_block_the_next_lesson_download() {
+    let fixture = Fixture::new("independent-stages");
+    let mut options = fixture.options.clone();
+    options.stub_tail_ms = 800;
+    let first = fixture.item("first");
+    let mut second = fixture.item("second");
+    second.id = "315187:903781".to_string();
+    second.file = 903781;
+    second.work = evmedia_gui::plan::work_of(&fixture.root, second.course, second.file);
+    fixture.queue.start(
+        vec![Fixture::row(first.clone()), Fixture::row(second.clone())],
+        options,
+        1,
+        STUB.to_string(),
+    );
+    assert!(
+        fixture.queue.wait_idle(Duration::from_secs(60)),
+        "the batch never finished"
+    );
+    let first_merge_finished = std::fs::metadata(first.work.join("stub-convert.finished"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    let second_download_started = std::fs::metadata(second.work.join("stub-download.started"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    assert!(
+        second_download_started < first_merge_finished,
+        "lesson two only started after lesson one left the merge stage"
+    );
     let _ = std::fs::remove_dir_all(&fixture.root);
 }

@@ -57,7 +57,10 @@ fn run_catalog(argv: &[String]) {
         "title": "stub",
         "roots": [{ "id": "f", "title": "one folder", "kind": "folder", "children": [] }]
     });
-    let _ = std::fs::write(root.join("catalog.json"), serde_json::to_vec_pretty(&tree).unwrap());
+    let _ = std::fs::write(
+        root.join("catalog.json"),
+        serde_json::to_vec_pretty(&tree).unwrap(),
+    );
     let _ = std::fs::write(
         root.join("index.json"),
         serde_json::to_vec_pretty(&serde_json::json!({ "courses": { "1": {} } })).unwrap(),
@@ -80,7 +83,9 @@ fn run_export(argv: &[String]) {
         "command":std::env::args().skip(1).collect::<Vec<_>>(),"app_version":"0.1.0"}));
 
     let output = flag(argv, "--output").unwrap_or_else(|| "out.mp4".to_string());
-    let work = flag(argv, "--work").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("work"));
+    let work = flag(argv, "--work")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("work"));
     let phase = flag(argv, "--phase").unwrap_or_else(|| "all".to_string());
     let stop_file = flag(argv, "--stop-file").map(PathBuf::from);
     let force = argv.iter().any(|token| token == "--force");
@@ -88,33 +93,45 @@ fn run_export(argv: &[String]) {
 
     if output.exists() && !force {
         note("output already exists");
-        emit(serde_json::json!({"event":"finished","status":"failed","exit_code":1,
-            "message":"output already exists"}));
+        emit(
+            serde_json::json!({"event":"finished","status":"failed","exit_code":1,
+            "message":"output already exists"}),
+        );
         std::process::exit(1);
     }
 
-    if phase != "convert" {
+    if phase != "convert" && phase != "merge" && phase != "publish" {
+        let _ = std::fs::create_dir_all(&work);
+        let _ = std::fs::write(work.join("stub-download.started"), b"");
         emit(serde_json::json!({"event":"stage","name":"download","state":"begin","detail":""}));
         note(&format!("would download {segments} segment(s)"));
 
         let started = Instant::now();
         let mut done = 0usize;
         for index in 0..segments {
-        if let Some(path) = &stop_file {
-            if path.exists() {
-                emit(serde_json::json!({"event":"stage","name":"download","state":"end",
-                    "detail":format!("{done}/{segments} segment(s) of {segments}")}));
-                emit(serde_json::json!({"event":"finished","status":"cancelled","exit_code":0,
-                    "message":"stopped on request"}));
-                return;
+            if let Some(path) = &stop_file {
+                if path.exists() {
+                    emit(
+                        serde_json::json!({"event":"stage","name":"download","state":"end",
+                    "detail":format!("{done}/{segments} segment(s) of {segments}")}),
+                    );
+                    emit(
+                        serde_json::json!({"event":"finished","status":"cancelled","exit_code":0,
+                    "message":"stopped on request"}),
+                    );
+                    return;
+                }
             }
-        }
             std::thread::sleep(Duration::from_millis(20));
             done += 1;
-            emit(serde_json::json!({"event":"segment","index":index,"file":format!("stub-{index}.ts"),
-            "state":"done","attempt":1}));
-            emit(serde_json::json!({"event":"progress","stage":"download","keys":done,"urls":done,
-            "segments":segments,"done":done,"failed":0,"elapsed_secs":started.elapsed().as_secs()}));
+            emit(
+                serde_json::json!({"event":"segment","index":index,"file":format!("stub-{index}.ts"),
+            "state":"done","attempt":1}),
+            );
+            emit(
+                serde_json::json!({"event":"progress","stage":"download","keys":done,"urls":done,
+            "segments":segments,"done":done,"failed":0,"elapsed_secs":started.elapsed().as_secs()}),
+            );
             note(&format!("downloaded {done}/{segments}"));
         }
 
@@ -122,27 +139,47 @@ fn run_export(argv: &[String]) {
             std::thread::sleep(tail);
         }
         if let Some(path) = &stop_file {
-        if path.exists() {
-            emit(serde_json::json!({"event":"finished","status":"cancelled","exit_code":0,
-                "message":"stopped during the merge"}));
-            return;
-        }
+            if path.exists() {
+                emit(
+                    serde_json::json!({"event":"finished","status":"cancelled","exit_code":0,
+                "message":"stopped during the merge"}),
+                );
+                return;
+            }
         }
 
         let _ = std::fs::create_dir_all(&work);
         let _ = std::fs::write(work.join("stub-download.ready"), b"");
-        emit(serde_json::json!({"event":"stage","name":"download","state":"end",
-            "detail":format!("{segments}/{segments} segment(s) of {segments}")}));
+        emit(
+            serde_json::json!({"event":"stage","name":"download","state":"end",
+            "detail":format!("{segments}/{segments} segment(s) of {segments}")}),
+        );
         if phase == "download" {
-            emit(serde_json::json!({"event":"finished","status":"complete","exit_code":0,
-                "message":format!("downloaded {segments} segment(s)")}));
+            emit(
+                serde_json::json!({"event":"finished","status":"complete","exit_code":0,
+                "message":format!("downloaded {segments} segment(s)")}),
+            );
             return;
         }
     }
 
-    let _ = std::fs::create_dir_all(&work);
-    let _ = std::fs::write(work.join("stub-convert.started"), b"");
-    emit(serde_json::json!({"event":"stage","name":"merge","state":"begin","detail":""}));
+    if phase != "publish" {
+        let _ = std::fs::create_dir_all(&work);
+        let _ = std::fs::write(work.join("stub-convert.started"), b"");
+        emit(serde_json::json!({"event":"stage","name":"merge","state":"begin","detail":""}));
+        if !tail.is_zero() {
+            std::thread::sleep(tail);
+        }
+        let _ = std::fs::write(work.join("stub-convert.finished"), b"");
+        if phase == "merge" {
+            emit(
+                serde_json::json!({"event":"finished","status":"complete","exit_code":0,
+                "message":format!("merged {segments} segment(s)")}),
+            );
+            return;
+        }
+    }
+
     emit(serde_json::json!({"event":"stage","name":"remux","state":"begin","detail":""}));
 
     if let Some(parent) = output.parent() {
@@ -150,12 +187,18 @@ fn run_export(argv: &[String]) {
     }
     let bytes = vec![0u8; 1024];
     if std::fs::write(&output, &bytes).is_err() {
-        emit(serde_json::json!({"event":"finished","status":"failed","exit_code":1,
-            "message":"cannot write the output"}));
+        emit(
+            serde_json::json!({"event":"finished","status":"failed","exit_code":1,
+            "message":"cannot write the output"}),
+        );
         std::process::exit(1);
     }
-    emit(serde_json::json!({"event":"artifact","kind":"mp4","path":output.display().to_string(),
-        "bytes":bytes.len()}));
-    emit(serde_json::json!({"event":"finished","status":"complete","exit_code":0,
-        "message":format!("merged {segments} segment(s)")}));
+    emit(
+        serde_json::json!({"event":"artifact","kind":"mp4","path":output.display().to_string(),
+        "bytes":bytes.len()}),
+    );
+    emit(
+        serde_json::json!({"event":"finished","status":"complete","exit_code":0,
+        "message":format!("merged {segments} segment(s)")}),
+    );
 }

@@ -91,8 +91,8 @@ pub const STDERR_LOG: &str = "stderr.log";
 struct Transcript(Option<Mutex<fs::File>>);
 
 impl Transcript {
-    /// A new download replaces an old attempt; its conversion is the second half of that same
-    /// attempt and must therefore append to the transcript.
+    /// A new download replaces an old attempt; downstream merge/publish phases are part of that
+    /// same attempt and must append to the transcript.
     fn create(path: &PathBuf, append: bool) -> Self {
         let file = if append {
             fs::OpenOptions::new().create(true).append(true).open(path)
@@ -308,7 +308,7 @@ pub fn spawn(
     sink.transcript(&id, &log_path.display().to_string());
     sink.log(&id, &format!("$ {cli} {}", argv.join(" ")));
     sink.log(&id, &format!("完整日志：{}", log_path.display()));
-    let transcript = Arc::new(Transcript::create(&log_path, phase == ExportPhase::Convert));
+    let transcript = Arc::new(Transcript::create(&log_path, phase != ExportPhase::Download));
 
     let readers = Arc::new(Readers::default());
     if let Some(stdout) = child.stdout.take() {
