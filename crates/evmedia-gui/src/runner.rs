@@ -165,18 +165,23 @@ pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, co
         }
 
         if !stopping {
-            // Conversion has priority as soon as any lesson is ready. It is one process at a time
-            // because EVC decode, validation and FFmpeg compete for CPU/GPU and disk bandwidth.
-            if conversions.is_empty() {
-                if let Some(id) = queued.iter().find(|id| ready_to_convert.contains(*id)) {
-                    if let Some(process) = spawn(queue, sink, cli, options, id, ExportPhase::Convert) {
-                        ready_to_convert.remove(id);
-                        conversions.insert(id.clone(), process);
-                    }
+            // A lesson's segment writes remain ordered, but different lessons are independent.
+            // Let every free video slot merge/validate one of them; this is the `同时导出` limit,
+            // not an extra pool layered on top of downloading lessons.
+            let conversion_slots = count.max(1).saturating_sub(downloads.len() + conversions.len());
+            let conversion_ids: Vec<String> = queued.iter()
+                .filter(|id| ready_to_convert.contains(*id))
+                .take(conversion_slots).cloned().collect();
+            for id in conversion_ids {
+                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Convert) {
+                    ready_to_convert.remove(&id);
+                    conversions.insert(id, process);
                 }
             }
 
-            let slots = count.max(1).saturating_sub(downloads.len());
+            // A converting lesson still counts as one active video. With 4 × 8 configured, there
+            // are never more than four CLI lessons at once, and each has at most eight segments.
+            let slots = count.max(1).saturating_sub(downloads.len() + conversions.len());
             let download_ids: Vec<String> = queued
                 .iter()
                 .filter(|id| {
