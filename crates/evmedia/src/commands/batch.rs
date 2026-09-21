@@ -28,6 +28,9 @@ pub async fn run(args: ExportBatchArgs, reporter: &Reporter) -> Result<()> {
     } Ok(()) });
     reporter.event(&Event::Stage { name: Stage::Scan, state: StageState::Begin, detail: format!("preparing {} video(s)", plan.videos.len()) });
     for p in plan.videos {
+        // A batch must not turn one already-published lesson into a failure for every other
+        // lesson. This matches the GUI's historical per-row behaviour and keeps reruns cheap.
+        if p.output.exists() && !args.force { reporter.info(format!("{}: output already exists; skipped", p.id)); continue; }
         let video = authorized_video(&api, args.account, p.course, p.file).await?;
         let signed = api.download_url(&video).await?;
         let url = signed["signed_url"].as_str().ok_or_else(|| anyhow::anyhow!("download response has no signed_url"))?;
@@ -40,7 +43,6 @@ pub async fn run(args: ExportBatchArgs, reporter: &Reporter) -> Result<()> {
         let list: playlist::Playlist = serde_json::from_value(api::fetch_list(&api::ListRequest::with_endpoint(&descriptor.req, &descriptor.cache_key, liststr), &api.session.token).await?)?;
         playlist::summarize(&list)?;
         if list.ordered()?.into_iter().map(|(_, n)| n).collect::<Vec<_>>() != vod.names { anyhow::bail!("EVS signed segment list does not match the embedded complete M3U8"); }
-        if p.output.exists() && !args.force { anyhow::bail!("output already exists: {} (pass --force to overwrite)", p.output.display()); }
         std::fs::create_dir_all(&p.work)?; std::fs::write(p.work.join(evs_name), &evs)?; std::fs::write(p.work.join("original.m3u8"), &m3u8)?; std::fs::write(p.work.join("list.json"), serde_json::to_vec_pretty(&list)?)?;
         let partial_path = p.work.join("lesson.partial"); remove_if_present(&partial_path)?;
         let partial = std::fs::OpenOptions::new().write(true).create_new(true).open(partial_path)?;

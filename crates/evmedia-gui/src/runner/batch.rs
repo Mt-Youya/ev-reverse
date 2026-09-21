@@ -16,15 +16,18 @@ use std::{
 /// Start exactly one CLI process for the entire selected batch. The plan file is the hand-off
 /// boundary: the GUI supplies selection and paths; the CLI owns the global segment scheduler.
 pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, _workers: usize) {
-    let (plan, ids) = {
+    let (plan, ids, skipped) = {
         let state = queue.lock();
-        let videos = state.items.iter().filter(|entry| entry.status == JobStatus::Queued).map(|entry| ExportBatchVideo {
+        let queued = state.items.iter().filter(|entry| entry.status == JobStatus::Queued).collect::<Vec<_>>();
+        let skipped = queued.iter().filter(|entry| entry.item.output.exists() && !options.force).map(|entry| entry.item.id.clone()).collect::<Vec<_>>();
+        let videos = queued.iter().filter(|entry| !entry.item.output.exists() || options.force).map(|entry| ExportBatchVideo {
             id: entry.item.id.clone(), course: entry.item.course, file: entry.item.file,
             output: entry.item.output.clone(), work: entry.item.work.clone(),
         }).collect::<Vec<_>>();
-        let ids = state.items.iter().filter(|entry| entry.status == JobStatus::Queued).map(|entry| entry.item.id.clone()).collect::<Vec<_>>();
-        (ExportBatchPlan { videos }, ids)
+        let ids = videos.iter().map(|video| video.id.clone()).collect::<Vec<_>>();
+        (ExportBatchPlan { videos }, ids, skipped)
     };
+    for id in skipped { queue.patch(&id, |entry| { entry.status = JobStatus::Skipped; entry.message = "输出已存在，未重新导出；勾选“覆盖已有文件”可重跑".into(); }); }
     if ids.is_empty() { queue.settle(); sink.finished(); return; }
     let control = options.root.join("work");
     if let Err(error) = std::fs::create_dir_all(&control) { fail_all(queue, &ids, &error.to_string()); queue.settle(); sink.finished(); return; }
