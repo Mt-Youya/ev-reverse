@@ -180,6 +180,10 @@ fn convert_export(args: &ExportEvsArgs, reporter: &Reporter) -> Result<()> {
     // rather than allowed to fail the rerun. This is what makes "delete the outputs and export
     // again" work, and it is a rerun of the same lesson by construction: `--work` is per lesson.
     remove_if_present(&merged)?;
+    // The global-queue build used `lesson.partial` while assembling a lesson. A subsequent
+    // per-video conversion must clear that equally disposable intermediate before `decode-ev`
+    // opens it with `create_new`; otherwise an interrupted previous run becomes a false failure.
+    remove_if_present(&merged.with_extension("partial"))?;
     decode::decode_ev_parallel(&enc_dir, ev_manifest, &merged, args.jobs, reporter)?;
 
     let extension = args.output.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
