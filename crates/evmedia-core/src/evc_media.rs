@@ -1,6 +1,7 @@
 //! EVC changes H.264 CABAC context selection. Remuxing cannot make that stream standard H.264.
 //! A small, source-built FFmpeg decoder restores pixels; the regular FFmpeg encodes them losslessly.
 use crate::full_export::Options;
+use crate::evc_slots::{self, EvcLease};
 use crate::verified_media::media_stage;
 use anyhow::{bail, Context, Result};
 use evmedia_contract::Reporter;
@@ -51,45 +52,6 @@ fn nvenc_available(ffmpeg: &str) -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-/// One EVC repair is enough to keep the desktop responsive. The lock is shared by CLI child
-/// processes because their work directories have the same `work/` parent in a GUI batch.
-struct EvcLease {
-    _file: fs::File,
-}
-
-impl EvcLease {
-    fn try_acquire(work: &Path) -> io::Result<Self> {
-        let parent = work.parent().unwrap_or(work);
-        let mut options = fs::OpenOptions::new();
-        options.write(true).create(true).truncate(true);
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::OpenOptionsExt;
-            options.share_mode(0);
-        }
-        let mut file = options.open(parent.join(".evmedia-evc-repair.lock"))?;
-        use std::io::Write;
-        let _ = write!(file, "{}", std::process::id());
-        Ok(Self { _file: file })
-    }
-
-    fn acquire(work: &Path, reporter: &Reporter) -> Result<Self> {
-        media_stage(reporter, "正在等待其他视频完成兼容转换，尚未生成成品");
-        loop {
-            if reporter.stopped() {
-                bail!("export stopped");
-            }
-            match Self::try_acquire(work) {
-                Ok(lease) => return Ok(lease),
-                Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
-                    reporter.sleep(std::time::Duration::from_millis(500));
-                }
-                Err(error) => return Err(error).context("acquire EVC conversion slot"),
-            }
-        }
-    }
-}
-
 fn decoder() -> Result<PathBuf> {
     let path = std::env::var_os("EVMEDIA_EVC_DECODER")
         .map(PathBuf::from)
@@ -131,15 +93,16 @@ fn input(decoder: &Path, ts: &Path, key: u32, threads: &str) -> Command {
     command
 }
 
-fn find_context(decoder: &Path, probe: &Path, reporter: &Reporter) -> Result<u32> {
+fn find_context(decoder: &Path, probe: &Path, reporter: &Reporter, workers: usize) -> Result<u32> {
     // The descriptor can say evc_val=0 even for protected lessons. Only accept a unique key
     // that decodes three frames without concealment; validate the entire lesson afterwards.
     let candidates = std::thread::scope(|scope| -> Result<Vec<u32>> {
-        let handles: Vec<_> = (0..4)
+        let handles: Vec<_> = (0..workers)
             .map(|worker| {
                 scope.spawn(move || -> Result<Vec<u32>> {
                     let mut found = Vec::new();
-                    for key in (1 + worker..=512).step_by(4) {
+                    for key in (1 + worker..=512).step_by(workers) {
+                        let key = key as u32;
                         if reporter.stopped() {
                             bail!("export stopped");
                         }
@@ -184,13 +147,14 @@ pub fn repair(
     reporter: &Reporter,
 ) -> Result<u32> {
     let decoder = decoder()?;
-    // Hold the lease across probing, decoding and encoding. Probing spawns four decoder workers,
-    // so serialising only the final FFmpeg process would still make a batch stutter badly.
-    let _lease = EvcLease::acquire(work, reporter)?;
+    // Hold a bounded lease across probing, decoding and encoding. The GUI passes its publish-pool
+    // size, and per-repair CPU decoder/probe workers are reduced to keep the host responsive.
+    let slots = evc_slots::slots();
+    let _lease = EvcLease::acquire(work, slots, reporter)?;
     media_stage(reporter, "正在检测视频兼容参数，尚未生成成品");
     // enc/ holds encrypted downloads, not decoder-ready TS segments. Probe the
     // decrypted, ordered stream; find_context only decodes its first three frames.
-    let key = find_context(&decoder, ts, reporter)?;
+    let key = find_context(&decoder, ts, reporter, evc_slots::probe_workers(slots))?;
     let log = fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -210,17 +174,18 @@ pub fn repair(
         Encoder::X264
     };
     media_stage(reporter, format!(
-        "兼容解码参数 {key} 已验证，正在使用{}无损转换视频（0%），尚未生成成品",
-        encoder.label()
+        "兼容解码参数 {key} 已验证，正在使用{}无损转换视频（0%，最多 {slots} 个并行），尚未生成成品",
+        encoder.label(),
     ));
-    if let Err(error) = encode_lossless(&decoder, ts, key, options, &repaired_video, &progress, seconds, reporter, &log, encoder) {
+    let threads = evc_slots::decode_threads(slots);
+    if let Err(error) = encode_lossless(&decoder, ts, key, options, &repaired_video, &progress, seconds, reporter, &log, encoder, threads) {
         if encoder != Encoder::Nvenc || reporter.stopped() {
             return Err(error);
         }
         // Driver availability can change after capability discovery. Start the pipe again with
         // x264 rather than publishing a partial GPU output.
         media_stage(reporter, "GPU 无损编码失败，正在回退 CPU 无损转换（0%），尚未生成成品");
-        encode_lossless(&decoder, ts, key, options, &repaired_video, &progress, seconds, reporter, &log, Encoder::X264)?;
+        encode_lossless(&decoder, ts, key, options, &repaired_video, &progress, seconds, reporter, &log, Encoder::X264, threads)?;
     }
     mux_repaired_video(&repaired_video, ts, partial, options, log)?;
     Ok(key)
@@ -237,6 +202,7 @@ fn encode_lossless(
     reporter: &Reporter,
     log: &fs::File,
     encoder: Encoder,
+    threads: usize,
 ) -> Result<()> {
     for path in [repaired_video, progress] {
         match fs::remove_file(path) {
@@ -245,7 +211,8 @@ fn encode_lossless(
             Err(e) => return Err(e.into()),
         }
     }
-    let mut decode = input(decoder, ts, key, "4");
+    let threads = threads.to_string();
+    let mut decode = input(decoder, ts, key, &threads);
     decode
         .args([
             "-map", "0:v:0", "-c:v", "rawvideo", "-vsync", "0", "-f", "nut", "pipe:1",

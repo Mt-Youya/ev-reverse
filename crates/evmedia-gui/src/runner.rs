@@ -217,7 +217,7 @@ pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, co
                 .cloned()
                 .collect();
             for id in merge_ids {
-                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Merge) {
+                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Merge, count) {
                     ready_to_merge.remove(&id);
                     merges.insert(id, process);
                 }
@@ -230,7 +230,7 @@ pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, co
                 .cloned()
                 .collect();
             for id in publish_ids {
-                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Publish) {
+                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Publish, count) {
                     ready_to_publish.remove(&id);
                     publishes.insert(id, process);
                 }
@@ -249,7 +249,7 @@ pub fn run(queue: &Queue, sink: &Arc<dyn Sink>, cli: &str, options: &Options, co
                 .cloned()
                 .collect();
             for id in download_ids {
-                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Download)
+                if let Some(process) = spawn(queue, sink, cli, options, &id, ExportPhase::Download, count)
                 {
                     downloads.insert(id, process);
                 }
@@ -292,12 +292,13 @@ fn spawn(
     options: &Options,
     id: &str,
     phase: ExportPhase,
+    evc_slots: usize,
 ) -> Option<Running> {
     match queue.claim(id) {
         Ok(Some(entry)) => {
             let job_sink: Arc<dyn Sink> =
                 Arc::new(JobSink::new(queue.clone(), sink.clone(), id.to_string()));
-            match job::spawn(cli, &entry.item, options, phase, &job_sink) {
+            match job::spawn(cli, &entry.item, options, phase, evc_slots, &job_sink) {
                 Ok(process) => {
                     let pid = process.pid;
                     #[cfg(windows)]

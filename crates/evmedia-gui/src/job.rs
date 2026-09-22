@@ -256,6 +256,7 @@ pub fn spawn(
     item: &JobItem,
     options: &Options,
     phase: ExportPhase,
+    evc_slots: usize,
     sink: &Arc<dyn Sink>,
 ) -> Result<Running, String> {
     let argv = plan::argv_for_phase(item, options, phase);
@@ -280,6 +281,7 @@ pub fn spawn(
         .arg("--json-events")
         .arg("--stop-file")
         .arg(&stop_file)
+        .env("EVMEDIA_EVC_SLOTS", evc_slots.max(1).to_string())
         .current_dir(&item.work)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

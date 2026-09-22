@@ -22,6 +22,7 @@ pub mod vod;
 pub mod full_export;
 pub mod verified_media;
 mod evc_media;
+mod evc_slots;
 
 use anyhow::{Context, Result};
 use std::path::Path;
