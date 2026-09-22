@@ -41,17 +41,39 @@ New-Item -ItemType Directory -Force -Path $bgDir, $logDir | Out-Null
 
 $cards = (Get-Content (Join-Path $here 'cards.json') -Raw -Encoding UTF8 | ConvertFrom-Json).cards
 
-# Mirror the Windows system proxy into the environment for the child process.
+# Mirror a proxy into the environment for the child process.
+#
+# Two sources, because the system-proxy toggle and the VPN client are independent: the client
+# can be running and reachable while `ProxyEnable` sits at 0, and reading only the registry
+# then concludes "no proxy" and lets the CLI connect direct. On this machine that looked like
+# a ten-minute hang rather than an error. So when the toggle is off, probe the ports a local
+# client conventionally listens on and use the first one that accepts a connection.
 $reg = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -ErrorAction SilentlyContinue
+$proxyUrl = $null
 if ($reg.ProxyEnable -eq 1 -and $reg.ProxyServer) {
   $proxyUrl = if ($reg.ProxyServer -match '^https?://') { $reg.ProxyServer } else { "http://$($reg.ProxyServer)" }
-  if (-not $env:HTTPS_PROXY) {
-    $env:HTTPS_PROXY = $proxyUrl; $env:HTTP_PROXY = $proxyUrl
-    $env:https_proxy = $proxyUrl; $env:http_proxy = $proxyUrl
-    Write-Output "proxy   : $proxyUrl (from Windows system settings)"
-  }
+  Write-Output "proxy   : $proxyUrl (from Windows system settings)"
 } else {
-  Write-Output 'proxy   : none configured in Windows settings; direct connection only'
+  foreach ($port in 7897, 7890, 10809, 10808, 1080, 2080) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+      $pending = $client.BeginConnect('127.0.0.1', $port, $null, $null)
+      if ($pending.AsyncWaitHandle.WaitOne(400) -and $client.Connected) {
+        $proxyUrl = "http://127.0.0.1:$port"
+        Write-Output "proxy   : $proxyUrl (probed; system proxy toggle is off)"
+        break
+      }
+    } catch {
+      # port closed; try the next one
+    } finally {
+      $client.Close()
+    }
+  }
+  if (-not $proxyUrl) { Write-Output 'proxy   : none found; direct connection only' }
+}
+if ($proxyUrl -and -not $env:HTTPS_PROXY) {
+  $env:HTTPS_PROXY = $proxyUrl; $env:HTTP_PROXY = $proxyUrl
+  $env:https_proxy = $proxyUrl; $env:http_proxy = $proxyUrl
 }
 
 $style = @'

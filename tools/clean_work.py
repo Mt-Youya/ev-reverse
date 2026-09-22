@@ -24,6 +24,7 @@ import collections
 import json
 import pathlib
 import re
+import subprocess
 import sys
 import time
 
@@ -31,7 +32,8 @@ REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
 WORK = REPO / "verify_fresh" / "work"
 OUT = REPO / "verify_fresh" / "out"
 CATALOG = REPO / "verify_fresh" / "catalog.json"
-BILI_CACHE = pathlib.Path(r"C:\Users\Yonjay\AppData\Local\Temp\bili-parts.json")
+BILIUP = pathlib.Path.home() / ".biliup" / "bin" / "biliup.exe"
+COOKIES = pathlib.Path.home() / ".biliup" / "cookies.json"
 
 sys.path.insert(0, str(REPO / "tools"))
 import upload_to_r2  # noqa: E402
@@ -60,6 +62,13 @@ BILI_BY_COLLECTION = {
     "WebGIS课程/Cesium基础入门": ["BV14ihq6wEUx"],
     "WebGIS课程/Cesium高级进阶": ["BV1THh66uEzq"],
     "WebGIS课程/Cesium项目实战": ["BV18Gh66LERW"],
+    "AI 大全栈/AI/LangChain + DeepAgent 开发实战": ["BV137hk6SE1T"],
+    "前端架构课程/LangChain": ["BV1QZhk6HEr3"],
+    "前端架构课程/LangGraph": ["BV13Rhk6sE1b"],
+    "前端架构课程/NestJS": ["BV19Qhk6xEiM"],
+    "前端架构课程/企业级监控平台全栈架构设计": ["BV1VVhk6pEet"],
+    "前端架构课程/企业级文档协同实践": ["BV135hk6QEjG"],
+    "前端架构课程/音视频实时互动技术": ["BV1o2hk6fEX6", "BV1FdhE6iExc"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
@@ -89,6 +98,11 @@ R2_BY_COLLECTION = {
     "WebGIS课程/Cesium项目实战": "videos/3D/cesium/course/duyi-edu/",
     "前端架构课程/LangChain": "videos/ai/langchain/architecture-duyi-edu/",
     "前端架构课程/LangGraph": "videos/ai/langgraph/architecture-duyi-edu/",
+    "前端架构课程/NestJS": "videos/backend/nodejs/nestjs/duyi-edu/",
+    "前端架构课程/企业级监控平台全栈架构设计": "videos/frontend/enterprise-monitoring/duyi-edu/",
+    "前端架构课程/企业级文档协同实践": "videos/frontend/doc-collaboration/duyi-edu/",
+    "前端架构课程/音视频实时互动技术": "videos/frontend/realtime-media/duyi-edu/",
+    "前端架构课程/工程管理实战": "videos/frontend/engineering-management/duyi-edu/",
 }
 
 
@@ -124,6 +138,34 @@ def catalog_videos():
     return index
 
 
+
+def fetch_bili_parts() -> dict:
+    """bv -> {part title: duration}, fetched live.
+
+    This used to read a cached dump, which went stale the moment new 稿件 were submitted and
+    then reported every episode of those collections as "not on Bilibili" -- the cache simply
+    had no entry for their BV. A 稿件 list is one API call per 稿件, so reading it fresh each
+    run is cheap next to the mistake it prevents.
+    """
+    bvs = sorted({bv for bvs in BILI_BY_COLLECTION.values() for bv in bvs})
+    out = {}
+    for bv in bvs:
+        result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "show", bv],
+                                capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+        brace = result.stdout.find("{")
+        if brace < 0:
+            out[bv] = {}
+            continue
+        try:
+            data = json.loads(result.stdout[brace:])
+        except json.JSONDecodeError:
+            out[bv] = {}
+            continue
+        out[bv] = {norm(v.get("title", "")): v.get("duration") for v in data.get("videos", [])}
+    return out
+
+
 def local_collections():
     """The collections a Bilibili 稿件 exists for, as tuples of path parts.
 
@@ -144,9 +186,16 @@ def local_collection(video_path, collection_paths):
     every WebGIS episode to the bare `WebGIS课程`, which then had no 稿件 to check against and
     was wrongly reported as "not on Bilibili" for all 220 of them.
     """
-    ancestors = list(video_path[:-1])
-    for length in range(len(ancestors), 0, -1):
-        suffix = tuple(ancestors[-length:])
+    # The catalog repeats a collection's title at every nesting level, so
+    # ["前端架构课程", "NestJS", "NestJS"] has to be read as ["前端架构课程", "NestJS"];
+    # matching the raw tail compares ("NestJS", "NestJS") against the folder on disk and
+    # finds nothing, which silently drops every episode of those collections.
+    collapsed = []
+    for title in video_path[:-1]:
+        if not collapsed or collapsed[-1] != title:
+            collapsed.append(title)
+    for length in range(len(collapsed), 0, -1):
+        suffix = tuple(collapsed[-length:])
         if suffix in collection_paths:
             return "/".join(suffix)
     return None
@@ -162,7 +211,7 @@ def main() -> int:
 
     videos = catalog_videos()
     collection_paths = set(local_collections())
-    bili = json.loads(BILI_CACHE.read_text(encoding="utf-8"))
+    bili = fetch_bili_parts()
     s3 = upload_to_r2.client(upload_to_r2.credentials())
 
     # --- live R2: prefix -> {lesson number: object basename} ---
@@ -196,9 +245,8 @@ def main() -> int:
     for coll, bvs in BILI_BY_COLLECTION.items():
         parts = {}
         for bv in bvs:
-            for part in bili.get(bv, {}).get("parts", []):
-                if part.get("title"):
-                    parts[norm(part["title"])] = part.get("duration")
+            # fetch_bili_parts() already returns {part title: duration} per 稿件
+            parts.update(bili.get(bv, {}))
         bili_parts[coll] = parts
 
     cutoff = time.time() - args.min_age_minutes * 60

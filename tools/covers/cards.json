@@ -374,6 +374,118 @@
         "scene": "an isometric smart-farm block on a dark globe with a drone flight path arcing over greenhouse volumes",
         "palette": "green and blue"
       }
+    },
+    {
+      "key": "monitoring-platform",
+      "out": "前端架构课程/企业级监控平台全栈架构设计",
+      "title": "企业级监控平台全栈架构设计",
+      "en": "SDK, KAFKA, CLICKHOUSE",
+      "tags": ["SDK", "Kafka", "ClickHouse", "Docker"],
+      "epLabel": "SERIES / 19 EPISODES",
+      "ghost": "19",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 19 集 · 总时长 10 小时 29 分",
+      "footerRight": "企业级监控平台全栈架构设计",
+      "bg": {
+        "scene": "an isometric observability pipeline: a browser surface emitting event streams into a broker, feeding a columnar store and a monitoring dashboard",
+        "palette": "lime and deep blue"
+      }
+    },
+    {
+      "key": "doc-collaboration",
+      "out": "前端架构课程/企业级文档协同实践",
+      "title": "企业级文档协同实践",
+      "en": "COLLABORATIVE EDITING",
+      "tags": ["协同编辑", "知识库", "架构设计", "项目实战"],
+      "epLabel": "SERIES / 15 EPISODES",
+      "ghost": "15",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 15 集 · 总时长 19 小时 43 分",
+      "footerRight": "企业级文档协同实践",
+      "bg": {
+        "scene": "two translucent document panes linked by a live sync channel, edits propagating across as glowing glyph blocks",
+        "palette": "azure and violet"
+      }
+    },
+    {
+      "key": "realtime-media",
+      "out": "前端架构课程/音视频实时互动技术",
+      "title": "音视频实时互动技术",
+      "en": "WEBRTC, RTMP, COTURN",
+      "tags": ["WebRTC", "RTMP", "SDP/ICE", "coturn"],
+      "epLabel": "SERIES / 23 EPISODES",
+      "ghost": "23",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 23 集 · 总时长 8 小时 07 分",
+      "footerRight": "音视频实时互动技术",
+      "bg": {
+        "scene": "an isometric peer-to-peer mesh of glowing media streams between nodes, with a relay server and a detached screen-sharing pane",
+        "palette": "magenta and blue"
+      }
+    },
+    {
+      "key": "engineering-management",
+      "out": "前端架构课程/工程管理实战",
+      "title": "工程管理实战",
+      "en": "MONOREPO, CICD, PUBLISHING",
+      "tags": ["monorepo", "CICD", "组件库", "设计令牌"],
+      "epLabel": "SERIES / 40 EPISODES",
+      "ghost": "40",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 40 集 · 总时长 22 小时 53 分",
+      "footerRight": "工程管理实战",
+      "bg": {
+        "scene": "an isometric monorepo package graph with linked workspace nodes, a build conveyor feeding a registry gate, and a floating palette of design tokens",
+        "palette": "amber and deep blue"
+      }
+    },
+    {
+      "key": "fe-testing",
+      "out": "前端架构课程/前端测试框架",
+      "title": "前端测试框架",
+      "en": "JEST, MOCKS, SNAPSHOTS",
+      "tags": ["Jest", "mock", "快照", "组件测试"],
+      "epLabel": "SERIES / 27 EPISODES",
+      "ghost": "27",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 27 集 · 总时长 23 小时 04 分",
+      "footerRight": "前端测试框架",
+      "bg": {
+        "scene": "an isometric harness of glowing test cases fanning out from a single runner core, with a coverage grid lighting up cell by cell",
+        "palette": "graphite and emerald"
+      }
+    },
+    {
+      "key": "d3",
+      "out": "前端架构课程/D3.js",
+      "title": "D3.js",
+      "en": "DATA-DRIVEN DOCUMENTS",
+      "tags": ["数据绑定", "比例尺", "图形生成器", "地图投影"],
+      "epLabel": "SERIES / 67 EPISODES",
+      "ghost": "67",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 67 集 · 总时长 20 小时 55 分",
+      "footerRight": "D3.js",
+      "bg": {
+        "scene": "an isometric stack of translucent data visualisation panels rising from a faint grid floor: a column chart, a scatter cloud, a smooth line chart and a force-directed node graph glowing on separate planes",
+        "palette": "orange and steel blue"
+      }
+    },
+    {
+      "key": "css-enterprise",
+      "out": "前端架构课程/CSS企业应用方案",
+      "title": "CSS 企业应用方案",
+      "en": "SASS, POSTCSS, TAILWIND",
+      "tags": ["Sass", "PostCSS", "Tailwind", "工程化"],
+      "epLabel": "SERIES / 27 EPISODES",
+      "ghost": "27",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 27 集 · 总时长 17 小时 24 分",
+      "footerRight": "CSS企业应用方案",
+      "bg": {
+        "scene": "a layered cascade of translucent stylesheet panes: a coiled preprocessor feeding a glowing abstract syntax tree of glyph nodes, resolving into a tidy grid of small utility tiles",
+        "palette": "azure and violet"
+      }
     }
   ]
 }
