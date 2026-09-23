@@ -502,6 +502,22 @@
         "scene": "an isometric shell hosting several distinct smaller applications that dock into it along separate rails, all sharing one glowing communication bus",
         "palette": "violet and lime"
       }
+    },
+    {
+      "key": "fe-toolchain",
+      "out": "前端架构课程/前端工具链",
+      "title": "前端工具链",
+      "en": "LINT · FORMAT · AST",
+      "tags": ["Prettier", "ESLint", "Babel", "AST"],
+      "epLabel": "SERIES / 28 EPISODES",
+      "ghost": "28",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 28 集 · 总时长 15 小时 50 分",
+      "footerRight": "前端工具链",
+      "bg": {
+        "scene": "a conveyor of translucent code panes passing through three stations: a comb that aligns their rows, a sieve that drops malformed glyphs, and a press that rewrites what remains into one uniform glowing stream",
+        "palette": "teal and amber"
+      }
     }
   ]
 }

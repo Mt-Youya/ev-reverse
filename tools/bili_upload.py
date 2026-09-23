@@ -62,6 +62,7 @@ COLLECTIONS = [
     ("前端架构课程/企业级监控平台全栈架构设计", "前端监控,SDK,Kafka,ClickHouse,架构"),
     ("AI 大全栈/AI/LangChain + DeepAgent 开发实战", "LangChain,DeepAgent,Agent,大模型,LLM"),
     ("前端架构课程/音视频实时互动技术", "音视频,WebRTC,实时通信,前端,架构"),
+    ("前端架构课程/前端工具链", "前端,工程化,ESLint,Prettier,Babel"),
 ]
 
 
