@@ -71,6 +71,29 @@ def norm(title: str) -> str:
     return re.sub(r"\s+", "", t)
 
 
+CN_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+
+
+def chapter_index(name: str) -> int:
+    """Chapter number from a folder like `第三章 ESLint`, or 0 when there is none.
+
+    Sorting the relative path as a string orders the Chinese chapter names by code point, which
+    is 一 (U+4E00), 三 (U+4E09), 二 (U+4E8C), 五 (U+4E94), 四 (U+56DB) -- so a chaptered
+    collection was submitted with its chapters in the order 一, 三, 二, 五, 四. Bilibili keeps
+    parts in the order they arrive, so that order is what the 稿件 ended up with.
+    """
+    match = re.match(r"^第([一二三四五六七八九十]+)", name)
+    return CN_DIGITS.get(match.group(1), 99) if match else 0
+
+
+def course_order(folder: pathlib.Path, path: pathlib.Path):
+    """(chapter numbers, path) so chapters sort as 一二三四五 and episodes by filename."""
+    relative = path.relative_to(folder)
+    chapters = [chapter_index(part) for part in relative.parts[:-1]]
+    return (chapters, str(relative))
+
+
 def run(*args) -> str:
     return subprocess.run([str(BILIUP), "-u", str(COOKIES), *args],
                           capture_output=True, text=True,
@@ -121,7 +144,7 @@ def main() -> int:
             continue
         videos = sorted((p for p in folder.rglob("*")
                          if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES),
-                        key=lambda p: str(p.relative_to(folder)))
+                        key=lambda p: course_order(folder, p))
         if not videos:
             print(f"skip  {rel}: no videos on disk")
             continue
