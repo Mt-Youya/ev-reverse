@@ -2,10 +2,14 @@
 
 把一个导出的课程合集作为**一条多分P稿件**投到 B站，并且**不带水印**。
 
-流程、硬性约束、以及一次真实翻车的完整记录见 `docs/BILIBILI-UPLOAD.md` —— 那份文档是主要参考，
-这里只留一句话的边界。
+## 先读这两份
 
-## 契约
+| 文档 | 什么时候读 |
+| --- | --- |
+| `docs/BILIBILI-UPLOAD.md` | **动手前必读。** 操作手册 + 检查清单 + 会静默出错的五条约束 + 故障处置 |
+| `docs/BROWSER-AUTOMATION.md` | 任何要用浏览器的时候。daemon 生命周期、点击无效、cmd 元字符、免登录 |
+
+## 契约（摘要，细节见上面两份）
 
 - 一条合集 = 一条稿件。稿件标题 = 导出目录名（`verify_fresh/out/<合集>`）。
 - 分P 标题 = 视频文件名去掉扩展名，**章节内编号原样保留**（既有的 `微前端` 33 分P、
@@ -20,6 +24,6 @@
 | 工具 | 职责 |
 | --- | --- |
 | `tools/bili_upload.py` | 投稿/追加。`--only <子串>` 选合集，`--apply` 才真发 |
-| `tools/delete_submission.py` | 删自己的一条稿件（走创建中心 API，需 `--apply`） |
+| `tools/delete_submission.py` | 删自己的一条稿件（走创建中心 API，需 `--apply`；删除 endpoint 已 404） |
 | `tools/covers/render.mjs` + `deliver.ps1` | 生成并交付封面 |
 | `tools/verify_and_delete.py` | 投稿后的对账：逐文件核对 R2 内容哈希 + B站 标题时长 |

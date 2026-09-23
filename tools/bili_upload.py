@@ -17,6 +17,10 @@ and looking only at the collection's own level reports it as empty.
 `tid` 208 and the cover-by-file-path shape were read back from the account's existing uploads
 with `biliup show`, not guessed.
 
+See `docs/BILIBILI-UPLOAD.md` for the constraints that fail silently when violated -- the
+watermark defaulting to on, part order being the order they are sent, and why the creator
+centre's batch page is not a substitute for this script.
+
     python bili_upload.py [--only <substring> ...] [--apply]
 
 Without --apply it prints the plan and submits nothing.

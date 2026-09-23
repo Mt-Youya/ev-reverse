@@ -1,210 +1,285 @@
-# B站投稿：流程、硬性约束与一次真实的翻车记录
+# B站投稿：操作手册与避坑清单
 
-这份文档写给下一个要把课程合集投到 B站 的 agent。它记录三件事：**必须显式处理的约束**（漏一个就出错）、
-**本次实际踩到的坑**（按代价排序，每条给根因和可复现的命令）、以及**浏览器自动化能做到哪一步**。
+写给以后的 agent。**照着 §2 的检查清单做，就不会重踩本文列的坑。**
+每一条约束都注明「违反后会发生什么」，因为这里的坑全部是**默不作声**的那种 —— 不报错，只是结果不对。
 
-写作时刻的实测结论写在最前面：
+一句话：
 
-> **用 `tools/bili_upload.py`（底层是 biliup CLI）。不要用浏览器投稿。**
-> 浏览器那条路本次丢了两次上传、daemon 重启四次、最后还因为误判页面模型多发了一条废稿件。
+> **合集用 `tools/bili_upload.py`（底层 biliup CLI），一条合集 = 一条多分P稿件；
+> 水印必须显式关；分P 顺序 = 投递顺序；创作中心的批量投稿页不是干这个的。**
 
 ---
 
-## 1. 当前事实（写作时刻，2026-09-23）
+## 1. 先判断你要做的是哪件事
 
-| 项 | 值 | 怎么核对 |
+| 情形 | 用什么 | 关键点 |
 | --- | --- | --- |
-| 本次稿件 | `BV1zqhb6bE1W`「前端工具链」，aid `117320890521692`，**27 分P** | `python tools/delete_submission.py BV1zqhb6bE1W`（dry run 只打印） |
-| 分P 顺序 | ❌ **错乱**（第一/三/二/五/四章） | `biliup -u ~/.biliup/cookies.json show BV1zqhb6bE1W` |
-| 第 1 分P 名 | ❌ 是「前端工具链」，应为「01. 课程概述」 | 同上 |
-| 水印 | 浏览器那条提交时开关是关的；biliup append 的 26 条走 `state:0`，**未在本稿件上抽帧验证** | 见 §3.1 |
-| biliup | `~/.biliup/bin/biliup.exe`，cookie 在 `~/.biliup/cookies.json` | `& "$env:USERPROFILE\.biliup\bin\biliup.exe" -u "$env:USERPROFILE\.biliup\cookies.json" list` |
-| 分区 | `tid 208`（科技数码 → 计算机技术） | 从已有稿件的 `biliup show` 读回 |
-
-遗留的两条问题已开成 issue：`.scratch/bilibili-upload/issues/01-fix-the-toolchain-part-order.md`。
+| 把一个合集投成**一条多分P稿件** | `bili_upload.py --only <子串> --apply` | 稿件标题 = 导出目录名 |
+| 给**已有**稿件补几集 | 同上，脚本自己识别并走 `biliup append --vid` | 它按分P 标题算缺哪几集，不按文件数 |
+| 删掉自己的一条稿件 | `tools/delete_submission.py <BV> --apply` | 旧 endpoint 已 404，见 §5.4 |
+| 投稿后对账（两边都传了吗） | `tools/verify_and_delete.py` | 逐文件核对 R2 内容哈希 + B站 标题时长 |
+| **❌ 在创作中心页面上传** | 不要 | 见 §3.1，它是「每个视频一条独立稿件」 |
 
 ---
 
-## 2. 正确流程：一条命令
+## 2. 投稿前的检查清单
 
-```powershell
-cd D:\Codes\github\ev-reverse
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\bili_upload.py --only <合集名子串>          # 先 dry run
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\bili_upload.py --only <合集名子串> --apply  # 再真发
+逐项打勾，任何一项没确认就**不要** `--apply`。
+
+- [ ] **文件齐**：本地视频数 == catalog 里该合集的集数？少了哪集、为什么？
+      （`verify_fresh/catalog.json` 是集数的权威来源；`work/<course>-<file>/` 是导出缓存）
+- [ ] **顺序对**：dry run 打印的顺序 == 课程顺序？（§3.3 的中文排序陷阱）
+- [ ] **封面在**：`verify_fresh/out/<合集>/封面/<合集名>-合集封面-16x9.png` 存在？
+      （dry run 会打印 `cover=yes/NO`）
+- [ ] **标签定了**：`tools/bili_upload.py` 的 `COLLECTIONS` 里有这个合集？
+- [ ] **水印参数带了**：`WATERMARK_OFF` 在 upload 和 append **两条分支**上都有？（§3.2）
+- [ ] **dry run 过了**：先不带 `--apply` 跑一遍，确认是 `new 稿件` 还是 `append to BVxxx`
+- [ ] **分区对**：`tid 208`（科技数码 → 计算机技术）
+
+---
+
+## 3. 五条硬性约束
+
+### 3.1 一条合集 = 一条多分P稿件；批量投稿页不是
+
+创作中心的「投稿 → 视频投稿」页，一次丢进 N 个视频时，它是**每个视频一条独立稿件**的批量模式：
+
+- 页面右上角是「**批量操作**」，标题栏写「将以下所有视频 [**加入合集**]」—— 这才是它的真实语义：
+  把**多条稿件**归拢进一个合集，顺带用「不生成动态」避免刷屏粉丝。
+- 网格下面那套「基本设置（封面 / 标题 / 创作声明 / 分区 / 标签 / 简介）」是**当前选中那一条**的表单，
+  **点哪张卡片就切到哪一条**。
+- 底部的「立即投稿」提交的是**当时选中的那一条**。
+
+> **违反后会发生什么**：你以为在提交 27 分P 的合集，实际只提交了 1 条，标题还是合集名。
+> 判断方法：提交后立刻去「内容管理 → 稿件管理」看**时长** —— 合集是十几小时，单集是几十分钟。
+
+### 3.2 水印默认开启，两条路径都要显式关闭
+
+B站 **默认给稿件加水印**（左上角「bilibili + 昵称」）。这是使用者在意的点，别漏。
+
+**biliup 路径**：biliup 的 `Studio` 结构体里**没有** watermark 字段，**什么都不发就等于要默认值 → 水印被加上**。
+必须显式传：
+
+```
+--extra-fields '{"watermark":{"state":0}}'
 ```
 
-它一条稿件一个合集：把一个目录下**递归**找到的全部视频交给 `biliup upload`，产生一条多分P稿件。
-已经存在的稿件不会简单跳过 —— 它用 `biliup show` 取现有分P 标题，只把缺的用 `biliup append` 补上
-（`前端架构课程/LangGraph工作流开发` 就是这种情况：稿件有 23 分P，而本地目录只剩 11 集，
-因为其余的上传后已被删除，用「目录大小 ≥ 稿件」判断会误判为完整）。
+`tools/bili_upload.py` 里是 `WATERMARK_OFF`，**upload 和 append 两条分支都要带**。
 
-稿件标题 = 目录名。标签在 `tools/bili_upload.py` 的 `COLLECTIONS` 里逐合集写死。
+**浏览器路径**（不推荐，但要知道）：投稿页底部「更多设置（含声明与权益、视频元素、互动管理等）」里，
+**第一个选项就是「添加水印」，默认勾选**，文案「仅对此次上传的视频生效」。
+DOM 是 `div.watermark.setting-content label.bcc-checkbox`，勾上时 class 多一个 `bcc-checkbox-checked`。
 
----
+> ⚠️ **页面一重新加载，这个勾就回到默认开启。** 必须「取消勾选 → 不刷新 → 直接提交」。
 
-## 3. 三件必须显式处理的事
+> **验证方式**（别只看参数发出去了）：稿件过审后下载一集，抽一帧看左上角。
+> 对比同一集在新旧两个稿件上的同一时间点，左上角「昵称 + bilibili logo」消失才算成功。
+> 本例的验证样本是 `BV1FdhE6iExc`。
 
-### 3.1 水印：默认是开的，两条路都要主动关
+### 3.3 分P 顺序 = 投递顺序；中文目录名按字符串排序不是数字序
 
-B站 **默认给稿件加水印**（左上角「bilibili + 昵称」）。这是本次被使用者明确要求必须在场的约束。
+B站 **按分P 到达顺序**排列，不做任何重排。所以本地文件的遍历顺序直接决定观众看到的分P 顺序。
 
-- **biliup 路径**：biliup 的 `Studio` 结构体里**没有** watermark 字段，什么都不发就等于要默认值 →
-  水印被加上。必须显式传 `--extra-fields '{"watermark":{"state":0}}'`
-  （`tools/bili_upload.py` 的 `WATERMARK_OFF`，upload 和 append 两条分支都要带）。
-  已在测试稿件 `BV1FdhE6iExc` 上验证有效：同一集同一时间点，旧稿件左上角有「优雅先森」+ bilibili logo，
-  新稿件没有。**本稿件 `BV1zqhb6bE1W` 未做这项抽帧复核。**
-- **浏览器路径**：投稿页底部「更多设置（含声明与权益、视频元素、互动管理等）」里，**第一个选项就是
-  「添加水印」，默认勾选**，文案是「仅对此次上传的视频生效」。DOM 里是
-  `div.watermark.setting-content label.bcc-checkbox`，勾上时 class 多一个 `bcc-checkbox-checked`。
-  ⚠️ **页面重新加载后它会回到默认开启** —— 本次就因为 daemon 重启导致页面重载，取消了两次。
+**中文章节名按码点排序是错的**：
 
-### 3.2 封面：文件必须叫这个名字
+```
+一 U+4E00 < 三 U+4E09 < 二 U+4E8C < 五 U+4E94 < 四 U+56DB
+→ 章节顺序变成 第一 / 第三 / 第二 / 第五 / 第四
+```
 
-`tools/bili_upload.py` 按约定找封面：
+`tools/bili_upload.py` 用 `chapter_index()` 解析 `第X章` 的汉字数字，先按章号再按文件名排。
+**加新合集时确认 dry run 打印的顺序就是课程顺序**（清单里第 2 项）。
+
+> **而且这个错误无法事后补救**：B站 的分P 只能靠页面上拖拽重排，而那个页面不吃合成点击（§5.3）。
+> 错了就只能删了重传。**投之前核对顺序，比投完再修便宜一个数量级。**
+
+### 3.4 封面：固定路径 + 出图断供时的兜底
+
+`tools/bili_upload.py` 按约定找封面，不在就 `cover=NO`：
 
 ```
 verify_fresh/out/<合集>/封面/<合集名>-合集封面-16x9.png
 ```
 
-用 `node tools/covers/render.mjs <card-key>` 渲染，再 `powershell -File tools/covers/deliver.ps1` 交付。
-卡片定义在 `tools/covers/cards.json`（文案 + AI 出图提示词）。
+生成链路与可能断在哪：
 
-**出图那条路会断**：AI 背景图靠 Codex CLI（`tools/covers/backgrounds.ps1`），配额用尽时报
-`You've hit your usage limit ... try again at <date>`，`MISS` 三次后 `FAIL`。此时 `render.mjs` 会退化成
-**矢量兜底图**（`art=vector`）—— 版式、字体、配色、文案全部正常，只是右侧是节点图而不是 AI 插画。
-本次 `前端工具链` 用的就是它，观感可用，不必因此阻塞投稿。
+| 步骤 | 命令 | 会怎么断 |
+| --- | --- | --- |
+| 写卡片（文案 + 出图提示词） | 手工改 `tools/covers/cards.json` | — |
+| 生成 AI 背景 | `tools/covers/backgrounds.ps1 -Key <card>` | **Codex CLI 配额用尽**：`You've hit your usage limit ... try again at <date>`，`MISS` ×3 后 `FAIL` |
+| 排版渲染 | `node tools/covers/render.mjs <card>` | 背景缺失时**自动退化成矢量兜底图**（输出里 `art=vector`） |
+| 交付到课程目录 | `powershell -File tools/covers/deliver.ps1` | — |
 
-### 3.3 分P 顺序 = 上传顺序（biliup 不会替你排）
+**出图断供不要阻塞投稿**：矢量兜底图的版式、字体、配色、文案、标签全部正常，只是右侧是节点图而非 AI 插画，
+观感可用（本仓库已有一张在用）。**先发出去，配额恢复后再换封面完全来得及** —— B站 发布后可以改封面。
 
-B站 按**分P 到达顺序**排列，不做重排。所以「本地文件的遍历顺序」直接决定观众看到的分P 顺序。
+### 3.5 分区与稿件标题
 
-**中文目录名按字符串排序不是数字序**：`一`(U+4E00) < `三`(U+4E09) < `二`(U+4E8C) < `五`(U+4E94) < `四`(U+56DB)。
-修复前 `bili_upload.py` 用 `key=str(p.relative_to(folder))`，于是章节制合集被投成 一/三/二/五/四 章。
-已修（提交 `80a57bd`）：`chapter_index()` 解析 `第X章` 的汉字数字，先按章号再按文件名排。
-核对方法：
+- 分区 `tid 208`（科技数码 → 计算机技术）。取值是从账号已有稿件的 `biliup show` 读回来的，不是猜的。
+- 稿件标题 = 导出目录名（`verify_fresh/out/<合集>` 的最后一段）。
+- 分P 标题 = 文件名去扩展名，**章节内编号原样保留**。跨章节重名（多个 `01. xxx`）是**既有惯例**，不要自作主张加章节前缀。
+
+---
+
+## 4. 三个会骗你的检查
+
+| 看起来通过了 | 其实没证明什么 | 该看什么 |
+| --- | --- | --- |
+| `biliup list` 里有这条稿件 | 没证明分P 齐 | `biliup show <BV>` 数分P 数，比对本地文件数 |
+| 稿件状态「已通过」 | 没证明水印关了 | 抽帧看左上角（§3.2） |
+| 稿件总时长对得上 | 没证明**顺序**对 | `biliup show` 逐条打印分P 标题，肉眼过一遍 |
+| dry run 说 `append to BVxxx` | 不代表缺的集数对 | 脚本按**分P 标题**算缺失，标题被改过就会算错 |
+
+补一条容易误判的：**稿件已存在且分P 数 ≥ 本地文件数，不等于完整**。本地目录往往因为「已上传就删本地」
+而比稿件小（`前端架构课程/LangGraph工作流开发` 就是：稿件 23 分P，本地只剩 11 集）。
+所以脚本按标题算缺失，而不是按数量比大小。
+
+---
+
+## 5. 常见故障：症状 → 根因 → 处置
+
+### 5.1 只发出了一条/几条，不是整条合集
+- **根因**：用了创作中心的批量投稿页（§3.1）。
+- **处置**：其余集用 `bili_upload.py --only <子串> --apply` 追加到同一条稿件
+  （脚本发现同名的已有稿件就走 `append`）。注意第 1 分P 的名字会保留成当时填错的标题。
+
+### 5.2 分P 顺序乱
+- **根因**：投递顺序不是课程顺序（§3.3）。
+- **处置**：**无法自动修**。要么使用者在创作中心手动拖拽重排，要么删了重传。先把排序修对再重传。
+
+### 5.3 稿件管理页的按钮点不动（编辑 / ⋮）
+- **症状**：Playwright 真实点击、`hover` 后再点、`mouse move` + `mouse down` + `mouse up`（坐标取自
+  `getBoundingClientRect()`，已核对视口与 dpr）**全部无效**，URL 不变、菜单不弹。
+- **不是 agent-browser 整体失灵**：同一浏览器上，投稿页的弹窗关闭按钮 `click` 一次就成。
+  是**这一页**的控件不吃合成事件。
+- **处置**：别在 UI 上耗。能走 API 就走 API（§5.4）。
+
+### 5.4 删除稿件的接口 404
+- **症状**：`POST https://member.bilibili.com/x/vu/web/delete` 返回 `HTTP 404`。
+- **现状**：这个老 endpoint **已废弃**，新的没找到。`tools/delete_submission.py` 的取 aid 那一步是对的
+  （`GET api.bilibili.com/x/web-interface/view?bvid=`），只有删除那一步需要换 URL。
+- **找新 endpoint 的办法**（未做）：浏览器里点一次删除，用 `agent-browser network requests` 看它实际打了哪个地址。
+  但前提是 §5.3 那个按钮点得动 —— 所以更现实的是让使用者手点一次，同时开网络面板。
+
+### 5.5 上传传到一半页面变空白
+- **根因与处置**：见 `docs/BROWSER-AUTOMATION.md` §2（daemon 生命周期）。这是用浏览器投稿的**主要代价**，
+  也是「合集就用 biliup」的最强理由。
+
+---
+
+## 6. 浏览器路径：什么时候不得不用
+
+只有这两种情况值得上浏览器：
+
+1. **B站 页面独有的东西**：合集（season）、分P 重排、封面编辑器 —— 这些没有 CLI。
+2. **需要看渲染结果做判断**：例如确认水印开关的实际状态、确认封面预览。
+
+除此之外**一律用 biliup**。浏览器那条路的稳定性问题、能力边界、以及 `agent-browser` 的调用规矩，
+全部记在 **`docs/BROWSER-AUTOMATION.md`** —— 那份文档对任何浏览器任务都适用，不止投稿。
+
+---
+
+## 7. 案例：`前端工具链` 那次是怎么传的（2026-09-23）
+
+留作反面教材。**建议先读 §7.3 的「正确操作序列」，再回头看 §7.2 的问题清单** —— 那份清单就是偏离它的代价。
+
+### 7.1 背景与时间线
+
+**起点**是一个和投稿无关的事故：D 盘可用空间归零，`python tools/courses_json.py` 抛
+`OSError: [Errno 28] No space left on device`。清掉 `verify_fresh/work/` 里已验证过的导出缓存
+（132 个目录 69.76 GB）和 `out/` 里两边都上传过的成片（112 个文件 51.01 GB）之后，D 盘回到 140.45 GB 可用。
+
+**任务**：把 `前端架构课程/前端工具链` 投到 B站。它当时 B站 和 R2 都没有，
+`out/` 里已导出 27 集（课程共 28 集，缺 `第三章 ESLint/01. ESLint介绍.mp4` —— 那集的导出被打断，
+`work/` 缓存还在，可以重导）。
+
+| 时刻 | 做了什么 | 结果 |
+| --- | --- | --- |
+| — | 给 `tools/covers/cards.json` 加 `fe-toolchain` 卡，跑 `backgrounds.ps1` | **Codex CLI 配额用尽**，`MISS` ×3 → `FAIL` |
+| — | `render.mjs` + `deliver.ps1` | 退化成**矢量兜底图**，交付到 `out/.../封面/` |
+| — | 准备浏览器自动化 | `computer-use` 不可用（缺 `cua-driver`）；Tabbit 安装器 **HTTP 403**；改用 `agent-browser` |
+| — | 想复用使用者的 Chrome 登录态 | 复制 profile 失败（Cookies 被独占锁）；改**注入 biliup 的 cookie** |
+| 21:41 | 把 27 个文件交给投稿页的文件输入框 | 前 8 个「上传完成」 |
+| 21:52 | — | **daemon 重启**，页面变 `chrome://new-tab-page`；已传完的只有 **6** 个被浏览器本地记住，在传和排队的一律作废 |
+| 22:0x | 重开投稿页 | 提示「本地浏览器存在 **6** 个未提交的视频」→ 恢复，继续补传 |
+| 22:1x | 再崩、再恢复 | 6 → **10** → **11**，每次崩溃丢掉正在传的那几个 |
+| 22:3x | 补齐到 26 个，填完表单 | 标题/声明/分区/标签/简介/封面就绪 |
+| 22:4x | 在「更多设置」里取消「添加水印」 | ✅（页面重载后需**再取消一次**，它回默认开启） |
+| 22:46 | 点「立即投稿」 | ⚠️ **只提交了选中的第 1 条** → `BV1zqhb6bE1W`，39:02，标题「前端工具链」 |
+| 22:56 | 后台复查 | `全部稿件 484 → 485`、`进行中 1`、时长 `00:39:02` |
+| 23:08–23:21 | 改用 `bili_upload.py` 把其余 26 集 `append` | 27 分P 齐了，**顺序乱**、第 1 分P 名错 |
+| 之后 | 定位并修复章节排序 bug | 提交 `80a57bd`，但**已投出去的稿件改不了** |
+
+### 7.2 问题清单：现象 → 根因 → 正确做法
+
+| # | 现象 | 根因 | 正确做法 |
+| --- | --- | --- | --- |
+| 1 | `Errno 28` 写不出文件 | `work/` 残留 255 GB | 先跑 `tools/clean_work.py`、`tools/verify_and_delete.py`（见本表后的说明） |
+| 2 | 封面生成 `MISS` ×3 → `FAIL` | Codex CLI 配额用尽（到 9/25） | **用矢量兜底先发**，配额恢复后换封面（§3.4） |
+| 3 | `cua-driver 无法启动 (ENOENT)` | 插件缺底层驱动 | 别去装桌面驱动；用 `agent-browser` |
+| 4 | Tabbit 安装器 `HTTP 403` | 官方源拒绝 | 忽略，不是必需 |
+| 5 | 复制 Chrome profile 报 `WinError 32` | Chrome 对 Cookies 独占锁；136+ 又禁止默认 profile 开调试端口 | **注入已有 cookie**（§4 免登录） |
+| 6 | agent-browser 有输出但命令不返回 | 浏览器继承了 stdout，管道等不到 EOF | `cmd /c "... > 日志"`（`docs/BROWSER-AUTOMATION.md` §1.1） |
+| 7 | `being used by another process` | daemon 继承着上一个日志句柄 | 日志名每次唯一 |
+| 8 | `SyntaxError: Unexpected end of input` | JS 里的 `\|` `&&` `>` `<` 被 cmd 当运算符 | 表达式避开这四个字符 |
+| 9 | 页面变 `chrome://new-tab-page/` | daemon 空闲退出 / 父调用被中断 | 短调用轮询，**别放长 sleep**（§5.5、`BROWSER-AUTOMATION` §2） |
+| 10 | 上传进度回退 | 崩溃丢掉**正在传**的那几个，本地记忆只保**已传完**的 | 大合集直接用 biliup |
+| 11 | 标签被换回推荐词 | 页面重载重置表单 | 重载后**逐项复核**，别假设还在 |
+| 12 | 水印又勾上了 | 页面重载 → 回默认开启 | 取消后**不刷新**，直接提交 |
+| 13 | 只发出 1 条 | 误判页面模型（§3.1） | **用 biliup**，不要在这个页面找提交按钮 |
+| 14 | 稿件管理页 `编辑` / `⋮` 点不动 | 该页控件不吃合成事件（§5.3） | 走 API，别在 UI 上耗 |
+| 15 | 删除接口 `HTTP 404` | 老 endpoint 废弃（§5.4） | 找新 endpoint，或让使用者手点一次 |
+| 16 | 分P 顺序 一/三/二/五/四 | 中文章节名按码点排序（§3.3） | 已修 `80a57bd`；**投前用 dry run 核对顺序** |
+
+**关于第 1 条**（磁盘）：那批残留不是「没用的垃圾」，而是 `clean_work.py` 的判定规则覆盖不到的
+——它的规则要求「这一集在两个平台都能证明存在」，而当时有一批课程连 B站 稿件都没有。
+真正让数字动起来的是**补全映射**：从 `biliup list` 的完整清单里读出另一个会话已经投过的 6 条稿件
+（`微前端架构实战`、`CSS企业应用方案`、`微前端`、`工程管理实战`、`D3.js`、`前端测试框架`），
+补进 `BILI_BY_COLLECTION` 之后，`clean_work` 一次就认出 132 个可删目录 / 69.76 GB。
+
+### 7.3 如果重来一次：正确操作序列
 
 ```powershell
-& 'D:\DevelopmentTools\Anaconda\python.exe' -c @"
-import pathlib, sys; sys.path.insert(0,'tools'); import bili_upload as bu
-folder = pathlib.Path('verify_fresh/out/前端架构课程/前端工具链')
-vids = sorted((p for p in folder.rglob('*') if p.is_file() and p.suffix.lower() in bu.VIDEO_SUFFIXES), key=lambda p: bu.course_order(folder, p))
-[print(f'{i:>2}. {v.relative_to(folder)}') for i, v in enumerate(vids, 1)]
-"@
+cd D:\Codes\github\ev-reverse
+$py = 'D:\DevelopmentTools\Anaconda\python.exe'
+
+# ---- 0. 磁盘够不够 ----
+Get-PSDrive D | Select-Object @{n='FreeGB';e={[math]::Round($_.Free/1GB,2)}}
+
+# ---- 1. 封面（出图断了也不要卡住）----
+node tools/covers/render.mjs fe-toolchain          # 看输出结尾是 art=ai 还是 art=vector
+powershell -ExecutionPolicy Bypass -File tools\covers\deliver.ps1
+Get-ChildItem 'verify_fresh\out\前端架构课程\前端工具链\封面'
+
+# ---- 2. 确认顺序（这一步错了事后修不了）----
+& $py tools\bili_upload.py --only 工具链
+#    dry run 会打印：文件数 / 大小 / new 稿件 还是 append to BVxxx / cover=yes|NO
+#    把打印顺序和课程目录顺序对一遍（第一章 → 第二章 → … → 第五章）
+
+# ---- 3. 真投 ----
+& $py tools\bili_upload.py --only 工具链 --apply
+
+# ---- 4. 验收（三项都要看，别只看第一项）----
+$biliup = "$env:USERPROFILE\.biliup\bin\biliup.exe"
+$ck = "$env:USERPROFILE\.biliup\cookies.json"
+& $biliup -u $ck show <BV>      # ① 分P 数 = 本地文件数  ② 顺序对  ③ 水印要抽帧看
 ```
 
----
+**全程不需要浏览器。** 实测代价（`biliup` 的日志时间戳）：26 集 4.52 GB，
+**4 并发、~6.2 MB/s、12 分 23 秒**（23:08:01 起，23:21:11 最后一集 `Upload completed`）——
+一条命令跑完，中途不需要任何轮询或恢复。
+对照本次走的浏览器路线：**三次 daemon 自行重启 + 一次通信卡死后手动重启**、
+一次 4.69 GB 的上传白跑（只有 6 个被本地记住）、一条需要返工的稿件。
 
-## 4. 本次踩到的坑（按代价排序）
+**唯一需要浏览器的环节**：投稿页的合集（season）创建、分P 重排、封面编辑器 ——
+这三个没有 CLI（`docs/BROWSER-AUTOMATION.md` §6）。
 
-### 4.1 ⚠️ 最大的一个：把 B站 批量投稿页当成「一稿件多分P」
+### 7.4 遗留
 
-- **当时怎么想**：页面上 27 个视频排成一个网格，下面是「基本设置（封面/标题/创作声明/分区/标签/简介）」，
-  再下面是「存草稿 / 立即投稿」。看起来就是「一个稿件、27 个分P」。我照这个模型填完表单，点了「立即投稿」。
-- **实际是什么**：这个页面是**每个视频一条独立稿件**的批量模式。标题栏那句
-  「将以下所有视频 **[加入合集]**」才是它的真实语义 —— 加入合集是为了把这些**多条稿件**归拢，
-  顺带用「不生成动态」避免刷屏粉丝。底下那套「基本设置」是**当前选中那一条**的表单，点哪张卡片就切到哪一条。
-- **后果**：点提交时选中的是第 1 条，于是只发出 `BV1zqhb6bE1W` 一条 1 分P 稿件（`01. 课程概述` 39:02），
-  标题还是我按「合集」填的「前端工具链」。后台立刻可见：`全部稿件 484 → 485`、`进行中 1`。
-- **怎么发现**：页面里 `前端工具链` 和 `01. 课程概述` 同时消失、卡片只剩 26 张；
-  去「创作中心 → 内容管理 → 稿件管理」看到新稿件的时长是 `00:39:02`（单集）而不是合集的十几小时。
-- **补救**：见 §4.2 的 append。**下次要合并成一条多分P稿件，就用 biliup，不要在这个页面上找按钮。**
+`BV1zqhb6bE1W` 本身还没有完全修好：分P 顺序错、第 1 分P 名是「前端工具链」。
+两条修法与验收标准见 `.scratch/bilibili-upload/issues/01-fix-the-toolchain-part-order.md`。
 
-### 4.2 ⚠️ agent-browser 的 daemon 会反复重启，每次都吞掉在传的上传
+⚠️ 顺带一个容易误判的现状：现在跑 dry run 会显示 `1 video(s) append to BV1zqhb6bE1W`
+（因为 27 集里只有 `01. 课程概述.mp4` 的名字和稿件里的分P 标题对不上）——
+**这正说明脚本是按分P 标题而不是按数量算缺失的**，行为是对的，别以为它坏掉了。
 
-- **症状**：上传进行到一半，页面变成 `chrome://new-tab-page/`，`tab list` 只剩一个新标签页。
-- **根因（两条，都会触发）**：
-  1. daemon 空闲会自行退出；下一次命令起一个全新的浏览器实例，标签页全丢。
-  2. **父调用被中断时整棵进程树被杀** —— 本次四次重启里有三次是我在工具调用里放了
-     `Start-Sleep -Seconds 150/180`，调用被打断，daemon 一起没。
-- **唯一的救命稻草**：B站 自己在浏览器本地记住了**已完成**的上传，重开投稿页会提示
-  「本地浏览器存在 N 个未提交的视频」+「继续编辑」。本次靠它一路累加：**6 → 10 → 11 → 13 → 24 → 26**，
-  但**每次崩溃都会丢掉当时正在传的那几个**（第一次就丢了 4.69 GB 里的绝大部分）。
-- **结论**：这条路的期望代价极高。要传大合集就用 biliup —— 它 4 并发直传，
-  `前端工具链` 26 个文件 4.52 GB 约 13 分钟传完，全程无中断。
-
-### 4.3 B站 稿件管理页的控件对合成点击无响应
-
-- 试过且**全部无效**：`click div.article-card a.more-btn`（Playwright 真实点击）、`hover` 后再点、
-  `mouse move` + `mouse down` + `mouse up`（坐标取自 `getBoundingClientRect()`，视口 1258×622、dpr=1，换算无误）。
-  「编辑」按钮（`a.bili-btn`）同样点不动，URL 不变。
-- 对照：**同一个浏览器上**，投稿页的 `div.cover-editor-head-close` 用 `click` 一次就关掉了，
-  eval 里 `.click()` 反而无效（Vue 不响应合成 click）。所以不是 agent-browser 整体失灵，
-  是这一页的控件不吃合成事件。
-- **绕法**：走 API。`tools/delete_submission.py` 用账号自己的 cookie 直接发请求
-  （`GET api.bilibili.com/x/web-interface/view?bvid=` 取 aid，再 POST 删除接口）。
-  ⚠️ 老 endpoint `member.bilibili.com/x/vu/web/delete` **已经 404**，新 endpoint 本次没找到 —— 见 issue。
-
-### 4.4 `cmd` 元字符会把传给 `eval` 的 JS 拆碎
-
-agent-browser 的 stdout 会被浏览器进程继承，PowerShell 管道永远等不到 EOF，命令**打完输出就挂住**；
-唯一可行的是 `cmd /c "... > 日志文件 2>&1"`。但这样一来 JS 表达式就落在 cmd 的解析里：
-
-| 字符 | cmd 把它当什么 | 症状 |
-| --- | --- | --- |
-| `\|` | 管道 | `'等待上传' is not recognized as an internal or external command` |
-| `&&` | 命令分隔 | `SyntaxError: Unexpected end of input` |
-| `>` `<` | 重定向 | 同上，或参数被截断 |
-
-**规避**：`eval` 的表达式里不要出现这四个字符。用 `x.indexOf(y)+1` 代替 `x.includes(y)`、
-用 `k-5` 代替 `k<5`、用 `.filter(Boolean)` 代替 `&&`、`.join(',')` 代替 `' | '`。
-
-### 4.5 PowerShell 5.1 把无 BOM 的 UTF-8 脚本读成 ANSI
-
-写进 `.ps1` 的中文字面量会变乱码（`封面` → `灏侀溃`），本次一个上传脚本因此直接语法错误。
-**约定**：`.ps1` 保持纯 ASCII，中文一律放外部 JSON/文本文件，脚本用 `-Encoding UTF8` 读。
-
-### 4.6 daemon 通信卡死被误诊成网络故障
-
-所有命令都报 `Failed to read: 由于连接方在一段时间后没有正确答复... (os error 10060)`，包括
-`get url` 和根本不需要联网的 `set offline off`。同时 PowerShell 直连 `member.bilibili.com` 返回 200、
-DNS 正常、系统代理 `ProxyEnable=0`、机器上没有 TUN 网卡。
-**结论**：是 daemon 自己卡死了，不是网络。`close` + `Stop-Process -Name agent-browser -Force` 后立刻恢复。
-
-### 4.7 免登录：注入 biliup 的 cookie，别去复制 Chrome profile
-
-想用使用者的登录态，最直接的想法是复制 Chrome profile。**走不通**：
-
-- Chrome 对 `Default\Network\Cookies` 是**独占锁**，运行中复制报 `WinError 32`；
-  用 `FileShare.ReadWrite` 打开也不行（Chrome 不允许共享）。
-- Chrome 136+ **禁止在默认 user-data-dir 上开远程调试**，所以「关掉 Chrome 再用原 profile 开调试端口」也不成立。
-
-**可行做法**：把 `~/.biliup/cookies.json` 里的 `SESSDATA` / `bili_jct` / `DedeUserID` / `DedeUserID__ckMd5`
-用 `agent-browser cookies set <name> <value> --domain .bilibili.com --path / --secure` 注入自己的浏览器，
-然后打开 `member.bilibili.com/platform/home` 验证不跳登录页。本次全程这么用。
-
----
-
-## 5. 浏览器自动化在这个仓库里的能力边界（实测）
-
-| 能做 | 不能做 |
-| --- | --- |
-| 注入 cookie 免登录、打开创作中心任意页 | 在稿件管理页点「编辑」「⋮」 |
-| 投稿页选文件（`upload "input[type=file]" <27 个路径>`）、看进度 | 让批量投稿页产出「一条多分P稿件」 |
-| 填标题/分区/标签/简介（Quill 编辑器用 `#id` + `type`） | 保证上传期间状态不丢（daemon 会重启） |
-| 取消「添加水印」、设封面（弹窗内两个 `input[accept*=image]`，先打 id 再传） | 合成点击触发 B站 的 Vue 事件（要真 selector 点击） |
-| 截图 + `eval` 读 DOM 做断言 | — |
-
-**其它环境事实**：`computer-use` 不可用（`~/.cua-driver` 不存在，插件 `dsh-computer-use` 缺底层驱动）；
-Tabbit 未安装且官方安装器 `403`；`agent-browser` 0.19.0 在 `~/.cargo\bin\agent-browser.exe`。
-PYTHON 用 `D:\DevelopmentTools\Anaconda\python.exe`（PATH 里的 `python` 是 Microsoft Store 占位符，会报
-"Python was not found"）。
-
----
-
-## 6. 本次会话的提交
-
-| commit | 内容 |
-| --- | --- |
-| `80a57bd` | 修 `bili_upload` 章节排序（中文码点序 → 章号） |
-| `f8a1fa9` | `前端工具链` 进上传表 + 新增 `tools/delete_submission.py` |
-| `cc15593` | `verify_and_delete` 覆盖 `工程管理实战`、`D3.js` |
-| `4cf199c` | `微前端` 封面卡 |
-| `cf604f3` | 修 `clean_work` 合集匹配（见下） |
-
-同一次会话里还修了两个磁盘清理的真 bug，它们是投稿的前置条件（D 盘曾 0 可用空间）：
-
-- `clean_work.local_collection()` 只试路径**后缀**，而带章节的课程折叠后合集名不在末尾
-  （`[前端架构课程, LangGraph, 第二章 快速入门]`），整门课被误判成「B站 没有」。
-  改成按长度递减试所有连续子串。
-- `clean_work` 按**父目录**精确匹配 R2 对象，而 `videos/ai/langgraph/architecture-duyi-edu/` 下的对象
-  嵌在 `第一章/`… 子目录里，全部落空。改成按对象文件名 + 前缀判断。

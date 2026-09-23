@@ -5,6 +5,11 @@ subcommand, so the request the page itself makes is sent directly with the accou
 cookies. Deleting a 稿件 is irreversible, so this prints what it will remove and does nothing
 unless --apply is passed.
 
+NOTE: the delete endpoint is stale -- `member.bilibili.com/x/vu/web/delete` answers HTTP 404.
+Reading the aid via the view API works; only the DELETE call needs a new URL. To find it, watch
+what the page sends when a human presses delete (`agent-browser network requests`), and see
+docs/BILIBILI-UPLOAD.md §5.4.
+
     python delete_submission.py BV1zqhb6bE1W [--apply]
 """
 
