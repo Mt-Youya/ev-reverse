@@ -486,6 +486,22 @@
         "scene": "a layered cascade of translucent stylesheet panes: a coiled preprocessor feeding a glowing abstract syntax tree of glyph nodes, resolving into a tidy grid of small utility tiles",
         "palette": "azure and violet"
       }
+    },
+    {
+      "key": "micro-frontend",
+      "out": "前端架构课程/微前端",
+      "title": "微前端",
+      "en": "MICRO-APP & SANDBOX",
+      "tags": ["micro-app", "WebComponent", "子应用", "数据通信"],
+      "epLabel": "SERIES / 33 EPISODES",
+      "ghost": "33",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 33 集 · 总时长 18 小时 06 分",
+      "footerRight": "微前端",
+      "bg": {
+        "scene": "an isometric shell hosting several distinct smaller applications that dock into it along separate rails, all sharing one glowing communication bus",
+        "palette": "violet and lime"
+      }
     }
   ]
 }
