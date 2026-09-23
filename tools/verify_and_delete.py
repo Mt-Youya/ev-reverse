@@ -60,6 +60,9 @@ COLLECTIONS = {
         ("videos/frontend/doc-collaboration/duyi-edu/", ["BV135hk6QEjG"]),
     "前端架构课程/音视频实时互动技术":
         ("videos/frontend/realtime-media/duyi-edu/", ["BV1o2hk6fEX6"]),
+    "前端架构课程/工程管理实战":
+        ("videos/frontend/engineering-management/duyi-edu/", ["BV1K9hp6WEyX"]),
+    "前端架构课程/D3.js": ("videos/frontend/d3js/duyi-edu/", ["BV1bwhn6nEoX"]),
     "WebGIS课程/WebGIS地理概念": ("videos/3D/webgis/basic/duyi-edu/", ["BV1hthq6qET3"]),
     "WebGIS课程/OpenLayers框架详解": ("videos/3D/openlayers/framework/duyi-edu/", ["BV1vnhq6GEHa"]),
     "WebGIS课程/OpenLayers项目实战": ("videos/3D/openlayers/basic/duyi-edu/", ["BV1eWhq6gEJc"]),
