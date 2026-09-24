@@ -118,6 +118,17 @@ def markdown(document: dict, r2_open: list, bili_open: list, r2_export: list,
         "删掉双平台都已核验的本地文件与缓存 → （数据超过 45 分钟时）刷新本文件与 `courses.json`。"
         "所有步骤都是幂等的：已上传的会跳过，已发布的会跳过，所以随时可以重跑。",
         "",
+        "## 现状一览",
+        "",
+        f"* 集数：**{document['totals']['episodes']}**，其中两边都有 **{document['totals']['both']}**；"
+        f"R2 有 **{document['totals']['r2']}**，B站 有 **{document['totals']['bilibili']}**，"
+        f"本地还留着 **{document['totals']['local']}**。",
+        f"* 本文件下面列出的待传：R2 **{sum(len(m) for _c, m in r2_open)}** 个、"
+        f"B站 **{sum(len(m) for _c, m in bili_open)}** 个；"
+        f"还要先导出的有 **{sum(len(m) for _c, m in r2_export)}** 个课时。",
+        f"* 从未导出过（两平台都没有记录）的课：**{len(nowhere)} 门 / "
+        f"{sum(c['episode_count'] for c in nowhere)} 集**。",
+        "",
         "## 可以直接上传（本地已有成片）",
         "",
     ]
