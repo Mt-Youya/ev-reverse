@@ -125,11 +125,20 @@ def main() -> int:
         return 0
 
     freed = 0
+    gone = 0
     for _name, path in removable:
-        freed += path.stat().st_size
-        path.unlink()
+        # A pass of the watchdog can be deleting the same file at this moment: it runs this same
+        # step, and both compute their list before either deletes. A file that is already gone is
+        # not a failure -- the goal was for it not to be here.
+        try:
+            freed += path.stat().st_size
+        except OSError:
+            gone += 1
+            continue
+        path.unlink(missing_ok=True)
     args.report.write_text("\n".join(f"{n}\t{p}" for n, p in removable), encoding="utf-8")
-    print(f"\ndeleted {len(removable)} local file(s), {freed / 1024**3:.2f} GB freed")
+    print(f"\ndeleted {len(removable) - gone} local file(s), {freed / 1024 ** 3:.2f} GB freed"
+          + (f" ({gone} already removed by another pass)" if gone else ""))
     print(f"list -> {args.report}")
     return 0
 
