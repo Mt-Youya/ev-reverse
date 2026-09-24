@@ -212,6 +212,20 @@ verify_fresh/out/<合集>/封面/<合集名>-合集封面-16x9.png
 - **根因与处置**：见 `docs/BROWSER-AUTOMATION.md` §2（daemon 生命周期）。这是用浏览器投稿的**主要代价**，
   也是「合集就用 biliup」的最强理由。
 
+### 5.6 `biliup list` 报 `Unknown Error / error decoding response body`（HTTP 412）
+- **症状**：`biliup show <BV>` 正常，`biliup list` 却报
+  `expected value at line 1 column 1`；用 cookies 直接打
+  `https://member.bilibili.com/x/web/archives?...` 得到 **HTTP 412 Precondition Failed**。
+- **根因**：B站 风控。`list` 走的是创作者稿件列表接口，`--max-pages 60` 在 493 个稿件下会连打
+  **几十次请求**；短时间内多次调用（例如一轮里跑好几个核验脚本）就会被 412 挡掉。
+  `show` 是另一个接口，不受影响 —— 所以「show 能用」不代表会话失效。
+- **处置**：
+  1. **等几分钟到几十分钟**，别重试风暴；R2 上传与导出不受影响，只有 B站 侧暂停；
+  2. **绝不要把「列表为空」当成「账号没有稿件」**：`bili_upload.archive_index` 以前会这么理解，
+     那会让每个有本地文件的合集都去**新建稿件**（一次风控 = 几十条重复稿件）。
+     现在 `bili_upload` / `sync_bili_ids` / `find_orphan_archives` 在列表为空时**直接拒绝运行**；
+  3. 核验脚本一轮里**不要重复调用** `list`：一次调用就能回答的问题，不要每个工具各跑一遍。
+
 ---
 
 ## 6. 浏览器路径：什么时候不得不用

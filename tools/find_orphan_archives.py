@@ -40,6 +40,13 @@ def archives() -> list:
         fields = line.split("\t")
         if len(fields) >= 2:
             rows.append((fields[0], fields[1].strip()))
+    if not rows:
+        # The whole point of this tool is to say "no 稿件 of that course exists", and an empty
+        # listing cannot support that claim: Bilibili answers the archives endpoint with HTTP 412
+        # when it thinks the caller asks too often, and biliup turns that into an error message on
+        # stderr with nothing on stdout.
+        raise SystemExit("biliup list returned no 稿件 at all (HTTP 412 from Bilibili?); "
+                         "an empty listing proves nothing about what the account holds")
     return rows
 
 

@@ -36,10 +36,17 @@ def archives() -> dict:
     """稿件 title -> [(bv, part count)], from the account's own list."""
     result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "list", "--max-pages", "60"],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
+    lines = [line for line in result.stdout.splitlines() if line.startswith("BV")]
+    if not lines:
+        # Bilibili answers the archives endpoint with HTTP 412 when it decides the caller is
+        # asking too often, and biliup reports that as "Unknown Error / error decoding response
+        # body". An empty listing is not "this account has no 稿件" -- it has hundreds -- so
+        # reporting every collection as having none would be a lie, and in bili_upload's case a
+        # costly one.
+        raise SystemExit("biliup list returned no 稿件 at all (HTTP 412 from Bilibili?); "
+                         "refusing to report from an empty listing")
     found = {}
-    for line in result.stdout.splitlines():
-        if not line.startswith("BV"):
-            continue
+    for line in lines:
         fields = line.split("\t")
         if len(fields) < 2:
             continue

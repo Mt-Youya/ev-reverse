@@ -156,9 +156,22 @@ PART_ALIASES = {
 
 
 def archive_index(wanted: set) -> dict:
-    """稿件 title -> {bv, set of part titles}, only for the collections we care about."""
+    """稿件 title -> {bv, set of part titles}, only for the collections we care about.
+
+    An unreadable listing is refused rather than treated as an empty account. `biliup list`
+    fails transiently ("Unknown Error / error decoding response body", seen 2026-09-24 after a
+    burst of calls), and the old code turned that into "no 稿件 exists", which makes every
+    collection with a local file look like it needs a new submission -- dozens of duplicate
+    稿件s from one hiccup. The account has hundreds of 稿件s; zero is never the truth.
+    """
+    listing = run("list", "--max-pages", "60")
+    if not any(line.startswith("BV") for line in listing.splitlines()):
+        raise SystemExit(
+            "biliup list returned no 稿件 at all; refusing to run, because an empty index would "
+            "make every collection look like it needs a new submission. Retry when the API "
+            "answers again.")
     index = {}
-    for line in run("list", "--max-pages", "60").splitlines():
+    for line in listing.splitlines():
         if not line.startswith("BV"):
             continue
         fields = line.split("\t")
