@@ -126,6 +126,10 @@ def main() -> int:
     parser.add_argument("--no-publish", action="store_true",
                         help="only upload; do not publish the merged scratch that has no finished "
                              "file yet (see docs/EXPORT-PIPELINE.md §3)")
+    parser.add_argument("--downloads-per-pass", type=int, default=3,
+                        help="how many lessons a pass may download to fill gaps that neither the "
+                             "local disk nor the merged scratch can cover (0 disables). Each one "
+                             "takes minutes, so this is deliberately small.")
     parser.add_argument("--courses-max-age", type=int, default=45,
                         help="refresh verify_fresh/upload-status/courses.json once it is this many "
                              "minutes old (0 disables). The status page reads it, so it should not "
@@ -198,6 +202,14 @@ def main() -> int:
         else:
             run([PYTHON, str(REPO / "tools" / "export_missing.py"),
                  "--from-cache", "--apply", "--smallest-first"], "publish from cache")
+            # Publishing only covers lessons that were already merged. Twenty-nine lessons in eight
+            # collections have no merged scratch at all, and without a download step they would stay
+            # missing forever -- 脚手架技术内幕 would sit at 15 of 22 episodes with nothing to say
+            # why. Bounded per pass: a download is minutes long and the publish chain wants the CPU.
+            if args.downloads_per_pass:
+                run([PYTHON, str(REPO / "tools" / "export_missing.py"),
+                     "--apply", "--smallest-first", "--limit", str(args.downloads_per_pass)],
+                    "fill gaps by download")
 
         # Reclaim space at the end of a pass instead of when the disk is nearly full. Both of these
         # delete only what is provably redundant: verify_and_delete requires the file to match R2 by

@@ -112,7 +112,14 @@ def every_lesson() -> list:
 
 
 def plan(rows: list) -> list:
-    """The lessons missing from a platform that are not on disk either."""
+    """The lessons missing from a platform that are not on disk either.
+
+    This is the set a download can fill. `cached()` is a subset of it in practice -- a lesson with
+    a merged lesson.ts has no local file either -- and the two plans overlap, so a caller that runs
+    both should publish first and let this shrink. The unpublishable lesson is excluded here too: a
+    fresh download of it reproduces the same one-frame AAC defect, so planning it every pass would
+    be two guaranteed minutes of nothing.
+    """
     status = json.loads(COURSES.read_text(encoding="utf-8"))
     courses = {c["name"]: c for c in status["courses"]}
 
@@ -120,6 +127,8 @@ def plan(rows: list) -> list:
     for row in rows:
         course = courses.get(row["course"])
         if course is None:
+            continue
+        if (str(row["course_id"]), str(row["file_id"])) in UNPUBLISHABLE:
             continue
         episode = next((e for e in course["episodes"] if e["file_id"] == row["file_id"]), None)
         if episode is None or episode["local"]:
