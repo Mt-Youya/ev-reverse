@@ -167,6 +167,10 @@ def main() -> int:
                              "which is what keeps the disk from filling while a large one is still "
                              "being produced.")
     parser.add_argument("--jobs", type=int, default=8)
+    parser.add_argument("--attempts", type=int, default=3,
+                        help="how many times to try one lesson. The download failures are "
+                             "network-transient -- a truncated segment body, a missing chunk -- "
+                             "and the downloader resumes from what it already holds.")
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
 
@@ -207,19 +211,34 @@ def main() -> int:
         if args.from_cache:
             command += ["--phase", "publish"]
         print(f"\n=== [{number}/{len(gaps)}] {gap['course']} :: {gap['title']} ===", flush=True)
-        started = time.time()
-        result = subprocess.run(command, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        elapsed = time.time() - started
-        if result.returncode != 0 or not gap["output"].exists():
-            failures.append(gap)
-            print(f"    FAILED rc={result.returncode} after {elapsed:.0f}s: "
-                  f"{(result.stderr or result.stdout or '')[-400:]}", flush=True)
-        else:
-            size = gap["output"].stat().st_size / 1024 ** 2
-            print(f"    ok {size:.0f} MB in {elapsed:.0f}s", flush=True)
 
-    print(f"\n{verb}ed {len(gaps) - len(failures)}/{len(gaps)}")
+        # Retried whole, because the failures are the network's: a lesson that dies part way
+        # through reports things like "end of file before message length reached" on one segment,
+        # and the next attempt usually gets it. The downloader resumes from the segments it already
+        # holds, so a retry costs the remainder rather than the whole lesson.
+        for attempt in range(1, args.attempts + 1):
+            started = time.time()
+            result = subprocess.run(command, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace")
+            elapsed = time.time() - started
+            if result.returncode == 0 and gap["output"].exists():
+                size = gap["output"].stat().st_size / 1024 ** 2
+                print(f"    ok {size:.0f} MB in {elapsed:.0f}s"
+                      + (f" (attempt {attempt}/{args.attempts})" if attempt > 1 else ""),
+                      flush=True)
+                break
+            detail = (result.stderr or result.stdout or "").strip()[-400:]
+            if attempt < args.attempts:
+                print(f"    retrying after rc={result.returncode} ({elapsed:.0f}s): {detail}",
+                      flush=True)
+                time.sleep(15 * attempt)
+            else:
+                failures.append(gap)
+                print(f"    FAILED rc={result.returncode} after {elapsed:.0f}s: {detail}",
+                      flush=True)
+
+    print(f"\n{verb}ed {len(gaps) - len(failures)}/{len(gaps)}"
+          + (f" ({args.attempts} attempts each)" if args.attempts > 1 else ""))
     for gap in failures:
         print(f"   failed: {gap['course']} :: {gap['title']}")
     return 1 if failures else 0
