@@ -96,6 +96,11 @@ def main() -> int:
     parser.add_argument("--no-cleanup", action="store_true",
                         help="leave local files and work/ scratch alone at the end of a pass "
                              "instead of deleting what both platforms provably hold")
+    parser.add_argument("--courses-every", type=int, default=3,
+                        help="refresh verify_fresh/upload-status/courses.json every N passes "
+                             "(0 disables). The status page reads it, so it should not go stale "
+                             "while the backlog runs, but it costs 40 Bilibili calls and 44 bucket "
+                             "listings per refresh.")
     parser.add_argument("--loop-minutes", type=int, default=0,
                         help="keep uploading on this interval instead of exiting after one pass. "
                              "The exporter works through a long queue, so waiting for it to finish "
@@ -108,7 +113,9 @@ def main() -> int:
     log("watching the exporter" +
         (f"; uploading every {args.loop_minutes} min" if args.loop_minutes else "; one pass when it goes idle"))
 
+    passes = 0
     while True:
+        passes += 1
         # In loop mode the exporter is not waited on: it works through a long queue and is
         # rarely idle, so requiring idleness would mean never uploading. The uploaders skip
         # what the platforms already hold, so a pass over incomplete material is harmless.
@@ -163,6 +170,14 @@ def main() -> int:
         else:
             run([PYTHON, str(REPO / "tools" / "verify_and_delete.py"), "--apply"], "local cleanup")
             run([PYTHON, str(REPO / "tools" / "clean_work.py"), "--apply"], "scratch cleanup")
+
+        # The status page is a deliverable, and it is only as current as courses.json. Refreshing it
+        # every pass would mean 40 `biliup show` calls and 44 bucket listings an hour, so it runs
+        # every few passes instead: the uploads it reports on move at the same pace either way.
+        if args.courses_every and passes % args.courses_every == 0:
+            run([PYTHON, str(REPO / "tools" / "courses_json.py")], "courses.json")
+        elif args.courses_every:
+            log(f"courses.json refresh due on pass {args.courses_every * (passes // args.courses_every + 1)}")
 
         if not args.loop_minutes:
             log("all uploads finished")
