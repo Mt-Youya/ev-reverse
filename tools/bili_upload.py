@@ -81,7 +81,14 @@ COLLECTIONS = [
 
 
 def norm(title: str) -> str:
-    t = re.sub(r"\.(mp4|mkv|ts)$", "", str(title).strip(), flags=re.I)
+    """Part title for comparison: no extension, no whitespace.
+
+    The extension pattern repeats on purpose. A file named `35. [测试体系]单元测试.mp4.mp4` -- an
+    export artefact -- reduced to `35.[测试体系]单元测试.mp4`, which never equals the 稿件's part
+    title `35. [测试体系]单元测试`. The uploader therefore saw it as missing on every run and
+    appended another copy; that part reached three copies before anyone noticed.
+    """
+    t = re.sub(r"(\.(mp4|mkv|ts))+$", "", str(title).strip(), flags=re.I)
     return re.sub(r"\s+", "", t)
 
 
