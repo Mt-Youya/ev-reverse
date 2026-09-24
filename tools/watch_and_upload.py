@@ -93,6 +93,9 @@ def main() -> int:
     parser.add_argument("--idle-samples", type=int, default=3)
     parser.add_argument("--interval", type=int, default=60)
     parser.add_argument("--skip-upload", action="store_true")
+    parser.add_argument("--no-cleanup", action="store_true",
+                        help="leave local files and work/ scratch alone at the end of a pass "
+                             "instead of deleting what both platforms provably hold")
     parser.add_argument("--loop-minutes", type=int, default=0,
                         help="keep uploading on this interval instead of exiting after one pass. "
                              "The exporter works through a long queue, so waiting for it to finish "
@@ -148,6 +151,17 @@ def main() -> int:
             log("an r2 upload is already running; skipping the r2 half so they do not compete")
         else:
             run([PYTHON, str(REPO / "tools" / "r2_upload_all.py"), "--apply"], "r2 uploads")
+
+        # Reclaim space at the end of a pass instead of when the disk is nearly full. Both of these
+        # delete only what is provably redundant: verify_and_delete requires the file to match R2 by
+        # MD5 *and* a Bilibili part by duration, clean_work requires the same lesson to be on both
+        # platforms before removing its scratch. A backlog of a few hundred lessons is tens of
+        # gigabytes of new files, so the space has to come back as it goes.
+        if args.no_cleanup:
+            log("--no-cleanup set; leaving local files and scratch alone")
+        else:
+            run([PYTHON, str(REPO / "tools" / "verify_and_delete.py"), "--apply"], "local cleanup")
+            run([PYTHON, str(REPO / "tools" / "clean_work.py"), "--apply"], "scratch cleanup")
 
         if not args.loop_minutes:
             log("all uploads finished")
