@@ -28,7 +28,12 @@
       "out": "AI 大全栈/AI/LangGraph工作流开发",
       "title": "LangGraph 工作流开发",
       "en": "FROM ZERO TO RUNTIME",
-      "tags": ["StateGraph", "Reducer", "Checkpointer", "ToolNode"],
+      "tags": [
+        "StateGraph",
+        "Reducer",
+        "Checkpointer",
+        "ToolNode"
+      ],
       "epLabel": "SERIES / 38 EPISODES",
       "ghost": "38",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -44,7 +49,12 @@
       "out": "AI 大全栈/AI/Agents底层逻辑",
       "title": "Agents 底层逻辑",
       "en": "FROM NEURONS TO AGENTS",
-      "tags": ["Transformer", "ReAct", "MCP", "Harness"],
+      "tags": [
+        "Transformer",
+        "ReAct",
+        "MCP",
+        "Harness"
+      ],
       "epLabel": "SERIES / 34 EPISODES",
       "ghost": "34",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -60,7 +70,12 @@
       "out": "AI 大全栈/AI/LangChain + DeepAgent 开发实战",
       "title": "LangChain + DeepAgent 开发实战",
       "en": "AGENTS & DEEPAGENT",
-      "tags": ["中间件", "deepagent", "沙箱", "handoff"],
+      "tags": [
+        "中间件",
+        "deepagent",
+        "沙箱",
+        "handoff"
+      ],
       "epLabel": "SERIES / 36 EPISODES",
       "ghost": "36",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -76,7 +91,12 @@
       "out": "AI 大全栈/Python/Python语言核心精讲",
       "title": "Python 语言核心精讲",
       "en": "PYTHON IN DEPTH",
-      "tags": ["装饰器", "生成器", "上下文管理器", "类型标注"],
+      "tags": [
+        "装饰器",
+        "生成器",
+        "上下文管理器",
+        "类型标注"
+      ],
       "epLabel": "SERIES / 32 EPISODES",
       "ghost": "32",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -92,7 +112,12 @@
       "out": "AI 大全栈/Python/Python框架",
       "title": "Python 框架",
       "en": "SERVICES TO DEPLOYMENT",
-      "tags": ["SQLAlchemy", "依赖注入", "中间件", "Docker"],
+      "tags": [
+        "SQLAlchemy",
+        "依赖注入",
+        "中间件",
+        "Docker"
+      ],
       "epLabel": "SERIES / 26 EPISODES",
       "ghost": "26",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -108,7 +133,12 @@
       "out": "AI 大全栈/Python/数据科学工具包",
       "title": "数据科学工具包",
       "en": "FROM NUMPY TO SEABORN",
-      "tags": ["Jupyter", "NumPy", "Pandas", "Matplotlib"],
+      "tags": [
+        "Jupyter",
+        "NumPy",
+        "Pandas",
+        "Matplotlib"
+      ],
       "epLabel": "SERIES / 10 EPISODES",
       "ghost": "10",
       "eyebrow": "AI 全栈 · 视频课程",
@@ -124,7 +154,12 @@
       "out": "AI 大全栈/通识/数据库",
       "title": "数据库",
       "en": "POSTGRESQL IN DEPTH",
-      "tags": ["DDL", "DML", "事务", "索引"],
+      "tags": [
+        "DDL",
+        "DML",
+        "事务",
+        "索引"
+      ],
       "epLabel": "SERIES / 07 EPISODES",
       "ghost": "07",
       "eyebrow": "AI 全栈 · 通识课",
@@ -140,7 +175,12 @@
       "out": "AI 大全栈/通识/OAuth2",
       "title": "OAuth2",
       "en": "GRANTS, TOKENS, OIDC",
-      "tags": ["PKCE", "OIDC", "授权码", "Token"],
+      "tags": [
+        "PKCE",
+        "OIDC",
+        "授权码",
+        "Token"
+      ],
       "epLabel": "SERIES / 08 EPISODES",
       "ghost": "08",
       "eyebrow": "AI 全栈 · 通识课",
@@ -156,7 +196,12 @@
       "out": "AI 大全栈/通识/RBAC",
       "title": "RBAC",
       "en": "ROLES & PERMISSIONS",
-      "tags": ["User", "Role", "Permission", "API"],
+      "tags": [
+        "User",
+        "Role",
+        "Permission",
+        "API"
+      ],
       "epLabel": "SERIES / 05 EPISODES",
       "ghost": "05",
       "eyebrow": "AI 全栈 · 通识课",
@@ -172,7 +217,12 @@
       "out": "前端架构课程/LangChain",
       "title": "LangChain",
       "en": "LCEL, RAG & AGENTS",
-      "tags": ["LCEL", "RAG", "Memory", "Tools"],
+      "tags": [
+        "LCEL",
+        "RAG",
+        "Memory",
+        "Tools"
+      ],
       "epLabel": "SERIES / 42 EPISODES",
       "ghost": "42",
       "eyebrow": "前端架构课程",
@@ -188,7 +238,12 @@
       "out": "前端架构课程/LangGraph",
       "title": "LangGraph",
       "en": "GRAPHS & CHECKPOINTS",
-      "tags": ["StateGraph", "checkpoint", "子图", "Functional"],
+      "tags": [
+        "StateGraph",
+        "checkpoint",
+        "子图",
+        "Functional"
+      ],
       "epLabel": "SERIES / 52 EPISODES",
       "ghost": "52",
       "eyebrow": "前端架构课程",
@@ -204,7 +259,12 @@
       "out": "前端架构课程/NestJS",
       "title": "NestJS",
       "en": "IOC, AOP, GRAPHQL",
-      "tags": ["IoC", "AOP", "装饰器", "GraphQL"],
+      "tags": [
+        "IoC",
+        "AOP",
+        "装饰器",
+        "GraphQL"
+      ],
       "epLabel": "SERIES / 35 EPISODES",
       "ghost": "35",
       "eyebrow": "前端架构课程",
@@ -220,7 +280,12 @@
       "out": "WebGIS课程/WebGIS地理概念",
       "title": "WebGIS 地理概念",
       "en": "PROJECTIONS & OGC",
-      "tags": ["地图投影", "EPSG", "GeoJSON", "OGC"],
+      "tags": [
+        "地图投影",
+        "EPSG",
+        "GeoJSON",
+        "OGC"
+      ],
       "epLabel": "SERIES / 10 EPISODES",
       "ghost": "10",
       "eyebrow": "WebGIS 课程",
@@ -236,7 +301,12 @@
       "out": "WebGIS课程/OpenLayers框架详解",
       "title": "OpenLayers 框架详解",
       "en": "LAYERS & INTERACTIONS",
-      "tags": ["GeoJSON", "WKT", "Draw", "Overlay"],
+      "tags": [
+        "GeoJSON",
+        "WKT",
+        "Draw",
+        "Overlay"
+      ],
       "epLabel": "SERIES / 25 EPISODES",
       "ghost": "25",
       "eyebrow": "WebGIS 课程",
@@ -252,7 +322,12 @@
       "out": "WebGIS课程/OpenLayers项目实战",
       "title": "OpenLayers 项目实战",
       "en": "MAP + DATA DASHBOARD",
-      "tags": ["矢量图层", "监测点", "数据面板", "地图联动"],
+      "tags": [
+        "矢量图层",
+        "监测点",
+        "数据面板",
+        "地图联动"
+      ],
       "epLabel": "SERIES / 30 EPISODES",
       "ghost": "30",
       "eyebrow": "WebGIS 课程",
@@ -268,7 +343,12 @@
       "out": "WebGIS课程/Leaflet框架详解",
       "title": "Leaflet 框架详解",
       "en": "MARKERS & PLUGINS",
-      "tags": ["GeoJSON", "marker", "cluster", "draw"],
+      "tags": [
+        "GeoJSON",
+        "marker",
+        "cluster",
+        "draw"
+      ],
       "epLabel": "SERIES / 14 EPISODES",
       "ghost": "14",
       "eyebrow": "WebGIS 课程",
@@ -284,7 +364,12 @@
       "out": "WebGIS课程/Mapbox框架详解",
       "title": "Mapbox 框架详解",
       "en": "STYLE EXPRESSIONS",
-      "tags": ["表达式", "符号图层", "热力图", "地图下钻"],
+      "tags": [
+        "表达式",
+        "符号图层",
+        "热力图",
+        "地图下钻"
+      ],
       "epLabel": "SERIES / 13 EPISODES",
       "ghost": "13",
       "eyebrow": "WebGIS 课程",
@@ -300,7 +385,12 @@
       "out": "WebGIS课程/地理图形设计与数据服务",
       "title": "地理图形设计与数据服务",
       "en": "QGIS TO GEOSERVER",
-      "tags": ["QGIS", "PostGIS", "GeoServer", "WMS"],
+      "tags": [
+        "QGIS",
+        "PostGIS",
+        "GeoServer",
+        "WMS"
+      ],
       "epLabel": "SERIES / 14 EPISODES",
       "ghost": "14",
       "eyebrow": "WebGIS 课程",
@@ -316,7 +406,12 @@
       "out": "WebGIS课程/高德 API与AntV L7",
       "title": "高德 API 与 AntV L7",
       "en": "AMAP API + ANT V L7",
-      "tags": ["路径规划", "POI", "L7", "图层"],
+      "tags": [
+        "路径规划",
+        "POI",
+        "L7",
+        "图层"
+      ],
       "epLabel": "SERIES / 22 EPISODES",
       "ghost": "22",
       "eyebrow": "WebGIS 课程",
@@ -332,7 +427,12 @@
       "out": "WebGIS课程/Cesium基础入门",
       "title": "Cesium 基础入门",
       "en": "3D GLOBE BASICS",
-      "tags": ["三维地球", "相机", "实体", "GeoJSON"],
+      "tags": [
+        "三维地球",
+        "相机",
+        "实体",
+        "GeoJSON"
+      ],
       "epLabel": "SERIES / 32 EPISODES",
       "ghost": "32",
       "eyebrow": "WebGIS 课程",
@@ -348,7 +448,12 @@
       "out": "WebGIS课程/Cesium高级进阶",
       "title": "Cesium 高级进阶",
       "en": "3D TILES & SHADERS",
-      "tags": ["3D Tiles", "点云", "着色器", "ion"],
+      "tags": [
+        "3D Tiles",
+        "点云",
+        "着色器",
+        "ion"
+      ],
       "epLabel": "SERIES / 28 EPISODES",
       "ghost": "28",
       "eyebrow": "WebGIS 课程",
@@ -364,7 +469,12 @@
       "out": "WebGIS课程/Cesium项目实战",
       "title": "Cesium 项目实战",
       "en": "SMART FARM ON A GLOBE",
-      "tags": ["三维农场", "无人机", "轨迹", "监控"],
+      "tags": [
+        "三维农场",
+        "无人机",
+        "轨迹",
+        "监控"
+      ],
       "epLabel": "SERIES / 32 EPISODES",
       "ghost": "32",
       "eyebrow": "WebGIS 课程",
@@ -380,7 +490,12 @@
       "out": "前端架构课程/企业级监控平台全栈架构设计",
       "title": "企业级监控平台全栈架构设计",
       "en": "SDK, KAFKA, CLICKHOUSE",
-      "tags": ["SDK", "Kafka", "ClickHouse", "Docker"],
+      "tags": [
+        "SDK",
+        "Kafka",
+        "ClickHouse",
+        "Docker"
+      ],
       "epLabel": "SERIES / 19 EPISODES",
       "ghost": "19",
       "eyebrow": "前端架构课程",
@@ -396,7 +511,12 @@
       "out": "前端架构课程/企业级文档协同实践",
       "title": "企业级文档协同实践",
       "en": "COLLABORATIVE EDITING",
-      "tags": ["协同编辑", "知识库", "架构设计", "项目实战"],
+      "tags": [
+        "协同编辑",
+        "知识库",
+        "架构设计",
+        "项目实战"
+      ],
       "epLabel": "SERIES / 15 EPISODES",
       "ghost": "15",
       "eyebrow": "前端架构课程",
@@ -412,7 +532,12 @@
       "out": "前端架构课程/音视频实时互动技术",
       "title": "音视频实时互动技术",
       "en": "WEBRTC, RTMP, COTURN",
-      "tags": ["WebRTC", "RTMP", "SDP/ICE", "coturn"],
+      "tags": [
+        "WebRTC",
+        "RTMP",
+        "SDP/ICE",
+        "coturn"
+      ],
       "epLabel": "SERIES / 23 EPISODES",
       "ghost": "23",
       "eyebrow": "前端架构课程",
@@ -428,7 +553,12 @@
       "out": "前端架构课程/工程管理实战",
       "title": "工程管理实战",
       "en": "MONOREPO, CICD, PUBLISHING",
-      "tags": ["monorepo", "CICD", "组件库", "设计令牌"],
+      "tags": [
+        "monorepo",
+        "CICD",
+        "组件库",
+        "设计令牌"
+      ],
       "epLabel": "SERIES / 40 EPISODES",
       "ghost": "40",
       "eyebrow": "前端架构课程",
@@ -444,7 +574,12 @@
       "out": "前端架构课程/前端测试框架",
       "title": "前端测试框架",
       "en": "JEST, MOCKS, SNAPSHOTS",
-      "tags": ["Jest", "mock", "快照", "组件测试"],
+      "tags": [
+        "Jest",
+        "mock",
+        "快照",
+        "组件测试"
+      ],
       "epLabel": "SERIES / 27 EPISODES",
       "ghost": "27",
       "eyebrow": "前端架构课程",
@@ -460,7 +595,12 @@
       "out": "前端架构课程/D3.js",
       "title": "D3.js",
       "en": "DATA-DRIVEN DOCUMENTS",
-      "tags": ["数据绑定", "比例尺", "图形生成器", "地图投影"],
+      "tags": [
+        "数据绑定",
+        "比例尺",
+        "图形生成器",
+        "地图投影"
+      ],
       "epLabel": "SERIES / 67 EPISODES",
       "ghost": "67",
       "eyebrow": "前端架构课程",
@@ -476,7 +616,12 @@
       "out": "前端架构课程/CSS企业应用方案",
       "title": "CSS 企业应用方案",
       "en": "SASS, POSTCSS, TAILWIND",
-      "tags": ["Sass", "PostCSS", "Tailwind", "工程化"],
+      "tags": [
+        "Sass",
+        "PostCSS",
+        "Tailwind",
+        "工程化"
+      ],
       "epLabel": "SERIES / 27 EPISODES",
       "ghost": "27",
       "eyebrow": "前端架构课程",
@@ -492,7 +637,12 @@
       "out": "前端架构课程/微前端",
       "title": "微前端",
       "en": "MICRO-APP & SANDBOX",
-      "tags": ["micro-app", "WebComponent", "子应用", "数据通信"],
+      "tags": [
+        "micro-app",
+        "WebComponent",
+        "子应用",
+        "数据通信"
+      ],
       "epLabel": "SERIES / 33 EPISODES",
       "ghost": "33",
       "eyebrow": "前端架构课程",
@@ -508,7 +658,12 @@
       "out": "前端架构课程/前端工具链",
       "title": "前端工具链",
       "en": "LINT · FORMAT · AST",
-      "tags": ["Prettier", "ESLint", "Babel", "AST"],
+      "tags": [
+        "Prettier",
+        "ESLint",
+        "Babel",
+        "AST"
+      ],
       "epLabel": "SERIES / 28 EPISODES",
       "ghost": "28",
       "eyebrow": "前端架构课程",
@@ -524,7 +679,12 @@
       "out": "前端架构课程/新自定义脚手架",
       "title": "新自定义脚手架",
       "en": "CLI · TEMPLATE · NPM",
-      "tags": ["Node.js", "CLI", "inquirer", "npm"],
+      "tags": [
+        "Node.js",
+        "CLI",
+        "inquirer",
+        "npm"
+      ],
       "epLabel": "SERIES / 10 EPISODES",
       "ghost": "10",
       "eyebrow": "前端架构课程",
@@ -540,7 +700,12 @@
       "out": "前端架构课程/微前端架构实战",
       "title": "微前端架构实战",
       "en": "MICRO FRONTENDS, WIRED",
-      "tags": ["微前端", "沙箱", "通信", "故障隔离"],
+      "tags": [
+        "微前端",
+        "沙箱",
+        "通信",
+        "故障隔离"
+      ],
       "epLabel": "SERIES / 26 EPISODES",
       "ghost": "26",
       "eyebrow": "前端架构课程",
@@ -556,7 +721,12 @@
       "out": "前端架构课程/Electron",
       "title": "Electron",
       "en": "DESKTOP APPS IN JS",
-      "tags": ["主进程", "渲染进程", "IPC", "打包"],
+      "tags": [
+        "主进程",
+        "渲染进程",
+        "IPC",
+        "打包"
+      ],
       "epLabel": "SERIES / 71 EPISODES",
       "ghost": "71",
       "eyebrow": "前端架构课程",
@@ -572,7 +742,12 @@
       "out": "前端架构课程/React源码分析",
       "title": "React 源码分析",
       "en": "INSIDE REACT'S SOURCE",
-      "tags": ["Fiber", "Hooks", "调度", "Diff"],
+      "tags": [
+        "Fiber",
+        "Hooks",
+        "调度",
+        "Diff"
+      ],
       "epLabel": "SERIES / 38 EPISODES",
       "ghost": "38",
       "eyebrow": "前端架构课程",
@@ -588,7 +763,12 @@
       "out": "前端架构课程/文档协同",
       "title": "文档协同",
       "en": "EDIT TOGETHER, LIVE",
-      "tags": ["协同编辑", "理论基础", "项目实战", "架构落地"],
+      "tags": [
+        "协同编辑",
+        "理论基础",
+        "项目实战",
+        "架构落地"
+      ],
       "epLabel": "SERIES / 32 EPISODES",
       "ghost": "32",
       "eyebrow": "前端架构课程",
@@ -604,7 +784,12 @@
       "out": "前端架构课程/脚手架技术内幕",
       "title": "脚手架技术内幕",
       "en": "INSIDE THE SCAFFOLD",
-      "tags": ["CLI", "模板引擎", "依赖管理", "发布"],
+      "tags": [
+        "CLI",
+        "模板引擎",
+        "依赖管理",
+        "发布"
+      ],
       "epLabel": "SERIES / 22 EPISODES",
       "ghost": "22",
       "eyebrow": "前端架构课程",
@@ -620,7 +805,12 @@
       "out": "前端架构课程/运维自动化项目实战",
       "title": "运维自动化项目实战",
       "en": "DEPLOY · WATCH · SCALE",
-      "tags": ["部署", "监控", "Docker", "CI"],
+      "tags": [
+        "部署",
+        "监控",
+        "Docker",
+        "CI"
+      ],
       "epLabel": "SERIES / 16 EPISODES",
       "ghost": "16",
       "eyebrow": "前端架构课程",
@@ -636,7 +826,12 @@
       "out": "前端架构课程/vite深度剖析",
       "title": "Vite 深度剖析",
       "en": "ESM DEV SERVER, INSIDE",
-      "tags": ["ESM", "HMR", "插件", "构建"],
+      "tags": [
+        "ESM",
+        "HMR",
+        "插件",
+        "构建"
+      ],
       "epLabel": "SERIES / 14 EPISODES",
       "ghost": "14",
       "eyebrow": "前端架构课程",
@@ -652,7 +847,12 @@
       "out": "前端架构课程/前端服务监控",
       "title": "前端服务监控",
       "en": "WATCH EVERY REQUEST",
-      "tags": ["SDK", "埋点", "性能指标", "上报"],
+      "tags": [
+        "SDK",
+        "埋点",
+        "性能指标",
+        "上报"
+      ],
       "epLabel": "SERIES / 10 EPISODES",
       "ghost": "10",
       "eyebrow": "前端架构课程",
@@ -668,7 +868,12 @@
       "out": "前端架构课程/rollup",
       "title": "Rollup",
       "en": "BUNDLING, TREE-SHAKEN",
-      "tags": ["Tree-shaking", "插件", "配置", "npm"],
+      "tags": [
+        "Tree-shaking",
+        "插件",
+        "配置",
+        "npm"
+      ],
       "epLabel": "SERIES / 10 EPISODES",
       "ghost": "10",
       "eyebrow": "前端架构课程",
@@ -684,7 +889,12 @@
       "out": "前端架构课程/国际化（i18n）",
       "title": "国际化（i18n）",
       "en": "MANY LANGUAGES, ONE APP",
-      "tags": ["i18n", "词条", "时区", "格式化"],
+      "tags": [
+        "i18n",
+        "词条",
+        "时区",
+        "格式化"
+      ],
       "epLabel": "SERIES / 09 EPISODES",
       "ghost": "09",
       "eyebrow": "前端架构课程",
@@ -700,7 +910,12 @@
       "out": "前端架构课程/企业级包管理方案",
       "title": "企业级包管理方案",
       "en": "MONOREPO PACKAGE FLOW",
-      "tags": ["npm", "monorepo", "发布", "版本"],
+      "tags": [
+        "npm",
+        "monorepo",
+        "发布",
+        "版本"
+      ],
       "epLabel": "SERIES / 11 EPISODES",
       "ghost": "11",
       "eyebrow": "前端架构课程",
@@ -716,7 +931,12 @@
       "out": "前端架构课程/esbuild",
       "title": "esbuild",
       "en": "BUILDS AT GO SPEED",
-      "tags": ["极速构建", "Go", "插件", "性能对比"],
+      "tags": [
+        "极速构建",
+        "Go",
+        "插件",
+        "性能对比"
+      ],
       "epLabel": "SERIES / 07 EPISODES",
       "ghost": "07",
       "eyebrow": "前端架构课程",
@@ -725,6 +945,531 @@
       "bg": {
         "scene": "a build pipeline collapsing into a single lightning-fast pass that compresses a wide stream of modules into one output in one stroke",
         "palette": "yellow and black"
+      }
+    },
+    {
+      "key": "hm-next-sdk",
+      "out": "鸿蒙Next课程/HarmonyOS Next SDK",
+      "title": "HarmonyOS Next SDK",
+      "en": "ARKTS FROM THE GROUND UP",
+      "tags": [
+        "ArkTS",
+        "Ability",
+        "UIAbility",
+        "SDK"
+      ],
+      "epLabel": "SERIES / 76 EPISODES",
+      "ghost": "76",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 76 集 · 总时长 20 小时 51 分",
+      "footerRight": "HarmonyOS Next SDK",
+      "bg": {
+        "scene": "a phone-shaped slab of light assembling itself from modular panels, each panel a component snapping into a stack",
+        "palette": "blue and white"
+      }
+    },
+    {
+      "key": "hm-arkui",
+      "out": "鸿蒙Next课程/ArkUI应用框架",
+      "title": "ArkUI应用框架",
+      "en": "DECLARATIVE UI IN ARKTS",
+      "tags": [
+        "ArkUI",
+        "声明式",
+        "状态管理",
+        "组件"
+      ],
+      "epLabel": "SERIES / 62 EPISODES",
+      "ghost": "62",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 62 集 · 总时长 26 小时 01 分",
+      "footerRight": "ArkUI应用框架",
+      "bg": {
+        "scene": "a declarative UI tree drawing itself: component cards falling into a nested layout while state tokens flow down the branches",
+        "palette": "teal and graphite"
+      }
+    },
+    {
+      "key": "hm-app-model",
+      "out": "鸿蒙Next课程/HarmonyOS应用模型",
+      "title": "HarmonyOS应用模型",
+      "en": "ABILITY AND STAGE",
+      "tags": [
+        "Stage模型",
+        "Ability",
+        "生命周期",
+        "进程"
+      ],
+      "epLabel": "SERIES / 40 EPISODES",
+      "ghost": "40",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 40 集 · 总时长 16 小时 17 分",
+      "footerRight": "HarmonyOS应用模型",
+      "bg": {
+        "scene": "a stage holding three glowing ability capsules wired to a lifecycle clock, one of them crossing a process boundary",
+        "palette": "indigo and cyan"
+      }
+    },
+    {
+      "key": "hm-ecosystem",
+      "out": "鸿蒙Next课程/HarmonyOS Next 特色与生态",
+      "title": "HarmonyOS Next 特色与生态",
+      "en": "THE NEXT ECOSYSTEM",
+      "tags": [
+        "元服务",
+        "分布式",
+        "多设备",
+        "生态"
+      ],
+      "epLabel": "SERIES / 48 EPISODES",
+      "ghost": "48",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 48 集 · 总时长 12 小时 35 分",
+      "footerRight": "HarmonyOS Next 特色与生态",
+      "bg": {
+        "scene": "one glowing app surface mirrored across a ring of device silhouettes, a distributed bus linking every one",
+        "palette": "violet and lime"
+      }
+    },
+    {
+      "key": "hm-driving-test",
+      "out": "鸿蒙Next课程/坚果驾考",
+      "title": "坚果驾考",
+      "en": "DRIVING-TEST APP",
+      "tags": [
+        "ArkTS",
+        "项目实战",
+        "题库",
+        "页面路由"
+      ],
+      "epLabel": "SERIES / 57 EPISODES",
+      "ghost": "57",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 57 集 · 总时长 15 小时 46 分",
+      "footerRight": "坚果驾考",
+      "bg": {
+        "scene": "a quiz interface assembling itself: question cards stacking into a scroll while a progress ring fills",
+        "palette": "orange and navy"
+      }
+    },
+    {
+      "key": "hm-case-notes",
+      "out": "鸿蒙Next课程/实战案例-简记",
+      "title": "实战案例-简记",
+      "en": "A NOTES APP, END TO END",
+      "tags": [
+        "记事本",
+        "数据存储",
+        "ArkTS",
+        "实战"
+      ],
+      "epLabel": "SERIES / 21 EPISODES",
+      "ghost": "21",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 21 集 · 总时长 10 小时 13 分",
+      "footerRight": "实战案例-简记",
+      "bg": {
+        "scene": "a note card unfolding into a database cylinder and folding back, a small calendar grid behind it",
+        "palette": "amber and slate"
+      }
+    },
+    {
+      "key": "hm-daysmatter",
+      "out": "鸿蒙Next课程/daysmatter",
+      "title": "daysmatter",
+      "en": "COUNTDOWN APP, BUILT",
+      "tags": [
+        "倒计时",
+        "组件",
+        "实战",
+        "ArkTS"
+      ],
+      "epLabel": "SERIES / 17 EPISODES",
+      "ghost": "17",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 17 集 · 总时长 4 小时 39 分",
+      "footerRight": "daysmatter",
+      "bg": {
+        "scene": "a countdown dial of concentric rings with a date card flipping over at its centre",
+        "palette": "rose and deep blue"
+      }
+    },
+    {
+      "key": "hm-case-traveler",
+      "out": "鸿蒙Next课程/实战案例-华夏旅行者",
+      "title": "实战案例-华夏旅行者",
+      "en": "A TRAVEL APP, BUILT",
+      "tags": [
+        "旅行",
+        "地图",
+        "实战",
+        "ArkTS"
+      ],
+      "epLabel": "SERIES / 14 EPISODES",
+      "ghost": "14",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 14 集 · 总时长 5 小时 50 分",
+      "footerRight": "实战案例-华夏旅行者",
+      "bg": {
+        "scene": "a travel screen sliding over a stylised mountain map while route pins light up one by one",
+        "palette": "emerald and sand"
+      }
+    },
+    {
+      "key": "hm-career",
+      "out": "鸿蒙Next课程/鸿蒙就业指导",
+      "title": "鸿蒙就业指导",
+      "en": "THE HARMONYOS JOB",
+      "tags": [
+        "就业",
+        "简历",
+        "面试",
+        "鸿蒙"
+      ],
+      "epLabel": "SERIES / 04 EPISODES",
+      "ghost": "04",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 4 集 · 总时长 1 小时 09 分",
+      "footerRight": "鸿蒙就业指导",
+      "bg": {
+        "scene": "a resume sheet and a device silhouette facing each other across a lit interview table",
+        "palette": "gold and charcoal"
+      }
+    },
+    {
+      "key": "hm-certification",
+      "out": "鸿蒙Next课程/鸿蒙认证考试辅导",
+      "title": "鸿蒙认证考试辅导",
+      "en": "PASS THE CERTIFICATION",
+      "tags": [
+        "认证",
+        "考试",
+        "考点",
+        "鸿蒙"
+      ],
+      "epLabel": "SERIES / 01 EPISODES",
+      "ghost": "01",
+      "eyebrow": "鸿蒙Next课程",
+      "footerLeft": "共 1 集 · 总时长 0 小时 12 分",
+      "footerRight": "鸿蒙认证考试辅导",
+      "bg": {
+        "scene": "a certificate seal at the centre of a ring of exam cards, one card lit as the answer",
+        "palette": "blue and gold"
+      }
+    },
+    {
+      "key": "job-hunt-fast",
+      "out": "前端课程/求职之道极速版",
+      "title": "求职之道极速版",
+      "en": "THE FAST JOB-HUNT TRACK",
+      "tags": [
+        "求职",
+        "简历",
+        "面试",
+        "前端"
+      ],
+      "epLabel": "SERIES / 69 EPISODES",
+      "ghost": "69",
+      "eyebrow": "前端课程",
+      "footerLeft": "共 69 集 · 总时长 25 小时 55 分",
+      "footerRight": "求职之道极速版",
+      "bg": {
+        "scene": "a compressed timeline of interview stages as glowing waypoints, one path pulling ahead of the others",
+        "palette": "cyan and magenta"
+      }
+    },
+    {
+      "key": "job-hunt-standard",
+      "out": "前端课程/求职之道常规版",
+      "title": "求职之道常规版",
+      "en": "THE FULL JOB-HUNT TRACK",
+      "tags": [
+        "求职",
+        "简历",
+        "面试",
+        "职业规划"
+      ],
+      "epLabel": "SERIES / 68 EPISODES",
+      "ghost": "68",
+      "eyebrow": "前端课程",
+      "footerLeft": "共 68 集 · 总时长 25 小时 07 分",
+      "footerRight": "求职之道常规版",
+      "bg": {
+        "scene": "a long ladder of interview stages rising through layered skill planes, every rung labelled",
+        "palette": "indigo and amber"
+      }
+    },
+    {
+      "key": "fe-ai-basics",
+      "out": "前端架构课程/前端+AI（基础篇）",
+      "title": "前端+AI（基础篇）",
+      "en": "FRONTEND MEETS LLMS",
+      "tags": [
+        "LLM",
+        "Prompt",
+        "AI编码",
+        "提效"
+      ],
+      "epLabel": "SERIES / 56 EPISODES",
+      "ghost": "56",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 56 集 · 总时长 25 小时 50 分",
+      "footerRight": "前端+AI（基础篇）",
+      "bg": {
+        "scene": "a code pane and a language-model core exchanging glowing prompt cards across a bridge",
+        "palette": "violet and cyan"
+      }
+    },
+    {
+      "key": "react-source",
+      "out": "前端架构课程/React源码解析",
+      "title": "React源码解析",
+      "en": "REACT, LINE BY LINE",
+      "tags": [
+        "Fiber",
+        "Reconciler",
+        "Hooks",
+        "调度"
+      ],
+      "epLabel": "SERIES / 54 EPISODES",
+      "ghost": "54",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 54 集 · 总时长 22 小时 45 分",
+      "footerRight": "React源码解析",
+      "bg": {
+        "scene": "a source file unfolding into a fiber tree while a reconciler loop sweeps its leaves",
+        "palette": "sky blue and slate"
+      }
+    },
+    {
+      "key": "vue-source",
+      "out": "前端架构课程/vue源码解析(新)",
+      "title": "vue源码解析(新)",
+      "en": "VUE 3 INTERNALS",
+      "tags": [
+        "响应式",
+        "编译器",
+        "渲染器",
+        "Vue3"
+      ],
+      "epLabel": "SERIES / 51 EPISODES",
+      "ghost": "51",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 51 集 · 总时长 22 小时 05 分",
+      "footerRight": "vue源码解析(新)",
+      "bg": {
+        "scene": "a reactivity graph of glowing dependencies collapsing into a single render pass",
+        "palette": "green and graphite"
+      }
+    },
+    {
+      "key": "vue-internals",
+      "out": "前端架构课程/vue源码分析",
+      "title": "vue源码分析",
+      "en": "INSIDE VUE'S REACTIVITY",
+      "tags": [
+        "响应式",
+        "虚拟DOM",
+        "Diff",
+        "依赖收集"
+      ],
+      "epLabel": "SERIES / 17 EPISODES",
+      "ghost": "17",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 17 集 · 总时长 6 小时 06 分",
+      "footerRight": "vue源码分析",
+      "bg": {
+        "scene": "dependency-collection threads weaving through a component tree toward one watcher node",
+        "palette": "teal and white"
+      }
+    },
+    {
+      "key": "vue-router-source",
+      "out": "前端架构课程/vue-router源码分析",
+      "title": "vue-router源码分析",
+      "en": "INSIDE VUE ROUTER",
+      "tags": [
+        "路由",
+        "匹配器",
+        "导航守卫",
+        "history"
+      ],
+      "epLabel": "SERIES / 24 EPISODES",
+      "ghost": "24",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 24 集 · 总时长 14 小时 14 分",
+      "footerRight": "vue-router源码分析",
+      "bg": {
+        "scene": "a route table drawn as a branching map where one path lights up and guards snap shut behind it",
+        "palette": "orange and indigo"
+      }
+    },
+    {
+      "key": "coding-agent",
+      "out": "前端架构课程/从零实现Coding Agent",
+      "title": "从零实现Coding Agent",
+      "en": "BUILD A CODING AGENT",
+      "tags": [
+        "Agent",
+        "工具调用",
+        "上下文",
+        "LLM"
+      ],
+      "epLabel": "SERIES / 36 EPISODES",
+      "ghost": "36",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 36 集 · 总时长 13 小时 42 分",
+      "footerRight": "从零实现Coding Agent",
+      "bg": {
+        "scene": "an agent loop as a circular track: a terminal cube carrying tool cards around it and dropping patches",
+        "palette": "crimson and steel"
+      }
+    },
+    {
+      "key": "ai-platform-coze-dify",
+      "out": "前端架构课程/AI平台篇（扣子&Dify）",
+      "title": "AI平台篇（扣子&Dify）",
+      "en": "COZE & DIFY, HANDS ON",
+      "tags": [
+        "扣子",
+        "Dify",
+        "工作流",
+        "编排"
+      ],
+      "epLabel": "SERIES / 26 EPISODES",
+      "ghost": "26",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 26 集 · 总时长 9 小时 54 分",
+      "footerRight": "AI平台篇（扣子&Dify）",
+      "bg": {
+        "scene": "a canvas of draggable nodes wiring themselves into an LLM workflow, a play button glowing",
+        "palette": "purple and mint"
+      }
+    },
+    {
+      "key": "component-library",
+      "out": "前端架构课程/通用组件库开发",
+      "title": "通用组件库开发",
+      "en": "A COMPONENT LIBRARY",
+      "tags": [
+        "组件库",
+        "设计规范",
+        "打包",
+        "文档站"
+      ],
+      "epLabel": "SERIES / 16 EPISODES",
+      "ghost": "16",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 16 集 · 总时长 9 小时 28 分",
+      "footerRight": "通用组件库开发",
+      "bg": {
+        "scene": "a shelf of reusable component cards, one slotted into an app frame while a docs site grows beside it",
+        "palette": "blue and coral"
+      }
+    },
+    {
+      "key": "browser-extension",
+      "out": "前端架构课程/浏览器插件开发",
+      "title": "浏览器插件开发",
+      "en": "EXTENSIONS, BUILT",
+      "tags": [
+        "Manifest",
+        "content script",
+        "背景页",
+        "消息通信"
+      ],
+      "epLabel": "SERIES / 15 EPISODES",
+      "ghost": "15",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 15 集 · 总时长 6 小时 21 分",
+      "footerRight": "浏览器插件开发",
+      "bg": {
+        "scene": "a browser window with an extension panel docked to it, message bubbles travelling between page and panel",
+        "palette": "yellow and charcoal"
+      }
+    },
+    {
+      "key": "recoil-source",
+      "out": "前端架构课程/Recoil源码分析",
+      "title": "Recoil源码分析",
+      "en": "INSIDE RECOIL'S ATOMS",
+      "tags": [
+        "atom",
+        "selector",
+        "状态",
+        "订阅"
+      ],
+      "epLabel": "SERIES / 13 EPISODES",
+      "ghost": "13",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 13 集 · 总时长 4 小时 29 分",
+      "footerRight": "Recoil源码分析",
+      "bg": {
+        "scene": "atom nodes floating around a selector web with subscriptions lighting along its edges",
+        "palette": "cyan and violet"
+      }
+    },
+    {
+      "key": "pinia-source",
+      "out": "前端架构课程/pinia源码",
+      "title": "pinia源码",
+      "en": "INSIDE PINIA",
+      "tags": [
+        "store",
+        "响应式",
+        "插件",
+        "Vue3"
+      ],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 10 集 · 总时长 3 小时 39 分",
+      "footerRight": "pinia源码",
+      "bg": {
+        "scene": "a store container whose state blocks broadcast to component leaves along reactive threads",
+        "palette": "green and amber"
+      }
+    },
+    {
+      "key": "rxjs",
+      "out": "前端架构课程/RxJS",
+      "title": "RxJS",
+      "en": "STREAMS, OPERATORS, TIME",
+      "tags": [
+        "Observable",
+        "操作符",
+        "调度器",
+        "响应式"
+      ],
+      "epLabel": "SERIES / 07 EPISODES",
+      "ghost": "07",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 7 集 · 总时长 3 小时 23 分",
+      "footerRight": "RxJS",
+      "bg": {
+        "scene": "a marble timeline where operator gates reshape a stream of coloured marbles into another",
+        "palette": "magenta and navy"
+      }
+    },
+    {
+      "key": "theme-switching",
+      "out": "前端架构课程/主题切换",
+      "title": "主题切换",
+      "en": "THEMING WITHOUT THE MESS",
+      "tags": [
+        "CSS变量",
+        "设计令牌",
+        "暗色模式",
+        "主题"
+      ],
+      "epLabel": "SERIES / 05 EPISODES",
+      "ghost": "05",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 5 集 · 总时长 2 小时 19 分",
+      "footerRight": "主题切换",
+      "bg": {
+        "scene": "one interface flipping between light and dark palettes while a token grid re-maps its colours",
+        "palette": "grey and gold"
       }
     }
   ]
