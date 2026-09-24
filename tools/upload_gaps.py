@@ -7,10 +7,12 @@ platform, and for the things that cannot be uploaded at all, why not.
 Four buckets come out of it:
 
   * uploadable now   -- on disk and absent from a platform: what the uploaders will send
-  * needs a download -- absent from a platform and not on disk either, so the lesson has to
-                        be exported from the course platform before it can be uploaded
-  * never uploaded   -- no local file and no mapping on either platform: the course was
-                        never exported, so nothing about it exists anywhere yet
+  * needs an export  -- absent from a platform and not on disk either, so the lesson has to be
+                        exported from the course platform first. Two routes, and
+                        export_missing.py picks between them: download it, or publish the merged
+                        lesson.ts that is already sitting in work/;
+  * never uploaded   -- no local file and no mapping on either platform: nothing about the
+                        course exists anywhere yet
   * blocked          -- the platform answer is unknown (null), because no prefix or 稿件 was
                         ever established for that course; absence is not a fact there
 
@@ -49,7 +51,7 @@ def uploadable(courses: list, field: str) -> list:
     return rows_for(courses, lambda e: e["local"] and e[field] is False)
 
 
-def needs_download(courses: list, field: str) -> list:
+def needs_export(courses: list, field: str) -> list:
     return rows_for(courses, lambda e: not e["local"] and e[field] is False)
 
 
@@ -103,8 +105,8 @@ def main() -> int:
     courses = document["courses"]
     r2_open = uploadable(courses, "r2")
     bili_open = uploadable(courses, "bilibili")
-    r2_download = needs_download(courses, "r2")
-    bili_download = needs_download(courses, "bilibili")
+    r2_download = needs_export(courses, "r2")
+    bili_download = needs_export(courses, "bilibili")
     nowhere = never_uploaded(courses)
 
     if args.json:
@@ -120,7 +122,7 @@ def main() -> int:
             "episodes": document["totals"]["episodes"],
             "uploadable_now": {"r2": as_rows(r2_open, args.limit),
                                "bilibili": as_rows(bili_open, args.limit)},
-            "needs_download": {"r2": as_rows(r2_download, args.limit),
+            "needs_export": {"r2": as_rows(r2_download, args.limit),
                                "bilibili": as_rows(bili_download, args.limit)},
             "never_uploaded": [{"course": c["name"], "episodes": c["episode_count"]}
                                for c in nowhere],
@@ -136,13 +138,13 @@ def main() -> int:
         files, size = total(r2_open if field == "r2" else bili_open)
         more, more_size = total(r2_download if field == "r2" else bili_download)
         print(f"  {label:<9} uploadable {files:>4} files / {gigabytes(size):>6.2f} GB"
-              f"   ·   needs a download {more:>3} files / {gigabytes(more_size):>5.2f} GB")
+              f"   ·   needs an export {more:>3} files / {gigabytes(more_size):>5.2f} GB")
 
     table("uploadable now: on R2", r2_open, lambda c: c["r2_prefix"])
     table("uploadable now: on Bilibili", bili_open,
           lambda c: ",".join(c["bilibili_ids"]) or "(no 稿件 yet)")
-    table("needs a download first: missing on R2", r2_download, lambda c: c["r2_prefix"])
-    table("needs a download first: missing on Bilibili", bili_download,
+    table("needs an export first: missing on R2", r2_download, lambda c: c["r2_prefix"])
+    table("needs an export first: missing on Bilibili", bili_download,
           lambda c: ",".join(c["bilibili_ids"]) or "(no 稿件 yet)")
 
     print()
