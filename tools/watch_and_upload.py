@@ -20,6 +20,15 @@ REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
 PYTHON = sys.executable
 LOG = pathlib.Path(r"C:\Users\Yonjay\AppData\Local\Temp\watch-upload.log")
 OUT = REPO / "verify_fresh" / "out"
+STATUS = REPO / "verify_fresh" / "upload-status" / "courses.json"
+
+
+def stale_minutes(path: pathlib.Path) -> float:
+    """How old a file is, in minutes; a missing file counts as infinitely old."""
+    try:
+        return (time.time() - path.stat().st_mtime) / 60
+    except OSError:
+        return float("inf")
 
 
 def log(message: str) -> None:
@@ -117,11 +126,11 @@ def main() -> int:
     parser.add_argument("--no-publish", action="store_true",
                         help="only upload; do not publish the merged scratch that has no finished "
                              "file yet (see docs/EXPORT-PIPELINE.md §3)")
-    parser.add_argument("--courses-every", type=int, default=3,
-                        help="refresh verify_fresh/upload-status/courses.json every N passes "
-                             "(0 disables). The status page reads it, so it should not go stale "
-                             "while the backlog runs, but it costs 40 Bilibili calls and 44 bucket "
-                             "listings per refresh.")
+    parser.add_argument("--courses-max-age", type=int, default=45,
+                        help="refresh verify_fresh/upload-status/courses.json once it is this many "
+                             "minutes old (0 disables). The status page reads it, so it should not "
+                             "go stale while the backlog runs, but a refresh costs 40 Bilibili "
+                             "calls and 44 bucket listings.")
     parser.add_argument("--loop-minutes", type=int, default=0,
                         help="keep uploading on this interval instead of exiting after one pass. "
                              "The exporter works through a long queue, so waiting for it to finish "
@@ -134,9 +143,7 @@ def main() -> int:
     log("watching the exporter" +
         (f"; uploading every {args.loop_minutes} min" if args.loop_minutes else "; one pass when it goes idle"))
 
-    passes = 0
     while True:
-        passes += 1
         # In loop mode the exporter is not waited on: it works through a long queue and is
         # rarely idle, so requiring idleness would mean never uploading. The uploaders skip
         # what the platforms already hold, so a pass over incomplete material is harmless.
@@ -204,15 +211,18 @@ def main() -> int:
             run([PYTHON, str(REPO / "tools" / "clean_work.py"), "--apply"], "scratch cleanup")
 
         # The status page is a deliverable, and it is only as current as courses.json. Refreshing it
-        # every pass would mean 40 `biliup show` calls and 44 bucket listings an hour, so it runs
-        # every few passes instead: the uploads it reports on move at the same pace either way.
-        if args.courses_every and passes % args.courses_every == 0:
+        # every pass would mean 40 `biliup show` calls and 44 bucket listings an hour, so it happens
+        # once the data is older than --courses-max-age minutes. Keyed on the file's age rather than
+        # on a pass counter: the counter restarted with this process, so a watchdog restarted every
+        # few minutes would defer the refresh forever.
+        if args.courses_max_age and stale_minutes(STATUS) > args.courses_max_age:
             run([PYTHON, str(REPO / "tools" / "courses_json.py")], "courses.json")
             # The page reads courses.data.js and the reports read courses.json, so a refresh that
             # produced a document the schema rejects would go unnoticed until someone looked.
             run([PYTHON, str(REPO / "tools" / "validate_status.py")], "status data check")
-        elif args.courses_every:
-            log(f"courses.json refresh due on pass {args.courses_every * (passes // args.courses_every + 1)}")
+        elif args.courses_max_age:
+            log(f"courses.json is {stale_minutes(STATUS):.0f} min old; refresh after "
+                f"{args.courses_max_age} min")
 
         if not args.loop_minutes:
             log("all uploads finished")
