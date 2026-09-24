@@ -42,6 +42,11 @@ CRED_TARGET = "cf-evmedia-r2_{}"
 CRED_READER = pathlib.Path(__file__).resolve().parent.parent / "build" / "CredRead.exe"
 CHUNK = 8 * 1024 * 1024          # multipart part size
 MAX_CONCURRENCY = 4              # objects in flight; each one is itself multipart
+# R2 throttles per connection, not per account: measured 0.24 MB/s with one request in flight,
+# 0.33 with four, 3.79 with sixteen (32 was slightly worse at 2.81). Four parts per object meant a
+# collection holding a single large video -- the common shape here -- moved at ~0.3 MB/s, a day for
+# the pending backlog. Sixteen parts reaches the measured plateau.
+PART_CONCURRENCY = 16
 MIB = 1024 * 1024
 
 
@@ -129,7 +134,7 @@ def already_there(path: pathlib.Path, size: int, etag: str) -> bool:
 
 def upload(s3, bucket: str, path: pathlib.Path, key: str, progress: dict, lock: threading.Lock):
     config = TransferConfig(multipart_threshold=CHUNK, multipart_chunksize=CHUNK,
-                            max_concurrency=4, use_threads=True)
+                            max_concurrency=PART_CONCURRENCY, use_threads=True)
     s3.upload_file(str(path), bucket, key, Config=config)
     with lock:
         progress["done"] += 1
