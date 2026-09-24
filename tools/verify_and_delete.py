@@ -20,6 +20,7 @@ platforms holding the video is the entire reason the local copy can go.
 """
 
 import argparse
+import collections
 import json
 import pathlib
 import re
@@ -91,15 +92,26 @@ def main() -> int:
         parts = {}
         for bv in bvs:
             parts.update(bili_parts(bv))
-        remote = {k.rsplit("/", 1)[-1]: v
-                  for k, v in upload_to_r2.list_remote(s3, BUCKET, prefix).items() if v[0] > 0}
+        remote = {k: v for k, v in upload_to_r2.list_remote(s3, BUCKET, prefix).items() if v[0] > 0}
+        # The uploader keys an object by `prefix + the file's path inside the collection`, and a
+        # chaptered course repeats file names: `06. APIs.mp4` sits in both 第三章 ESLint and
+        # 第四章 Babel. Keying this map by bare name therefore compared a file against the *other*
+        # chapter's object, whose size differs, and reported an uploaded file as missing from R2.
+        # The name is only a fallback, and only when exactly one object carries it.
+        by_name = collections.defaultdict(list)
+        for object_key in remote:
+            by_name[object_key.rsplit("/", 1)[-1]].append(object_key)
 
         local = [p for p in sorted(folder.rglob("*"))
                  if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES]
         n_both = 0
         for path in local:
             key = norm(path.name)
-            entry = remote.get(path.name)
+            object_key = prefix + path.relative_to(folder).as_posix()
+            if object_key not in remote:
+                candidates = by_name.get(path.name, [])
+                object_key = candidates[0] if len(candidates) == 1 else None
+            entry = remote[object_key] if object_key else None
             r2_ok = bool(entry) and upload_to_r2.already_there(path, entry[0], entry[1])
             if key in parts and parts[key] is not None:
                 d = duration_of(path)
