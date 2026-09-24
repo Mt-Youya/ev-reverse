@@ -223,8 +223,11 @@ verify_fresh/out/<合集>/封面/<合集名>-合集封面-16x9.png
   1. **等几分钟到几十分钟**，别重试风暴；R2 上传与导出不受影响，只有 B站 侧暂停；
   2. **绝不要把「列表为空」当成「账号没有稿件」**：`bili_upload.archive_index` 以前会这么理解，
      那会让每个有本地文件的合集都去**新建稿件**（一次风控 = 几十条重复稿件）。
-     现在 `bili_upload` / `sync_bili_ids` / `find_orphan_archives` 在列表为空时**直接拒绝运行**；
-  3. 核验脚本一轮里**不要重复调用** `list`：一次调用就能回答的问题，不要每个工具各跑一遍。
+     现在 `bili_upload` / `sync_bili_ids` / `find_orphan_archives` 都通过
+     **`tools/bili_listing.py`** 取列表：它**一次取、缓存 10 分钟**（`build/bili-listing.txt`），
+     拿不到新数据时用上次的缓存并打印提示，连缓存都没有就**直接报错拒绝运行**；
+  3. 核验脚本一轮里**不要重复调用** `list`：写新脚本时直接用 `bili_listing.entries()`，
+     它会自动命中缓存（实测 494 个稿件：首次 8 秒，命中缓存 0.00 秒）。
 
 ---
 
