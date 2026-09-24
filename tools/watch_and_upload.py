@@ -143,9 +143,7 @@ def main() -> int:
         if bili_busy():
             log("a bilibili pass is already running; skipping the bilibili half")
         else:
-            # 前端工具链 is excluded because its only remaining local file is one the 稿件 already
-            # holds under a different part title, so appending it would create a duplicate part.
-            run([PYTHON, str(REPO / "tools" / "bili_upload.py"), "--skip", "工具链", "--apply"],
+            run([PYTHON, str(REPO / "tools" / "bili_upload.py"), "--apply"],
                 "bilibili uploads")
         if r2_busy():
             log("an r2 upload is already running; skipping the r2 half so they do not compete")

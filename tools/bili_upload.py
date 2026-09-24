@@ -142,6 +142,18 @@ def run(*args) -> str:
 # creation, so a part appended there would carry it forever.
 SUPERSEDED = {"BV1o2hk6fEX6"}
 
+# Local episode -> the title its part actually carries in the 稿件, when the two differ.
+#
+# 前端工具链's first part was overwritten with the collection's own name: the batch upload page had
+# that row selected when the collection title was typed, so 01. 课程概述 was submitted as
+# 「前端工具链」 (see .scratch/bilibili-upload/issues/01). Only Bilibili's editor can rename a part
+# and it will not accept a synthetic click, so the mismatch is recorded here. Without this the
+# collection either has to be skipped by --skip forever or grows a duplicate part on every pass,
+# because the file never matches a part title.
+PART_ALIASES = {
+    "前端工具链": {"01. 课程概述.mp4": "前端工具链"},
+}
+
 
 def archive_index(wanted: set) -> dict:
     """稿件 title -> {bv, set of part titles}, only for the collections we care about."""
@@ -206,11 +218,18 @@ def main() -> int:
         if entry is None:
             todo.append(("upload", rel, title, tags, videos, cover, None))
         else:
-            missing = [p for p in videos if norm(p.name) not in entry["parts"]]
+            aliases = PART_ALIASES.get(title, {})
+            missing = [p for p in videos
+                       if norm(p.name) not in entry["parts"]
+                       and norm(aliases.get(p.name, "")) not in entry["parts"]]
             if not missing:
                 print(f"skip  {title}: all {len(videos)} local video(s) are already parts of "
                       f"{entry['bv']}")
                 continue
+            for path in videos:
+                if norm(path.name) not in entry["parts"] and path not in missing:
+                    print(f"      {path.name} is already a part of {entry['bv']}, "
+                          f"under the title {aliases[path.name]!r}")
             todo.append(("append", rel, title, tags, missing, cover, entry["bv"]))
 
     total = sum(p.stat().st_size for _m, _r, _t, _g, vids, _c, _b in todo for p in vids)
