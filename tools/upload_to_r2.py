@@ -187,8 +187,14 @@ def main() -> int:
     remote = list_remote(s3, args.bucket, prefix)
     print(f"bucket already holds {len(remote)} object(s) under this prefix\n")
 
-    todo, skip = [], []
+    todo, skip, gone = [], [], []
     for path in files:
+        if not path.exists():
+            # verify_and_delete.py removes a local file the moment both platforms hold it, and it
+            # runs while passes are in flight. Losing the race used to raise out of the planning
+            # loop and abandon the rest of the collection.
+            gone.append(path)
+            continue
         # Keep the relative path so a nested folder does not collapse into flat keys.
         key = args.exact_key or (prefix + path.relative_to(args.local).as_posix())
         entry = remote.get(key)
@@ -199,6 +205,11 @@ def main() -> int:
                 f"size differs ({entry[0]} vs {path.stat().st_size})" if entry[0] != path.stat().st_size
                 else "same size, different bytes")
             todo.append((path, key, why))
+
+    if gone:
+        print(f"SKIP  {len(gone)} file(s) deleted by the cleanup while this pass was planning")
+        for path in gone:
+            print(f"   - {path.name}")
 
     print(f"SKIP  {len(skip)} already present and identical")
     for path, key in skip:
@@ -228,6 +239,12 @@ def main() -> int:
                 path, key = futures[future]
                 try:
                     future.result()
+                except FileNotFoundError:
+                    # Deleted between planning and upload; the cleanup only removes files that R2
+                    # and Bilibili already hold byte for byte, so there is nothing left to send.
+                    with lock:
+                        gone.append(path)
+                    print(f"  GONE {key}: deleted while this pass was running", flush=True)
                 except Exception as error:  # noqa: BLE001
                     with lock:
                         progress["failed"].append((path, key, str(error)[:900]))
@@ -258,13 +275,18 @@ def main() -> int:
     print("\nverifying against the bucket...")
     after = list_remote(s3, args.bucket, prefix)
     bad = []
+    gone_paths = {p for p in gone}
     for path, key, _ in todo:
+        if path in gone_paths or not path.exists():
+            continue
         entry = after.get(key)
         if not entry:
             bad.append((key, "missing after upload"))
         elif entry[0] != path.stat().st_size:
             bad.append((key, f"size {entry[0]} != {path.stat().st_size}"))
-    print(f"verified {len(todo) - len(bad)}/{len(todo)}")
+    checked = len([1 for path, _k, _w in todo if path not in gone_paths and path.exists()])
+    print(f"verified {checked - len(bad)}/{checked}"
+          + (f"  ({len(gone_paths)} file(s) skipped: deleted by the cleanup)" if gone_paths else ""))
     for key, why in bad:
         print(f"   ! {key}: {why}")
     return 1 if bad else 0
