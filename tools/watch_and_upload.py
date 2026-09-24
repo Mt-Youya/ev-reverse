@@ -208,6 +208,9 @@ def main() -> int:
         # every few passes instead: the uploads it reports on move at the same pace either way.
         if args.courses_every and passes % args.courses_every == 0:
             run([PYTHON, str(REPO / "tools" / "courses_json.py")], "courses.json")
+            # The page reads courses.data.js and the reports read courses.json, so a refresh that
+            # produced a document the schema rejects would go unnoticed until someone looked.
+            run([PYTHON, str(REPO / "tools" / "validate_status.py")], "status data check")
         elif args.courses_every:
             log(f"courses.json refresh due on pass {args.courses_every * (passes // args.courses_every + 1)}")
 
