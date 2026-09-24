@@ -85,15 +85,15 @@ BILI_BY_COLLECTION = {
     # scratch on 2026-09-24. An empty list is a fact ("nothing holds these lessons"), where a
     # missing entry would read as "unknown" on the status page.
     "前端架构课程/Electron": [],
-    "前端架构课程/React源码分析": [],
-    "前端架构课程/文档协同": [],
+    "前端架构课程/React源码分析": ["BV1p5aP6wEBm"],
+    "前端架构课程/文档协同": ["BV1A5aP6wEam"],
     "前端架构课程/脚手架技术内幕": [],
     "前端架构课程/运维自动化项目实战": [],
-    "前端架构课程/vite深度剖析": [],
+    "前端架构课程/vite深度剖析": ["BV1w5aP6AE5S"],
     "前端架构课程/前端服务监控": ["BV1p8ac6WEJs"],
     "前端架构课程/rollup": ["BV1n8ac6WE6M"],
-    "前端架构课程/国际化（i18n）": [],
-    "前端架构课程/企业级包管理方案": [],
+    "前端架构课程/国际化（i18n）": ["BV1jtaP6pEc5"],
+    "前端架构课程/企业级包管理方案": ["BV1H5aP6wEBX"],
     "前端架构课程/esbuild": ["BV1H8ac6WEfW"],
 }
 
