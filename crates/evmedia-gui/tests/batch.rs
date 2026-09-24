@@ -254,6 +254,38 @@ fn clearing_removes_only_rows_that_are_done() {
     assert!(fixture.snapshot().items.is_empty());
 }
 
+/// The same button, with every status present at once.
+///
+/// The test above only ever holds one row and that row is complete, so `items.is_empty()` after a
+/// clear is exactly what a correct implementation and a "delete everything" implementation both
+/// produce. This is the version that can tell them apart: the rows that are not finished must
+/// survive, because retry and force-stop operate on them.
+#[test]
+fn clearing_keeps_rows_that_still_have_work_in_them() {
+    let fixture = Fixture::new("clear-mixed");
+    let mut entries = vec![
+        row(fixture.item(315187, 903780, "complete lesson")),
+        row(fixture.item(315187, 903781, "failed lesson")),
+        row(fixture.item(315187, 903782, "cancelled lesson")),
+        row(fixture.item(315187, 903783, "skipped lesson")),
+        row(fixture.item(315187, 903784, "queued lesson")),
+    ];
+    entries[0].status = JobStatus::Complete;
+    entries[1].status = JobStatus::Failed;
+    entries[2].status = JobStatus::Cancelled;
+    entries[3].status = JobStatus::Skipped;
+    fixture.queue.set_rows(entries);
+
+    fixture.queue.clear_finished();
+
+    let left: Vec<_> = fixture.snapshot().items.iter().map(|e| e.item.id.clone()).collect();
+    assert_eq!(
+        left,
+        vec!["315187:903781", "315187:903782", "315187:903784"],
+        "clearing dropped rows that were not finished"
+    );
+}
+
 /// Nothing in the queue may write into another lesson's scratch directory: two exports sharing one
 /// `--work` would overwrite each other's segments and produce files of the wrong length.
 #[test]

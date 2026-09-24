@@ -147,12 +147,22 @@ impl Queue {
         self.changed.notify_all();
     }
 
+    /// Drop the rows that are genuinely over: the ones with a published file.
+    ///
+    /// This used to read `retain(Queued | Running)` -- "keep what is not done yet" -- which is not the
+    /// same set. `Failed` and `Cancelled` are neither queued nor complete: they are the work still
+    /// owed to the user, and `retry_finished` operates on exactly those rows. Treating them as
+    /// finished meant one press of 「清除已完成」 threw away every failed lesson along with the
+    /// successful ones, and the retry button became a no-op on an empty queue.
+    ///
+    /// `Skipped` does go: the output was already on disk, so there is nothing to retry and nothing
+    /// left to decide.
     pub fn clear_finished(&self) {
         {
             let mut state = self.lock();
-            state
-                .items
-                .retain(|entry| matches!(entry.status, JobStatus::Queued | JobStatus::Running));
+            state.items.retain(|entry| {
+                !matches!(entry.status, JobStatus::Complete | JobStatus::Skipped)
+            });
             // A halt is about the batch that just ended, so clearing the rows clears it too.
             state.halt = None;
         }
