@@ -16,15 +16,11 @@ Anything ambiguous is printed for a human instead of guessed.
 """
 
 import argparse
-import json
 import pathlib
 import re
-import subprocess
 import sys
 
 REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
-BILIUP = pathlib.Path.home() / ".biliup" / "bin" / "biliup.exe"
-COOKIES = pathlib.Path.home() / ".biliup" / "cookies.json"
 TABLE = REPO / "tools" / "clean_work.py"
 
 sys.path.insert(0, str(REPO / "tools"))
