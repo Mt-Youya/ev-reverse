@@ -127,6 +127,23 @@ R2_BY_COLLECTION = {
     "前端架构课程/微前端": "videos/frontend/micro-frontend/duyi-edu/",
     "前端架构课程/微前端架构实战": "videos/frontend/micro-frontend/architecture-duyi-edu/",
     "前端架构课程/新自定义脚手架": "videos/frontend/scaffolding/duyi-edu/",
+    # Eleven courses that had no home because nothing of theirs had ever been published. Their
+    # scratch held merged lessons from days earlier (see export_missing.py --from-cache), so
+    # publishing them is what created the files these prefixes now receive. Named by content, the
+    # way the rest of the tree is: NestJS is a 前端架构课程 course and lives under backend/nodejs.
+    # `react`, `gsap` and `koa` are deliberately not reused -- they hold files from another source,
+    # not this account's catalogue.
+    "前端架构课程/Electron": "videos/frontend/electron/duyi-edu/",
+    "前端架构课程/React源码分析": "videos/frontend/react-internals/duyi-edu/",
+    "前端架构课程/文档协同": "videos/frontend/doc-sync/duyi-edu/",
+    "前端架构课程/脚手架技术内幕": "videos/frontend/scaffolding-internals/duyi-edu/",
+    "前端架构课程/vite深度剖析": "videos/frontend/vite/duyi-edu/",
+    "前端架构课程/rollup": "videos/frontend/rollup/duyi-edu/",
+    "前端架构课程/esbuild": "videos/frontend/esbuild/duyi-edu/",
+    "前端架构课程/前端服务监控": "videos/frontend/service-monitoring/duyi-edu/",
+    "前端架构课程/国际化（i18n）": "videos/frontend/i18n/duyi-edu/",
+    "前端架构课程/企业级包管理方案": "videos/frontend/package-management/duyi-edu/",
+    "前端架构课程/运维自动化项目实战": "videos/backend/ops-automation/duyi-edu/",
 }
 
 
