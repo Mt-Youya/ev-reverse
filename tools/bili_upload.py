@@ -121,6 +121,15 @@ def run(*args) -> str:
                           encoding="utf-8", errors="replace").stdout
 
 
+# 稿件s that must never receive another part. Bilibili carries two identical submissions for
+# 音视频实时互动技术 -- BV1o2hk6fEX6 (watermarked, uploaded before the flag was understood) and
+# BV1FdhE6iExc (clean, re-uploaded with `watermark.state = 0`). They hold the same three episodes,
+# so `archive_index`'s "most parts wins" tie-break picks whichever `biliup list` happens to return
+# last, and a new episode could land in the watermarked one. The watermark is fixed at 稿件
+# creation, so a part appended there would carry it forever.
+SUPERSEDED = {"BV1o2hk6fEX6"}
+
+
 def archive_index(wanted: set) -> dict:
     """稿件 title -> {bv, set of part titles}, only for the collections we care about."""
     index = {}
@@ -131,7 +140,7 @@ def archive_index(wanted: set) -> dict:
         if len(fields) < 2:
             continue
         bv, title = fields[0], fields[1].strip()
-        if title not in wanted:
+        if title not in wanted or bv in SUPERSEDED:
             continue
         raw = run("show", bv)
         brace = raw.find("{")
