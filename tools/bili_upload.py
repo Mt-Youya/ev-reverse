@@ -161,13 +161,12 @@ PART_ALIASES = {
 def archive_index(wanted: set) -> dict:
     """稿件 title -> {bv, set of part titles}, only for the collections we care about.
 
-    The listing comes from `bili_listing`, which caches it: `biliup list` walks dozens of pages
-    and Bilibili answers the endpoint with HTTP 412 when it is called too often. An unreadable
-    listing is refused rather than treated as an empty account -- the account has hundreds of
-    稿件s, and "no 稿件 exists" makes every collection with a local file look like it needs a new
-    submission, which is dozens of duplicate 稿件s from one hiccup.
+    The listing comes from `bili_listing`, read fresh (not from its cache): this is the tool that
+    creates 稿件s, and a listing that missed one the previous pass had just created would create a
+    second one. The cache exists for the verification scripts, which ask the same question several
+    times in a round and are what got the endpoint rate-limited in the first place.
     """
-    listing = bili_listing.listing()
+    listing = bili_listing.listing(max_age_minutes=0)
     index = {}
     for line in listing.splitlines():
         if not line.startswith("BV"):

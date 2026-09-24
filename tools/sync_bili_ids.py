@@ -34,14 +34,18 @@ import bili_listing  # noqa: E402
 
 
 def archives() -> dict:
-    """稿件 title -> [bv], from the account's own list (cached, see bili_listing).
+    """稿件 title -> [bv], from the account's own list.
+
+    Read fresh rather than from bili_listing's cache: this runs right after an upload pass, and a
+    listing that predates the 稿件 that pass created would leave its id unrecorded -- the status
+    page and the cleanup would go on believing nothing holds those lessons.
 
     Bilibili answers the archives endpoint with HTTP 412 when it is called too often, and an
     empty listing is not "this account has no 稿件" -- it has hundreds -- so bili_listing raises
     rather than letting every collection be reported as having none.
     """
     found = {}
-    for bv, title, _status in bili_listing.entries():
+    for bv, title, _status in bili_listing.entries(max_age_minutes=0):
         if bv in bu.SUPERSEDED:
             continue
         found.setdefault(title, []).append(bv)
