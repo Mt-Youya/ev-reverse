@@ -19,6 +19,7 @@ Without --apply it prints the plan and downloads nothing.
 """
 
 import argparse
+import collections
 import json
 import pathlib
 import re
@@ -37,6 +38,13 @@ VIDEO_SUFFIXES = (".mp4", ".mkv", ".ts")
 
 sys.path.insert(0, str(REPO / "tools"))
 import clean_work as cw  # noqa: E402
+
+# Lessons that cannot be published, so the planner stops offering them every pass. Each one needs
+# a human decision, not another attempt:
+#   (280626, 81102) 前端工具链 / 01. ESLint介绍 -- one truncated AAC frame fails the strict audio
+#                   validation and the exporter refuses to publish. Reproducible across two
+#                   independent downloads. See docs/EXPORT-PIPELINE.md §5.
+UNPUBLISHABLE = {("280626", "81102")}
 
 
 def safe_name(title: str) -> str:
@@ -132,7 +140,8 @@ def cached(rows: list) -> list:
     ago, never published, and therefore never uploadable.
     """
     return [row for row in rows
-            if not row["output"].exists() and (row["work"] / "lesson.ts").exists()]
+            if not row["output"].exists() and (row["work"] / "lesson.ts").exists()
+            and (str(row["course_id"]), str(row["file_id"])) not in UNPUBLISHABLE]
 
 
 def main() -> int:
@@ -143,6 +152,11 @@ def main() -> int:
                         help="publish the lessons whose scratch already holds a merged lesson.ts, "
                              "instead of downloading the ones a platform is missing")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--smallest-first", action="store_true",
+                        help="publish the collections with the fewest lessons first. Finishing a "
+                             "small collection means it can be uploaded and its files deleted, "
+                             "which is what keeps the disk from filling while a large one is still "
+                             "being produced.")
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
@@ -150,13 +164,19 @@ def main() -> int:
     gaps = cached(every_lesson()) if args.from_cache else plan(every_lesson())
     if args.only:
         gaps = [g for g in gaps if any(key in g["course"] for key in args.only)]
+    if args.smallest_first:
+        per_course = collections.Counter(g["course"] for g in gaps)
+        gaps.sort(key=lambda g: (per_course[g["course"]], g["course"]))
     if args.limit:
         gaps = gaps[:args.limit]
 
+    # Printed in the order the plan will run, not sorted for looks: with --smallest-first the order
+    # is the point, and a plan that lists the biggest collection first while doing the smallest one
+    # first is a plan nobody can check.
     by_course = {}
     for gap in gaps:
         by_course.setdefault(gap["course"], []).append(gap)
-    for course, rows in sorted(by_course.items(), key=lambda r: -len(r[1])):
+    for course, rows in by_course.items():
         print(f"{course:<32} {len(rows):>3} lesson(s)")
         for row in rows:
             print(f"      file {row['file_id']:<9} {row['title'][:52]}")

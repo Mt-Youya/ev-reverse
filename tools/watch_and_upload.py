@@ -76,6 +76,17 @@ def r2_busy() -> bool:
     return _count_matching("upload_to_r2|r2_upload_all") > 0
 
 
+def publish_busy() -> bool:
+    """True when a publish chain is already running.
+
+    Publishing is CPU-bound -- one chain already saturates the machine, and three concurrent
+    ones measured *worse* in total (453 s per lesson against 85 s) -- so this gates on itself
+    rather than on the uploads. Its purpose is recovery: the chain runs for hours, and if it
+    dies the remaining lessons would sit unpublished with nothing to restart them.
+    """
+    return _count_matching("export_missing") > 0
+
+
 def run(command: list, label: str) -> None:
     log(f"--- {label} ---")
     result = subprocess.run(command, capture_output=True, text=True,
@@ -96,6 +107,9 @@ def main() -> int:
     parser.add_argument("--no-cleanup", action="store_true",
                         help="leave local files and work/ scratch alone at the end of a pass "
                              "instead of deleting what both platforms provably hold")
+    parser.add_argument("--no-publish", action="store_true",
+                        help="only upload; do not publish the merged scratch that has no finished "
+                             "file yet (see docs/EXPORT-PIPELINE.md §3)")
     parser.add_argument("--courses-every", type=int, default=3,
                         help="refresh verify_fresh/upload-status/courses.json every N passes "
                              "(0 disables). The status page reads it, so it should not go stale "
@@ -159,6 +173,17 @@ def main() -> int:
             log("an r2 upload is already running; skipping the r2 half so they do not compete")
         else:
             run([PYTHON, str(REPO / "tools" / "r2_upload_all.py"), "--apply"], "r2 uploads")
+
+        # Keep the publish half alive as well. Eleven collections were downloaded and merged days
+        # before anything published them, and the gap was only noticed when the status page called
+        # them never exported -- so publishing belongs in the loop, not in someone's shell history.
+        if args.no_publish:
+            log("--no-publish set; only uploading")
+        elif publish_busy():
+            log("a publish chain is already running; skipping publishing")
+        else:
+            run([PYTHON, str(REPO / "tools" / "export_missing.py"),
+                 "--from-cache", "--apply", "--smallest-first"], "publish from cache")
 
         # Reclaim space at the end of a pass instead of when the disk is nearly full. Both of these
         # delete only what is provably redundant: verify_and_delete requires the file to match R2 by
