@@ -534,6 +534,198 @@
         "scene": "a terminal-like monolith drawing a project skeleton out of thin air: question-card prompts drop in one by one and the answers assemble into a branching folder tree that hardens into place",
         "palette": "indigo and lime"
       }
+    },
+    {
+      "key": "micro-frontend-architecture",
+      "out": "前端架构课程/微前端架构实战",
+      "title": "微前端架构实战",
+      "en": "MICRO FRONTENDS, WIRED",
+      "tags": ["微前端", "沙箱", "通信", "故障隔离"],
+      "epLabel": "SERIES / 26 EPISODES",
+      "ghost": "26",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 26 集 · 总时长 22 小时 41 分",
+      "footerRight": "微前端架构实战",
+      "bg": {
+        "scene": "several independent application shells orbiting one shared runtime core, each sealed inside its own translucent sandbox and threaded onto a common router spine",
+        "palette": "magenta and steel"
+      }
+    },
+    {
+      "key": "electron",
+      "out": "前端架构课程/Electron",
+      "title": "Electron",
+      "en": "DESKTOP APPS IN JS",
+      "tags": ["主进程", "渲染进程", "IPC", "打包"],
+      "epLabel": "SERIES / 71 EPISODES",
+      "ghost": "71",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 71 集 · 总时长 40 小时 21 分",
+      "footerRight": "Electron",
+      "bg": {
+        "scene": "a desktop window assembling itself out of floating panels: a menu bar snapping onto a bare frame while a bridge of light carries messages between its two halves",
+        "palette": "deep blue and graphite"
+      }
+    },
+    {
+      "key": "react-internals",
+      "out": "前端架构课程/React源码分析",
+      "title": "React 源码分析",
+      "en": "INSIDE REACT'S SOURCE",
+      "tags": ["Fiber", "Hooks", "调度", "Diff"],
+      "epLabel": "SERIES / 38 EPISODES",
+      "ghost": "38",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 38 集 · 总时长 14 小时 15 分",
+      "footerRight": "React 源码分析",
+      "bg": {
+        "scene": "a fiber tree of linked nodes with a single path lit and a small scheduler clock deciding which branch advances next",
+        "palette": "cyan and slate"
+      }
+    },
+    {
+      "key": "doc-sync",
+      "out": "前端架构课程/文档协同",
+      "title": "文档协同",
+      "en": "EDIT TOGETHER, LIVE",
+      "tags": ["协同编辑", "理论基础", "项目实战", "架构落地"],
+      "epLabel": "SERIES / 32 EPISODES",
+      "ghost": "32",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 32 集 · 总时长 16 小时 04 分",
+      "footerRight": "文档协同",
+      "bg": {
+        "scene": "two glowing cursors editing the same document plane while a merge engine reconciles their strokes into one shared history",
+        "palette": "emerald and indigo"
+      }
+    },
+    {
+      "key": "scaffolding-internals",
+      "out": "前端架构课程/脚手架技术内幕",
+      "title": "脚手架技术内幕",
+      "en": "INSIDE THE SCAFFOLD",
+      "tags": ["CLI", "模板引擎", "依赖管理", "发布"],
+      "epLabel": "SERIES / 22 EPISODES",
+      "ghost": "22",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 22 集 · 总时长 13 小时 17 分",
+      "footerRight": "脚手架技术内幕",
+      "bg": {
+        "scene": "the inside of a command-line scaffold: template shards pulled from a registry and welded into a branching folder tree by a rotating gear",
+        "palette": "amber and violet"
+      }
+    },
+    {
+      "key": "ops-automation",
+      "out": "前端架构课程/运维自动化项目实战",
+      "title": "运维自动化项目实战",
+      "en": "DEPLOY · WATCH · SCALE",
+      "tags": ["部署", "监控", "Docker", "CI"],
+      "epLabel": "SERIES / 16 EPISODES",
+      "ghost": "16",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 16 集 · 总时长 4 小时 52 分",
+      "footerRight": "运维自动化项目实战",
+      "bg": {
+        "scene": "a fleet of server racks drawn as stacked glowing slabs with one automated arm rolling a new release across all of them",
+        "palette": "steel blue and orange"
+      }
+    },
+    {
+      "key": "vite-internals",
+      "out": "前端架构课程/vite深度剖析",
+      "title": "Vite 深度剖析",
+      "en": "ESM DEV SERVER, INSIDE",
+      "tags": ["ESM", "HMR", "插件", "构建"],
+      "epLabel": "SERIES / 14 EPISODES",
+      "ghost": "14",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 14 集 · 总时长 9 小时 06 分",
+      "footerRight": "Vite 深度剖析",
+      "bg": {
+        "scene": "a dev server as a luminous core streaming module shards straight into a browser pane, one shard swapped mid-flight",
+        "palette": "violet and yellow"
+      }
+    },
+    {
+      "key": "service-monitoring",
+      "out": "前端架构课程/前端服务监控",
+      "title": "前端服务监控",
+      "en": "WATCH EVERY REQUEST",
+      "tags": ["SDK", "埋点", "性能指标", "上报"],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 10 集 · 总时长 6 小时 20 分",
+      "footerRight": "前端服务监控",
+      "bg": {
+        "scene": "a wall of live traces: request threads streaming into one collector while an error spike glows red along the timeline",
+        "palette": "teal and red"
+      }
+    },
+    {
+      "key": "rollup",
+      "out": "前端架构课程/rollup",
+      "title": "Rollup",
+      "en": "BUNDLING, TREE-SHAKEN",
+      "tags": ["Tree-shaking", "插件", "配置", "npm"],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 10 集 · 总时长 6 小时 43 分",
+      "footerRight": "Rollup",
+      "bg": {
+        "scene": "many module sheets folding into one thin sealed package while the unused sheets dissolve into dust",
+        "palette": "orange and navy"
+      }
+    },
+    {
+      "key": "i18n",
+      "out": "前端架构课程/国际化（i18n）",
+      "title": "国际化（i18n）",
+      "en": "MANY LANGUAGES, ONE APP",
+      "tags": ["i18n", "词条", "时区", "格式化"],
+      "epLabel": "SERIES / 09 EPISODES",
+      "ghost": "09",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 9 集 · 总时长 4 小时 32 分",
+      "footerRight": "国际化（i18n）",
+      "bg": {
+        "scene": "a single pane of text reshaping itself into several writing systems as a language switch turns",
+        "palette": "cyan and coral"
+      }
+    },
+    {
+      "key": "package-management",
+      "out": "前端架构课程/企业级包管理方案",
+      "title": "企业级包管理方案",
+      "en": "MONOREPO PACKAGE FLOW",
+      "tags": ["npm", "monorepo", "发布", "版本"],
+      "epLabel": "SERIES / 11 EPISODES",
+      "ghost": "11",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 11 集 · 总时长 8 小时 13 分",
+      "footerRight": "企业级包管理方案",
+      "bg": {
+        "scene": "a dependency graph of package blocks flowing through a registry gate, each block stamped with a version seal",
+        "palette": "indigo and mint"
+      }
+    },
+    {
+      "key": "esbuild",
+      "out": "前端架构课程/esbuild",
+      "title": "esbuild",
+      "en": "BUILDS AT GO SPEED",
+      "tags": ["极速构建", "Go", "插件", "性能对比"],
+      "epLabel": "SERIES / 07 EPISODES",
+      "ghost": "07",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 7 集 · 总时长 4 小时 16 分",
+      "footerRight": "esbuild",
+      "bg": {
+        "scene": "a build pipeline collapsing into a single lightning-fast pass that compresses a wide stream of modules into one output in one stroke",
+        "palette": "yellow and black"
+      }
     }
   ]
 }
