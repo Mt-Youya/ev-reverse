@@ -35,6 +35,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import bili_listing  # noqa: E402  (one cached read of the account's 稿件 list)
+import clean_work as cw  # noqa: E402  (the recorded 稿件 ids per collection)
 
 REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
 OUT = REPO / "verify_fresh" / "out"
@@ -158,16 +159,49 @@ PART_ALIASES = {
 }
 
 
+def parts_of(bv: str) -> set:
+    """The part titles a 稿件 holds, normalized; empty when it cannot be read."""
+    raw = run("show", bv)
+    brace = raw.find("{")
+    if brace < 0:
+        return set()
+    try:
+        data = json.loads(raw[brace:])
+    except json.JSONDecodeError:
+        return set()
+    return {norm(v.get("title", "")) for v in data.get("videos", [])}
+
+
 def archive_index(wanted: set) -> dict:
     """稿件 title -> {bv, set of part titles}, only for the collections we care about.
 
-    The listing comes from `bili_listing`, read fresh (not from its cache): this is the tool that
-    creates 稿件s, and a listing that missed one the previous pass had just created would create a
-    second one. The cache exists for the verification scripts, which ask the same question several
-    times in a round and are what got the endpoint rate-limited in the first place.
+    The recorded id is used first, and the account-wide listing is only fetched for a collection
+    that has none. That matters more than it looks: `biliup list --max-pages 60` walks ~49 pages of
+    `member.bilibili.com/x/web/archives`, and Bilibili answers that endpoint with **HTTP 412** when
+    it is called often -- three passes an hour plus a verification script was enough to trip it on
+    2026-09-24, and a 412 used to stop Bilibili uploads entirely. `biliup show <bv>` is a different
+    endpoint and keeps working, so a pass that knows its ids needs one request per collection it is
+    actually uploading instead of fifty before it starts.
+
+    The listing is still needed for a collection with no id yet -- that is how a 稿件 created
+    outside this tool (a hand upload, or a parallel session) is found instead of duplicated.
     """
-    listing = bili_listing.listing(max_age_minutes=0)
     index = {}
+    unknown = []
+    for rel, bvs in cw.BILI_BY_COLLECTION.items():
+        title = pathlib.PurePosixPath(rel).name
+        if title not in wanted:
+            continue
+        known = [bv for bv in bvs if bv not in SUPERSEDED]
+        if known:
+            index[title] = {"bv": known[0], "parts": parts_of(known[0])}
+        else:
+            unknown.append(title)
+
+    if not unknown:
+        return index
+
+    listing = bili_listing.listing(max_age_minutes=0)
     for line in listing.splitlines():
         if not line.startswith("BV"):
             continue
@@ -175,17 +209,9 @@ def archive_index(wanted: set) -> dict:
         if len(fields) < 2:
             continue
         bv, title = fields[0], fields[1].strip()
-        if title not in wanted or bv in SUPERSEDED:
+        if title not in unknown or bv in SUPERSEDED:
             continue
-        raw = run("show", bv)
-        brace = raw.find("{")
-        if brace < 0:
-            continue
-        try:
-            data = json.loads(raw[brace:])
-        except json.JSONDecodeError:
-            continue
-        parts = {norm(v.get("title", "")) for v in data.get("videos", [])}
+        parts = parts_of(bv)
         if len(parts) >= len(index.get(title, {}).get("parts", set())):
             index[title] = {"bv": bv, "parts": parts}
     return index

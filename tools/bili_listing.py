@@ -28,12 +28,19 @@ COOKIES = pathlib.Path.home() / ".biliup" / "cookies.json"
 CACHE = REPO / "build" / "bili-listing.txt"
 
 
-def _read_cache(max_age_minutes: float):
-    if max_age_minutes < 0 or not CACHE.is_file():
+def _read_cache(max_age_minutes):
+    """The cached listing, or None. `None` for the age means "any age".
+
+    The earlier form took a negative number for "any age" and then bailed on it, so the fallback
+    that is supposed to serve a stale listing when Bilibili refuses returned nothing -- exactly
+    when it was needed.
+    """
+    if not CACHE.is_file():
         return None
-    age_minutes = (time.time() - CACHE.stat().st_mtime) / 60
-    if age_minutes > max_age_minutes:
-        return None
+    if max_age_minutes is not None:
+        age_minutes = (time.time() - CACHE.stat().st_mtime) / 60
+        if age_minutes > max_age_minutes:
+            return None
     text = CACHE.read_text(encoding="utf-8", errors="replace")
     return text if any(line.startswith("BV") for line in text.splitlines()) else None
 
@@ -47,7 +54,7 @@ def listing(max_age_minutes: float = 10) -> str:
     result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "list", "--max-pages", "60"],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
     if not any(line.startswith("BV") for line in result.stdout.splitlines()):
-        stale = _read_cache(-1)
+        stale = _read_cache(None)
         if stale is not None:
             print("biliup list answered nothing (HTTP 412 from Bilibili?); using the cached "
                   "listing from a previous run", file=sys.stderr)
