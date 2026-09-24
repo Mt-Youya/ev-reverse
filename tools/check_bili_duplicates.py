@@ -37,6 +37,11 @@ VIDEO_SUFFIXES = (".mp4", ".mkv", ".ts")
 # Collections whose duplicate parts are known, tracked, and waiting on a human.
 KNOWN_DUPLICATES = {"工程管理实战"}
 
+# Collections that will stay one lesson short of their catalogue count: 前端工具链's
+# 01. ESLint介绍 cannot be published -- one truncated AAC frame fails the strict validation and
+# the exporter refuses (docs/EXPORT-PIPELINE.md §5). Not a defect to report every run.
+UNEXPORTABLE = {"前端工具链"}
+
 sys.path.insert(0, str(REPO / "tools"))
 import clean_work as cw  # noqa: E402
 
@@ -127,13 +132,15 @@ def main() -> int:
                                   for t, d in collisions.items())
             # Coverage only means something for a collection that is its whole course: WebGIS课程
             # is one catalogue course of 220 lessons across ten collections, so a chapter's count
-            # has nothing to compare against and reads as "-".
+            # has nothing to compare against and reads as "-". The one legitimate shortfall is
+            # 前端工具链, whose missing lesson cannot be published at all (export failure, see
+            # docs/EXPORT-PIPELINE.md §5), so it is not counted as a problem.
             if expected and len(titles) < expected:
                 gap = expected - len(titles)
                 # A collection whose remaining lessons are still on disk is mid-upload, not short.
                 if gap > len(local):
                     note += ("  " if note else "") + f"SHORT {gap} lesson(s) not in the 稿件"
-                    if name not in KNOWN_SHORT:
+                    if name not in UNEXPORTABLE:
                         shortfalls.append((name, bv, gap, len(local)))
             print(f"{name[:34]:<34}{len(titles):>6}{str(expected or '-'):>5}{len(local):>6}  "
                   f"{bv} {note}")
