@@ -162,7 +162,15 @@ R2_BY_COLLECTION = {
 
 
 def norm(title: str) -> str:
-    t = re.sub(r"\.(mp4|mkv|ts)$", "", str(title).strip(), flags=re.I)
+    """Lesson name for comparison: no media extension, no whitespace.
+
+    The extension pattern repeats on purpose, matching bili_upload.norm() and courses_json.norm().
+    工程管理实战's lesson 35 is stored by the platform as `35. [测试体系]单元测试.mp4.mp4` while its
+    R2 object and 稿件 part are named `35. [测试体系]单元测试.mp4`; stripping one extension left
+    `35.[测试体系]单元测试.mp4` against `35.[测试体系]单元测试`, so the episode never looked verified,
+    its 1.3 GB of merged scratch was never freed, and the publish backlog kept re-publishing it.
+    """
+    t = re.sub(r"(\.(mp4|mkv|ts))+$", "", str(title).strip(), flags=re.I)
     return re.sub(r"\s+", "", t)
 
 
