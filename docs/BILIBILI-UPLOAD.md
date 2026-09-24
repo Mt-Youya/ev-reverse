@@ -66,6 +66,22 @@ B站 **默认给稿件加水印**（左上角「bilibili + 昵称」）。这是
 
 `tools/bili_upload.py` 里是 `WATERMARK_OFF`，**upload 和 append 两条分支都要带**。
 
+> ⚠️ **但 append 带这个参数也去不掉水印 —— 水印是「稿件级」的设置，只在稿件创建那一刻定下来。**
+>
+> 2026-09-24 实测三组（都只下 15 秒抽帧看左上角）：
+>
+> | 稿件 | 创建方式 | 左上角 |
+> | --- | --- | --- |
+> | `BV1QZhk6HEr3` p=1 | 早期创建 | ❌ 「优雅先森」+ bilibili logo |
+> | `BV1QZhk6HEr3` p=39 | `append --extra-fields '{"watermark":{"state":0}}'` 追加 | ❌ **同样有水印** |
+> | `BV1P1aw6AEoB` 新自定义脚手架 | **新建**并带 `state:0` | ✅ **干净，无水印** |
+>
+> 结论：**参数只在 upload 建稿时生效**。与此前会话在 `BV1FdhE6iExc` 上的验证一致。
+>
+> **所以要得到无水印的稿件，只有「删掉重建」一条路。** 往一条早就带水印的旧稿件里补分P，
+> 补进去的照样带水印 —— 这不会让情况变坏（旧分P本来就有），但也**绝不会让它变好**。
+> 已带水印的旧稿件，重建方法见 §5.4 与 `.scratch/bilibili-upload/`。
+
 **浏览器路径**（不推荐，但要知道）：投稿页底部「更多设置（含声明与权益、视频元素、互动管理等）」里，
 **第一个选项就是「添加水印」，默认勾选**，文案「仅对此次上传的视频生效」。
 DOM 是 `div.watermark.setting-content label.bcc-checkbox`，勾上时 class 多一个 `bcc-checkbox-checked`。
@@ -74,7 +90,8 @@ DOM 是 `div.watermark.setting-content label.bcc-checkbox`，勾上时 class 多
 
 > **验证方式**（别只看参数发出去了）：稿件过审后下载一集，抽一帧看左上角。
 > 对比同一集在新旧两个稿件上的同一时间点，左上角「昵称 + bilibili logo」消失才算成功。
-> 本例的验证样本是 `BV1FdhE6iExc`。
+> 只下 15 秒就够（`yt-dlp --download-sections '*200-215'`，约 700 KB）。
+> 本例的验证样本是 `BV1FdhE6iExc`（新建稿件，干净）。
 
 ### 3.3 分P 顺序 = 投递顺序；中文目录名按字符串排序不是数字序
 
