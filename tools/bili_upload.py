@@ -77,6 +77,19 @@ COLLECTIONS = [
     ("前端架构课程/微前端", "微前端,micro-app,qiankun,前端,架构"),
     ("前端架构课程/微前端架构实战", "微前端,qiankun,无界,模块联邦,架构"),
     ("前端架构课程/新自定义脚手架", "脚手架,Node.js,CLI,工程化,npm"),
+    # Published from the merged scratch on 2026-09-24 (export_missing.py --from-cache). None of
+    # these had a 稿件, so archive_index finds nothing and each one becomes a new submission.
+    ("前端架构课程/Electron", "Electron,桌面应用,IPC,跨平台,前端"),
+    ("前端架构课程/React源码分析", "React,源码,Fiber,Hooks,调度"),
+    ("前端架构课程/文档协同", "文档协同,协同编辑,架构,项目实战,前端"),
+    ("前端架构课程/脚手架技术内幕", "脚手架,CLI,模板引擎,工程化,Node.js"),
+    ("前端架构课程/运维自动化项目实战", "运维,自动化,部署,Docker,CI"),
+    ("前端架构课程/vite深度剖析", "Vite,ESM,HMR,构建,前端工程化"),
+    ("前端架构课程/前端服务监控", "前端监控,埋点,性能,SDK,上报"),
+    ("前端架构课程/rollup", "rollup,打包,Tree-shaking,插件,工程化"),
+    ("前端架构课程/国际化（i18n）", "国际化,i18n,前端,格式化,多语言"),
+    ("前端架构课程/企业级包管理方案", "npm,monorepo,包管理,发布,工程化"),
+    ("前端架构课程/esbuild", "esbuild,构建,Go,插件,性能"),
 ]
 
 

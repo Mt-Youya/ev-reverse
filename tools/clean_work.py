@@ -81,6 +81,20 @@ BILI_BY_COLLECTION = {
     # Created 2026-09-24 by the one-pass upload, so it did not exist when the table above was
     # first written and this collection's 10 episodes read as "not on Bilibili".
     "前端架构课程/新自定义脚手架": ["BV1P1aw6AEoB"],
+    # No 稿件 exists yet for these eleven -- their files were only published from the merged
+    # scratch on 2026-09-24. An empty list is a fact ("nothing holds these lessons"), where a
+    # missing entry would read as "unknown" on the status page.
+    "前端架构课程/Electron": [],
+    "前端架构课程/React源码分析": [],
+    "前端架构课程/文档协同": [],
+    "前端架构课程/脚手架技术内幕": [],
+    "前端架构课程/运维自动化项目实战": [],
+    "前端架构课程/vite深度剖析": [],
+    "前端架构课程/前端服务监控": [],
+    "前端架构课程/rollup": [],
+    "前端架构课程/国际化（i18n）": [],
+    "前端架构课程/企业级包管理方案": [],
+    "前端架构课程/esbuild": [],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
