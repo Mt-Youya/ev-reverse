@@ -49,7 +49,13 @@ Two things it needs, both reported in plain language when missing:
 - a logged-in EVPlayer2, with a window. `EVMEDIA_PROBE` overrides where the probe script is found.
 
 Attaching is not always instantaneous, so a `PermissionDeniedError` from Frida is retried before it
-becomes a message. That failure means "busy for a moment", not "you are not logged in".
+becomes a message. That retry covers "busy for a moment" — but **not the cause seen on this machine**
+(2026-09-24): `PermissionDeniedError: unable to access process … from the current user account` also
+comes back, permanently, whenever the probe runs at a lower integrity level than the player.
+`EVPlayer2.exe` declares `requireAdministrator`, so the player is always elevated, and the window has
+to be elevated too for 自动获取 to work at all. No amount of retrying fixes that; the CLI equivalent
+is `tools/refresh_session.py`, which says so instead of retrying (measured: the same probe attaches to
+a medium-integrity process fine, and is refused by the elevated player every time).
 
 ## Files it writes, and where
 

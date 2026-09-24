@@ -6,6 +6,19 @@
 
 会话文件由现有的播放器探针生成，包含当前账号的 bearer token、目录接口的动态 AES key、签名密钥、设备号和业务号。它是短期凭据，不要提交到公开仓库。播放器重新登录后重新生成即可。
 
+重新生成用 `tools/refresh_session.py`：它按进程名找到播放器、跑探针，**先用目录接口校验新凭据再覆盖旧文件**，不通过就保留原文件并报出服务器原话。播放器重新登录会让旧凭据立即失效，此后每次导出都报 `-123: "长时间未登录，请退出重新登录"`——看起来像会话过期，实际是"重新登录"这个动作本身作废了旧文件，本机 2026-09-24 实测如此。
+
+探针必须与播放器同为管理员权限：`EVPlayer2.exe` 的清单声明 `requireAdministrator`，它永远运行在高完整性级别，中完整性的 Frida 附加会被拒绝（`PermissionDeniedError: unable to access process … from the current user account`）。这个拒绝对该进程是**永久的，不是"目标正忙"**，重试无效。所以从普通终端运行 `refresh_session.py` 只会打印提权提示；要真正执行得用管理员终端，或加 `--elevate` 让它自己弹 UAC：
+
+```powershell
+# 在管理员终端里
+& 'D:\DevelopmentTools\Anaconda\python.exe' -u tools\refresh_session.py
+# 或者由脚本请求提权（需要有人能点 UAC 提示）
+& 'D:\DevelopmentTools\Anaconda\python.exe' -u tools\refresh_session.py --elevate
+```
+
+结果同时写入 `verify_fresh/session.json.status.json`：只有是否成功、pid、字段名和 token 长度，不含任何凭据，供无人值守的循环读取。
+
 ## 一键导出
 
 在仓库根目录运行：

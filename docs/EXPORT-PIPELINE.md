@@ -24,7 +24,7 @@
 
 | 约定 | 值 |
 | --- | --- |
-| 会话 | `verify_fresh/session.json`（过期会报 `-123: "长时间未登录，请退出重新登录"`） |
+| 会话 | `verify_fresh/session.json`（导不动时先看这里：`-123: "长时间未登录，请退出重新登录"` 就是它过期了，用 `python tools/refresh_session.py` 重新生成，见 [CATALOG-DOWNLOAD](CATALOG-DOWNLOAD.md#会话文件)） |
 | 账号 | `119354`（`index.json` 的 `account_id`） |
 | `--course` | 平台课程 id（`index.json` 的 key） |
 | `--file` | 平台文件 id（`episodes[].file_id`） |
