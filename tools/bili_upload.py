@@ -67,6 +67,16 @@ COLLECTIONS = [
     ("AI 大全栈/AI/LangChain + DeepAgent 开发实战", "LangChain,DeepAgent,Agent,大模型,LLM"),
     ("前端架构课程/音视频实时互动技术", "音视频,WebRTC,实时通信,前端,架构"),
     ("前端架构课程/前端工具链", "前端,工程化,ESLint,Prettier,Babel"),
+    # Added when the whole local export was pushed in one pass. Several of these already have a
+    # 稿件 from an earlier manual upload; archive_index finds it by title and appends only the
+    # episodes it lacks, instead of creating a second 稿件 for the same collection.
+    ("AI 大全栈/AI/Agents底层逻辑", "Agent,大模型,LLM,AI,智能体"),
+    ("前端架构课程/CSS企业应用方案", "CSS,Sass,Tailwind,postcss,前端工程化"),
+    ("前端架构课程/前端测试框架", "Jest,单元测试,前端,测试,自动化测试"),
+    ("前端架构课程/工程管理实战", "monorepo,工程化,包管理,CICD,前端"),
+    ("前端架构课程/微前端", "微前端,micro-app,qiankun,前端,架构"),
+    ("前端架构课程/微前端架构实战", "微前端,qiankun,无界,模块联邦,架构"),
+    ("前端架构课程/新自定义脚手架", "脚手架,Node.js,CLI,工程化,npm"),
 ]
 
 
@@ -133,6 +143,10 @@ def archive_index(wanted: set) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", default=None)
+    parser.add_argument("--skip", nargs="*", default=None,
+                        help="substrings of collections to leave alone. Needed when a collection's "
+                             "only local file is one the 稿件 already holds under a different part "
+                             "title -- appending it would create a duplicate part.")
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
 
@@ -145,6 +159,9 @@ def main() -> int:
         if not folder.is_dir():
             continue
         if args.only and not any(key in rel for key in args.only):
+            continue
+        if args.skip and any(key in rel for key in args.skip):
+            print(f"skip  {rel}: excluded via --skip")
             continue
         videos = sorted((p for p in folder.rglob("*")
                          if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES),

@@ -518,6 +518,22 @@
         "scene": "a conveyor of translucent code panes passing through three stations: a comb that aligns their rows, a sieve that drops malformed glyphs, and a press that rewrites what remains into one uniform glowing stream",
         "palette": "teal and amber"
       }
+    },
+    {
+      "key": "custom-scaffolding",
+      "out": "前端架构课程/新自定义脚手架",
+      "title": "新自定义脚手架",
+      "en": "CLI · TEMPLATE · NPM",
+      "tags": ["Node.js", "CLI", "inquirer", "npm"],
+      "epLabel": "SERIES / 10 EPISODES",
+      "ghost": "10",
+      "eyebrow": "前端架构课程",
+      "footerLeft": "共 10 集 · 总时长 3 小时 36 分",
+      "footerRight": "新自定义脚手架",
+      "bg": {
+        "scene": "a terminal-like monolith drawing a project skeleton out of thin air: question-card prompts drop in one by one and the answers assemble into a branching folder tree that hardens into place",
+        "palette": "indigo and lime"
+      }
     }
   ]
 }

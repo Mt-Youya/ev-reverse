@@ -77,6 +77,7 @@ BILI_BY_COLLECTION = {
     "前端架构课程/工程管理实战": ["BV1K9hp6WEyX"],
     "前端架构课程/D3.js": ["BV1bwhn6nEoX"],
     "前端架构课程/前端测试框架": ["BV1hfhJ6pE7E"],
+    "前端架构课程/前端工具链": ["BV1zqhb6bE1W"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
@@ -112,6 +113,17 @@ R2_BY_COLLECTION = {
     "前端架构课程/音视频实时互动技术": "videos/frontend/realtime-media/duyi-edu/",
     "前端架构课程/工程管理实战": "videos/frontend/engineering-management/duyi-edu/",
     "前端架构课程/D3.js": "videos/frontend/d3js/duyi-edu/",
+    # Established 2026-09-24 by intersecting each local collection's filenames with the bucket's
+    # object names, because prefix names alone are ambiguous: `frontend/scaffolding` really is
+    # 新自定义脚手架 (7 of its 9 filenames were already there), while `frontend/react`,
+    # `frontend/gsap` and `backend/nodejs/koa` hold files that are not in this account's
+    # catalogue at all and must never be reused as a course's home.
+    "前端架构课程/CSS企业应用方案": "videos/frontend/css-enterprise/duyi-edu/",
+    "前端架构课程/前端工具链": "videos/frontend/toolchain/duyi-edu/",
+    "前端架构课程/前端测试框架": "videos/frontend/testing/duyi-edu/",
+    "前端架构课程/微前端": "videos/frontend/micro-frontend/duyi-edu/",
+    "前端架构课程/微前端架构实战": "videos/frontend/micro-frontend/architecture-duyi-edu/",
+    "前端架构课程/新自定义脚手架": "videos/frontend/scaffolding/duyi-edu/",
 }
 
 
