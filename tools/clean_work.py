@@ -90,11 +90,11 @@ BILI_BY_COLLECTION = {
     "前端架构课程/脚手架技术内幕": [],
     "前端架构课程/运维自动化项目实战": [],
     "前端架构课程/vite深度剖析": [],
-    "前端架构课程/前端服务监控": [],
-    "前端架构课程/rollup": [],
+    "前端架构课程/前端服务监控": ["BV1p8ac6WEJs"],
+    "前端架构课程/rollup": ["BV1n8ac6WE6M"],
     "前端架构课程/国际化（i18n）": [],
     "前端架构课程/企业级包管理方案": [],
-    "前端架构课程/esbuild": [],
+    "前端架构课程/esbuild": ["BV1H8ac6WEfW"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading

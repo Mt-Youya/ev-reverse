@@ -145,6 +145,9 @@ def main() -> int:
         else:
             run([PYTHON, str(REPO / "tools" / "bili_upload.py"), "--apply"],
                 "bilibili uploads")
+            # A 稿件 created by that pass is invisible to the status page and to the cleanup until
+            # its id is in the table, and an empty entry claims "nothing holds these lessons".
+            run([PYTHON, str(REPO / "tools" / "sync_bili_ids.py"), "--apply"], "稿件 id sync")
         if r2_busy():
             log("an r2 upload is already running; skipping the r2 half so they do not compete")
         else:
