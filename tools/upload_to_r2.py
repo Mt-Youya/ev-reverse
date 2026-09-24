@@ -31,6 +31,7 @@ import pathlib
 import subprocess
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import boto3
@@ -41,12 +42,18 @@ ACCOUNT_ID = "b48fdde62898699d8398a64c19217cd4"
 CRED_TARGET = "cf-evmedia-r2_{}"
 CRED_READER = pathlib.Path(__file__).resolve().parent.parent / "build" / "CredRead.exe"
 CHUNK = 8 * 1024 * 1024          # multipart part size
-MAX_CONCURRENCY = 4              # objects in flight; each one is itself multipart
 # R2 throttles per connection, not per account: measured 0.24 MB/s with one request in flight,
 # 0.33 with four, 3.79 with sixteen (32 was slightly worse at 2.81). Four parts per object meant a
 # collection holding a single large video -- the common shape here -- moved at ~0.3 MB/s, a day for
-# the pending backlog. Sixteen parts reaches the measured plateau.
-PART_CONCURRENCY = 16
+# the pending backlog.
+#
+# The two numbers multiply, and the product is what matters: 16 parts across 4 objects is 64
+# simultaneous TLS handshakes, and a pass at that width failed a third of its files with
+# "SSL validation failed" (12 of 27 in CSS企业应用方案). Two objects of eight parts keeps the
+# measured sweet spot of ~16 connections while still overlapping two files.
+MAX_CONCURRENCY = 2              # objects in flight; each one is itself multipart
+PART_CONCURRENCY = 8
+MAX_ATTEMPTS = 3                 # retry a whole object this many times before giving up
 MIB = 1024 * 1024
 
 
@@ -207,24 +214,44 @@ def main() -> int:
         print("\nnothing to do")
         return 0
 
-    print(f"\nuploading with {MAX_CONCURRENCY} files in flight...", flush=True)
-    progress = {"done": 0, "bytes": 0, "total": len(todo), "failed": []}
+    print(f"\nuploading with {MAX_CONCURRENCY} file(s) in flight, "
+          f"{PART_CONCURRENCY} part(s) each, up to {MAX_ATTEMPTS} attempt(s)...", flush=True)
     lock = threading.Lock()
-    with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY) as pool:
-        futures = {pool.submit(upload, s3, args.bucket, path, key, progress, lock): (path, key)
-                   for path, key, _ in todo}
-        for future in as_completed(futures):
-            path, key = futures[future]
-            try:
-                future.result()
-            except Exception as error:
-                with lock:
-                    progress["failed"].append((path, key, str(error)[:200]))
-                print(f"  FAILED {key}: {str(error)[:160]}", flush=True)
 
-    print(f"\nuploaded {progress['done']}/{progress['total']}, "
-          f"{progress['bytes'] / 1024 / MIB:.2f} GB, {len(progress['failed'])} failed")
-    for path, key, error in progress["failed"]:
+    def attempt(items: list, label: str) -> list:
+        """Upload `items`, returning the ones that failed."""
+        progress = {"done": 0, "bytes": 0, "total": len(items), "failed": []}
+        with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY) as pool:
+            futures = {pool.submit(upload, s3, args.bucket, path, key, progress, lock): (path, key)
+                       for path, key in items}
+            for future in as_completed(futures):
+                path, key = futures[future]
+                try:
+                    future.result()
+                except Exception as error:  # noqa: BLE001
+                    with lock:
+                        progress["failed"].append((path, key, str(error)[:200]))
+                    print(f"  FAILED {key}: {str(error)[:160]}", flush=True)
+        print(f"  {label}: uploaded {progress['done']}/{progress['total']}, "
+              f"{progress['bytes'] / 1024 / MIB:.2f} GB, {len(progress['failed'])} failed", flush=True)
+        return progress["failed"]
+
+    # An object at a time, retried whole. A pass that ran 64 TLS handshakes at once lost a third of
+    # its files to "SSL validation failed"; retrying the object is what recovers them, and it costs
+    # only the retry rather than slowing every upload down.
+    pending = [(path, key) for path, key, _ in todo]
+    failed = []
+    for round_number in range(1, MAX_ATTEMPTS + 1):
+        failed = attempt(pending, f"attempt {round_number}/{MAX_ATTEMPTS}")
+        if not failed:
+            break
+        retry = sorted({(p, k) for p, k, _ in failed})
+        pending = retry
+        if round_number < MAX_ATTEMPTS:
+            print(f"  retrying {len(pending)} file(s) after a short pause...", flush=True)
+            time.sleep(5 * round_number)
+
+    for path, key, error in failed:
         print(f"   ! {key}: {error}")
 
     # Verify against the bucket, not against the upload calls.
@@ -240,7 +267,7 @@ def main() -> int:
     print(f"verified {len(todo) - len(bad)}/{len(todo)}")
     for key, why in bad:
         print(f"   ! {key}: {why}")
-    return 1 if (progress["failed"] or bad) else 0
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":

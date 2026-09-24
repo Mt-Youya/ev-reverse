@@ -57,12 +57,17 @@ def output_snapshot() -> str:
     return f"out/: {count} mp4, {total / 1024 ** 3:.2f} GB"
 
 
-def r2_busy() -> bool:
-    """True when an upload_to_r2 process is already running, so a pass would just compete."""
+def uploader_busy() -> bool:
+    """True when any upload process is already running.
+
+    Both passes are network-bound and compete: running them together is what produced a wave of
+    "SSL validation failed" across an R2 pass (12 of 27 files in one collection) while a Bilibili
+    pass was uploading at the same time. One at a time, even when that means waiting.
+    """
     result = subprocess.run(
         ["powershell", "-NoProfile", "-Command",
          "(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
-         "Where-Object { $_.CommandLine -match 'upload_to_r2|r2_upload_all' }).Count"],
+         "Where-Object { $_.CommandLine -match 'upload_to_r2|r2_upload_all|bili_upload' }).Count"],
         capture_output=True, text=True, encoding="utf-8", errors="replace")
     return (result.stdout or "").strip() not in ("", "0")
 
@@ -123,14 +128,14 @@ def main() -> int:
             log("--skip-upload set, stopping here")
             return 0
 
-        # Bilibili first: it is a domestic upload and runs an order of magnitude faster than R2.
-        # 前端工具链 is excluded because its only remaining local file is one the 稿件 already holds
-        # under a different part title, so appending it would create a duplicate part.
-        run([PYTHON, str(REPO / "tools" / "bili_upload.py"), "--skip", "工具链", "--apply"],
-            "bilibili uploads")
-        if r2_busy():
-            log("an r2 upload is already running; skipping this pass so they do not compete")
+        if uploader_busy():
+            log("an upload is already running; skipping this pass rather than competing with it")
         else:
+            # Bilibili first: it is a domestic upload and runs an order of magnitude faster than R2.
+            # 前端工具链 is excluded because its only remaining local file is one the 稿件 already
+            # holds under a different part title, so appending it would create a duplicate part.
+            run([PYTHON, str(REPO / "tools" / "bili_upload.py"), "--skip", "工具链", "--apply"],
+                "bilibili uploads")
             run([PYTHON, str(REPO / "tools" / "r2_upload_all.py"), "--apply"], "r2 uploads")
 
         if not args.loop_minutes:
