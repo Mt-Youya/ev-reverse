@@ -37,6 +37,7 @@ VIDEO_SUFFIXES = (".mp4", ".mkv", ".ts")
 sys.path.insert(0, str(REPO / "tools"))
 import clean_work as cw          # noqa: E402  (verified prefix / 稿件 tables)
 import upload_to_r2              # noqa: E402
+import bili_upload as bu         # noqa: E402  (the part-title aliases)
 
 
 def common_parent(rels: list):
@@ -237,6 +238,16 @@ def main() -> int:
         bili_parts = set().union(*[bili_cache[r] for r in
                                    {u["rel"] for _f, u in units if u} if r in bili_cache]) \
             if any(u and u["rel"] in bili_cache for _f, u in units) else None
+        if bili_parts is not None:
+            # Lessons whose part carries a different title -- 前端工具链's first part is named after
+            # the collection because the batch page had that row selected. bili_upload knows the
+            # alias and does not re-upload them; without it here the page would keep reporting one
+            # missing lesson for a collection that is complete.
+            for _f, unit in units:
+                if unit:
+                    bili_parts |= {norm(t) for t in
+                                   bu.PART_ALIASES.get(pathlib.PurePosixPath(unit["rel"]).name,
+                                                       {}).values()}
 
         rels = sorted({u["rel"] for _f, u in units if u})
         if rels:
