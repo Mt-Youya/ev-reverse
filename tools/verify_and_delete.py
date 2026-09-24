@@ -53,14 +53,22 @@ def norm(title: str) -> str:
 
 
 def bili_parts(bv: str) -> dict:
-    """part title -> duration, read live so an append is never missed."""
+    """part title -> every duration carrying that title, read live so an append is never missed.
+
+    A chaptered course repeats part titles inside one 稿件: BV1zqhb6bE1W carries `06. APIs` twice,
+    at 2729 s (第三章 ESLint) and 1526 s (第四章 Babel). Keeping one duration per title compared the
+    other chapter's file against the wrong one and reported a file that is on Bilibili as missing.
+    """
     result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "show", bv],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
     brace = result.stdout.find("{")
     if brace < 0:
         return {}
     data = json.loads(result.stdout[brace:])
-    return {norm(v.get("title", "")): v.get("duration") for v in data.get("videos", [])}
+    found = collections.defaultdict(list)
+    for video in data.get("videos", []):
+        found[norm(video.get("title", ""))].append(video.get("duration"))
+    return found
 
 
 def duration_of(path: pathlib.Path):
@@ -89,9 +97,10 @@ def main() -> int:
         folder = OUT / name
         if not folder.exists():
             continue
-        parts = {}
+        parts = collections.defaultdict(list)
         for bv in bvs:
-            parts.update(bili_parts(bv))
+            for title, durations in bili_parts(bv).items():
+                parts[title].extend(durations)
         remote = {k: v for k, v in upload_to_r2.list_remote(s3, BUCKET, prefix).items() if v[0] > 0}
         # The uploader keys an object by `prefix + the file's path inside the collection`, and a
         # chaptered course repeats file names: `06. APIs.mp4` sits in both 第三章 ESLint and
@@ -113,9 +122,11 @@ def main() -> int:
                 object_key = candidates[0] if len(candidates) == 1 else None
             entry = remote[object_key] if object_key else None
             r2_ok = bool(entry) and upload_to_r2.already_there(path, entry[0], entry[1])
-            if key in parts and parts[key] is not None:
+            if parts.get(key):
                 d = duration_of(path)
-                bili_ok = d is not None and abs(d - float(parts[key])) <= DURATION_TOLERANCE
+                bili_ok = d is not None and any(
+                    duration is not None and abs(d - float(duration)) <= DURATION_TOLERANCE
+                    for duration in parts[key])
             else:
                 bili_ok = False
             if r2_ok and bili_ok:
