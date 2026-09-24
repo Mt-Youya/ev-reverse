@@ -39,8 +39,29 @@ import clean_work as cw          # noqa: E402  (verified prefix / 稿件 tables)
 import upload_to_r2              # noqa: E402
 
 
+def common_parent(rels: list):
+    """The folder the collections share, so a multi-chapter course still names a path.
+
+    WebGIS课程 is one course of 220 lessons across ten chapter collections, all under
+    `out/WebGIS课程`. Reporting null there would say "nothing was ever exported" about the
+    ten folders that are right there.
+    """
+    parents = {str(pathlib.PurePosixPath(rel).parent) for rel in rels}
+    if len(parents) == 1 and parents != {"."}:
+        return OUT / parents.pop()
+    return None
+
+
 def norm(title: str) -> str:
-    t = re.sub(r"\.(mp4|mkv|ts)$", "", str(title).strip(), flags=re.I)
+    """Part or object name for comparison: no media extension, no whitespace.
+
+    The extension pattern repeats because the platform's own title does: 工程管理实战's lesson 35
+    is stored as `35. [测试体系]单元测试.mp4.mp4`, and stripping one extension left
+    `35.[测试体系]单元测试.mp4` against a disk file named `35. [测试体系]单元测试.mp4`. The 1.1 GB
+    file sitting in out/ therefore read as "no local copy" and the page offered it as
+    un-uploadable. bili_upload.norm() strips the same repeat, for the same reason.
+    """
+    t = re.sub(r"(\.(mp4|mkv|ts))+$", "", str(title).strip(), flags=re.I)
     return re.sub(r"\s+", "", t)
 
 
@@ -66,6 +87,35 @@ def local_titles(folder: pathlib.Path) -> set:
         return set()
     return {norm(p.name) for p in folder.rglob("*")
             if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES}
+
+
+def local_folders() -> dict:
+    """course name -> the folder holding its finished files.
+
+    Matching on "the folder that directly contains videos" was wrong for every chaptered
+    collection: 前端工具链, LangGraph, CSS企业应用方案 and the rest keep their lessons in
+    chapter subfolders, so they have no video at their own level and every one of their
+    episodes read as never exported on a page that meanwhile showed them uploaded. Count
+    the subtree instead, and when one name occurs twice under out/, take the folder with
+    more videos.
+    """
+    totals = {}
+    for path in OUT.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in VIDEO_SUFFIXES:
+            continue
+        parent = path.parent
+        while True:
+            totals[parent] = totals.get(parent, 0) + 1
+            if parent == OUT:
+                break
+            parent = parent.parent
+    found = {}
+    for path, count in totals.items():
+        if path == OUT:
+            continue
+        if path.name not in found or count > found[path.name][1]:
+            found[path.name] = (path, count)
+    return {name: path for name, (path, _count) in found.items()}
 
 
 def bili_titles(bvs) -> set:
@@ -154,11 +204,7 @@ def main() -> int:
     mappings = name_map()
 
     # local folder lookup: course name -> path under out/
-    local_by_name = {}
-    for path in OUT.rglob("*"):
-        if path.is_dir() and any(p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES
-                                 for p in path.iterdir()):
-            local_by_name.setdefault(path.name, path)
+    local_by_name = local_folders()
 
     courses = []
     for cid, record in index["courses"].items():
@@ -192,8 +238,20 @@ def main() -> int:
                                    {u["rel"] for _f, u in units if u} if r in bili_cache]) \
             if any(u and u["rel"] in bili_cache for _f, u in units) else None
 
-        folder = local_by_name.get(name)
-        local = local_titles(folder) if folder else set()
+        rels = sorted({u["rel"] for _f, u in units if u})
+        if rels:
+            # The collection's own folder, the same `rel` its R2 prefix and 稿件 were derived
+            # from. Looking up the *course* name instead missed every chaptered collection --
+            # WebGIS课程 is ten chapter folders and has no folder of its own, and LangGraph keeps
+            # its lessons under 第一章/第二章 -- so their episodes all read as never exported on a
+            # page that meanwhile showed them uploaded.
+            local = set().union(*[local_titles(OUT / rel) for rel in rels])
+            folder = OUT / rels[0] if len(rels) == 1 else common_parent(rels)
+        else:
+            # No mapping yet: a collection that has just been exported and not added to the
+            # tables still deserves a real local count, so fall back to matching by name.
+            folder = local_by_name.get(name)
+            local = local_titles(folder) if folder else set()
 
         episodes = []
         for f in sorted(files, key=lambda x: episode_order(x.get("title"))):
