@@ -78,6 +78,9 @@ BILI_BY_COLLECTION = {
     "前端架构课程/D3.js": ["BV1bwhn6nEoX"],
     "前端架构课程/前端测试框架": ["BV1hfhJ6pE7E"],
     "前端架构课程/前端工具链": ["BV1zqhb6bE1W"],
+    # Created 2026-09-24 by the one-pass upload, so it did not exist when the table above was
+    # first written and this collection's 10 episodes read as "not on Bilibili".
+    "前端架构课程/新自定义脚手架": ["BV1P1aw6AEoB"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
