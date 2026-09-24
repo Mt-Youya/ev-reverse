@@ -220,6 +220,11 @@ def main() -> int:
             # The page reads courses.data.js and the reports read courses.json, so a refresh that
             # produced a document the schema rejects would go unnoticed until someone looked.
             run([PYTHON, str(REPO / "tools" / "validate_status.py")], "status data check")
+            # And the answer to "what is still missing, and why" belongs in a file next to the
+            # page, not only in whatever the last report happened to say.
+            run([PYTHON, str(REPO / "tools" / "upload_gaps.py"),
+                 "--markdown", str(REPO / "verify_fresh" / "upload-status" / "gaps.md")],
+                "gaps document")
         elif args.courses_max_age:
             log(f"courses.json is {stale_minutes(STATUS):.0f} min old; refresh after "
                 f"{args.courses_max_age} min")

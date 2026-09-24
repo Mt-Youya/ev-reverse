@@ -24,6 +24,7 @@ A lesson whose platform field is null is reported as unknown, never as missing.
 import argparse
 import json
 import pathlib
+import time
 
 REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
 COURSES = REPO / "verify_fresh" / "upload-status" / "courses.json"
@@ -93,12 +94,89 @@ def table(title: str, rows: list, target) -> None:
               f"{gigabytes(sum(e['size_bytes'] for e in missing)):>7.2f}  {str(where)[:56]}")
 
 
+def markdown(document: dict, r2_open: list, bili_open: list, r2_export: list,
+             bili_export: list, nowhere: list) -> str:
+    """The same four buckets as a document, plus the blockers that need a person.
+
+    The last section is written by hand because no query produces it: a lesson that cannot be
+    exported at all, two 稿件s only Bilibili's own editor can fix. Each entry names where the
+    evidence is, so a reader can check instead of trusting.
+    """
+    lines = [
+        "# 尚未上传的课程与原因",
+        "",
+        f"生成时间 {time.strftime('%Y-%m-%d %H:%M')}，数据来自 `courses.json`"
+        f"（生成于 {document['generated_at']}）。"
+        f"共 {len(document['courses'])} 门课 / {document['totals']['episodes']} 集。",
+        "",
+        "「可上传」= 本地有成片、平台上还没有；上传由看门狗每 20 分钟自动跑一次。"
+        "「需先导出」= 本地没有成片，得先从课程平台导出（可下载，或直接发布 work/ 里已合并的缓存）。",
+        "",
+        "## 可以直接上传（本地已有成片）",
+        "",
+    ]
+
+    def table(rows: list, target) -> list:
+        out = ["| 课程 | 文件数 | 源大小 | 目标 |", "| --- | ---: | ---: | --- |"]
+        for course, missing in sorted(rows, key=lambda r: -sum(e["size_bytes"] for e in r[1])):
+            size = sum(e["size_bytes"] for e in missing) / 1024 ** 3
+            out.append(f"| {course['name']} | {len(missing)} | {size:.2f} GB | "
+                       f"`{target(course)}` |")
+        return out if len(out) > 2 else ["（无）"]
+
+    lines += ["**R2**", ""]
+    lines += table(r2_open, lambda c: c["r2_prefix"])
+    lines += ["", "**Bilibili**", ""]
+    lines += table(bili_open, lambda c: ",".join(c["bilibili_ids"]) or "(还没有稿件)")
+
+    lines += ["", "## 需要先导出（本地没有成片）", ""]
+    lines += ["**缺在 R2**", ""]
+    lines += table(r2_export, lambda c: c["r2_prefix"])
+    lines += ["", "**缺在 Bilibili**", ""]
+    lines += table(bili_export, lambda c: ",".join(c["bilibili_ids"]) or "(还没有稿件)")
+
+    episodes = sum(c["episode_count"] for c in nowhere)
+    size = sum(c["size_bytes"] for c in nowhere) / 1024 ** 3
+    lines += [
+        "", "### 从未导出过（两个平台都没有任何记录）", "",
+        f"{len(nowhere)} 门课 / {episodes} 集 / 源文件合计 {size:.1f} GB。"
+        "这些课**从来没有下载过**：本地没有成片、R2 没有前缀、B站 没有稿件，"
+        "所以不是上传失败，而是还没走到上传。",
+        "",
+        "| 课程 | 集数 | 源大小 |",
+        "| --- | ---: | ---: |",
+    ]
+    for course in sorted(nowhere, key=lambda c: -c["episode_count"]):
+        lines.append(f"| {course['name']} | {course['episode_count']} | "
+                     f"{course['size_bytes'] / 1024 ** 3:.2f} GB |")
+
+    lines += [
+        "", "## 需要人工处理的（工具做不到）", "",
+        "* **`前端工具链` / `01. ESLint介绍` —— 导出失败，不是上传失败。** "
+        "音轨里有 1 帧 AAC 截断（131,496 帧中 1 帧），发布前的严格音视频校验不通过，"
+        "导出器拒绝出片；两次独立下载都复现。两条出路（接受已 remux 的成品 / 只重编码音轨）"
+        "都需要人来定：见 `docs/EXPORT-PIPELINE.md` §5。",
+        "* **`工程管理实战` 有 2 条重复分P**（`35. [测试体系]单元测试.mp4`，三条同长 2281 秒）。"
+        "删除接口 404，编辑接口要整份 archive 载荷，只能人工：见 "
+        "`.scratch/bilibili-upload/issues/02-delete-the-duplicate-unit-test-parts.md`。",
+        "* **`前端工具链` 第 1 分P 名被改成了合集名**（应为 `01. 课程概述`），"
+        "内容其实早就在稿件里。人工改名后请删掉 `bili_upload.PART_ALIASES` 里的别名：见 "
+        "`.scratch/bilibili-upload/issues/01-fix-the-toolchain-part-order.md`。",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true",
                         help="emit the same findings as JSON instead of tables")
     parser.add_argument("--limit", type=int, default=0,
                         help="with --json, cap the per-course episode lists")
+    parser.add_argument("--markdown", type=pathlib.Path,
+                        help="write the findings as a markdown document, so the answer to "
+                             "'what is still missing and why' is a file rather than a chat "
+                             "message")
     args = parser.parse_args()
 
     document = load()
@@ -108,6 +186,13 @@ def main() -> int:
     r2_download = needs_export(courses, "r2")
     bili_download = needs_export(courses, "bilibili")
     nowhere = never_uploaded(courses)
+
+    if args.markdown:
+        args.markdown.write_text(
+            markdown(document, r2_open, bili_open, r2_download, bili_download, nowhere),
+            encoding="utf-8")
+        print(f"wrote {args.markdown}")
+        return 0
 
     if args.json:
         def as_rows(rows, cap):
