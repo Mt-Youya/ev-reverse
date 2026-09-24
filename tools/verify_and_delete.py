@@ -36,45 +36,14 @@ DURATION_TOLERANCE = 3.0
 
 sys.path.insert(0, str(REPO / "tools"))
 import upload_to_r2  # noqa: E402
+import clean_work as cw  # noqa: E402
 
-# local collection -> (R2 prefix, 稿件 ids). The prefix table is hand-established and was
-# verified by uploading against it; pairing prefixes to collections by lesson number does not
-# work here, because every course numbers its lessons from 01 and the numbers are near
-# identical across collections.
-COLLECTIONS = {
-    "AI 大全栈/AI/Agents底层逻辑": ("videos/ai/agents/duyi-edu/", ["BV1vTeS6nEQs"]),
-    "AI 大全栈/AI/LangGraph工作流开发": ("videos/ai/langgraph/duyi-edu/", ["BV1Y3eS6mE7N"]),
-    "AI 大全栈/AI/LangChain + DeepAgent 开发实战": ("videos/ai/langchain/duyi-edu/", ["BV137hk6SE1T"]),
-    "AI 大全栈/Python/Python语言核心精讲": ("videos/python/basic/duyi-edu/", ["BV1mLe36hE3G"]),
-    "AI 大全栈/Python/Python框架": ("videos/python/framework/duyi-edu/", ["BV1Cpe36dEyK"]),
-    "AI 大全栈/Python/数据科学工具包": ("videos/python/math-tools/duyi-edu/", ["BV19beU6jExR"]),
-    "AI 大全栈/通识/数据库": ("videos/database/postgresql/duyi-edu/", ["BV1mTe86UErP"]),
-    "AI 大全栈/通识/OAuth2": ("videos/auth/oauth2/duyi-edu/", ["BV1mTe86UEck"]),
-    "AI 大全栈/通识/RBAC": ("videos/auth/RBAC/duyi-edu/", ["BV1TTe86SEZ2"]),
-    "前端架构课程/LangChain": ("videos/ai/langchain/architecture-duyi-edu/", ["BV1QZhk6HEr3"]),
-    "前端架构课程/LangGraph": ("videos/ai/langgraph/architecture-duyi-edu/", ["BV13Rhk6sE1b"]),
-    "前端架构课程/NestJS": ("videos/backend/nodejs/nestjs/duyi-edu/", ["BV19Qhk6xEiM"]),
-    "前端架构课程/企业级监控平台全栈架构设计":
-        ("videos/frontend/enterprise-monitoring/duyi-edu/", ["BV1VVhk6pEet"]),
-    "前端架构课程/企业级文档协同实践":
-        ("videos/frontend/doc-collaboration/duyi-edu/", ["BV135hk6QEjG"]),
-    "前端架构课程/音视频实时互动技术":
-        ("videos/frontend/realtime-media/duyi-edu/", ["BV1o2hk6fEX6"]),
-    "前端架构课程/工程管理实战":
-        ("videos/frontend/engineering-management/duyi-edu/", ["BV1K9hp6WEyX"]),
-    "前端架构课程/D3.js": ("videos/frontend/d3js/duyi-edu/", ["BV1bwhn6nEoX"]),
-    "WebGIS课程/WebGIS地理概念": ("videos/3D/webgis/basic/duyi-edu/", ["BV1hthq6qET3"]),
-    "WebGIS课程/OpenLayers框架详解": ("videos/3D/openlayers/framework/duyi-edu/", ["BV1vnhq6GEHa"]),
-    "WebGIS课程/OpenLayers项目实战": ("videos/3D/openlayers/basic/duyi-edu/", ["BV1eWhq6gEJc"]),
-    "WebGIS课程/Leaflet框架详解": ("videos/3D/leaflet/framework/duyi-edu/", ["BV1s6hq6bEPy"]),
-    "WebGIS课程/Mapbox框架详解": ("videos/3D/mapbox/framework/duyi-edu/", ["BV1Kqhq6aEHt"]),
-    "WebGIS课程/高德 API与AntV L7": ("videos/3D/gmap/api/duyi-edu/", ["BV1xzhq6FECQ"]),
-    "WebGIS课程/地理图形设计与数据服务":
-        ("videos/3D/geography/graphics/duyi-edu/", ["BV1Lfhq6jEHf"]),
-    "WebGIS课程/Cesium基础入门": ("videos/3D/cesium/basic/duyi-edu/", ["BV14ihq6wEUx"]),
-    "WebGIS课程/Cesium高级进阶": ("videos/3D/cesium/advanced/duyi-edu/", ["BV1THh66uEzq"]),
-    "WebGIS课程/Cesium项目实战": ("videos/3D/cesium/course/duyi-edu/", ["BV18Gh66LERW"]),
-}
+# local collection -> (R2 prefix, 稿件 ids), taken from the verified tables rather than repeated
+# here. The copy that used to live in this file had already drifted: it was missing 前端工具链,
+# 前端测试框架, CSS企业应用方案, 微前端, 微前端架构实战 and 新自定义脚手架, so those collections
+# were never eligible for cleanup even after both platforms held them.
+COLLECTIONS = {rel: (cw.R2_BY_COLLECTION[rel], cw.BILI_BY_COLLECTION.get(rel, []))
+               for rel in cw.R2_BY_COLLECTION}
 
 
 def norm(title: str) -> str:
