@@ -45,29 +45,40 @@ def safe_name(title: str) -> str:
     return stem + ".mp4"
 
 
-def plan() -> list:
-    """[(course name, course id, file id, output path, work dir)] for every real gap."""
+def every_lesson() -> list:
+    """Every lesson of every course, with the path it would be published to.
+
+    The folder is the collection's own `rel` when the tables have one. Eleven courses have no
+    mapping at all -- Electron, React源码分析, 文档协同, rollup and the rest -- and their lessons
+    are still placed the way the exporter places them, `<category>/<course>/<chapter>/`, which is
+    the layout those folders already have on disk.
+    """
     index = json.loads(INDEX.read_text(encoding="utf-8"))
     account = index.get("account_id")
-    status = json.loads(COURSES.read_text(encoding="utf-8"))
-    missing = {c["name"]: c for c in status["courses"]
-               if c["counts"]["r2"] == 0 or c["counts"]["bilibili"] == 0
-               or any(not e["local"] and (e["r2"] is False or e["bilibili"] is False)
-                      for e in c["episodes"])}
+    categories = {}
+    catalog = json.loads((REPO / "verify_fresh" / "catalog.json").read_text(encoding="utf-8"))
+
+    def label(node, root):
+        if node.get("title"):
+            categories.setdefault(node["title"], root)
+        for child in node.get("children", []):
+            if child.get("kind") != "video":
+                label(child, root)
+
+    for root in catalog["roots"]:
+        label(root, root["title"])
 
     rows = []
     for cid, record in index["courses"].items():
         detail = record["course_detail"]
         name = detail["self"]["name"]
-        if name not in missing:
-            continue
-        collection = None
-        for rel in cw.R2_BY_COLLECTION:
-            if pathlib.PurePosixPath(rel).name == name:
-                collection = rel
-                break
+        collection = next((rel for rel in cw.R2_BY_COLLECTION
+                           if pathlib.PurePosixPath(rel).name == name), None)
         if collection is None:
-            continue
+            category = categories.get(name)
+            if category is None:
+                continue
+            collection = f"{category}/{name}"
 
         def walk(node, chapters):
             own = (node.get("self") or {}).get("name") or node.get("title")
@@ -89,11 +100,19 @@ def plan() -> list:
                 walk(child, here)
 
         walk(detail, [])
+    return rows
 
-    # Only the ones with nothing on disk AND nothing on one of the platforms.
+
+def plan(rows: list) -> list:
+    """The lessons missing from a platform that are not on disk either."""
+    status = json.loads(COURSES.read_text(encoding="utf-8"))
+    courses = {c["name"]: c for c in status["courses"]}
+
     gaps = []
     for row in rows:
-        course = missing[row["course"]]
+        course = courses.get(row["course"])
+        if course is None:
+            continue
         episode = next((e for e in course["episodes"] if e["file_id"] == row["file_id"]), None)
         if episode is None or episode["local"]:
             continue
@@ -105,16 +124,30 @@ def plan() -> list:
     return gaps
 
 
+def cached(rows: list) -> list:
+    """The lessons that are already merged in work/ and have no published file.
+
+    `--phase publish` validates and remuxes the cached `lesson.ts`, so this costs a decode per
+    lesson instead of a download. Eleven courses were left in exactly this state: merged days
+    ago, never published, and therefore never uploadable.
+    """
+    return [row for row in rows
+            if not row["output"].exists() and (row["work"] / "lesson.ts").exists()]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", default=None,
                         help="substrings of course names to restrict to")
+    parser.add_argument("--from-cache", action="store_true",
+                        help="publish the lessons whose scratch already holds a merged lesson.ts, "
+                             "instead of downloading the ones a platform is missing")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
 
-    gaps = plan()
+    gaps = cached(every_lesson()) if args.from_cache else plan(every_lesson())
     if args.only:
         gaps = [g for g in gaps if any(key in g["course"] for key in args.only)]
     if args.limit:
@@ -128,9 +161,10 @@ def main() -> int:
         for row in rows:
             print(f"      file {row['file_id']:<9} {row['title'][:52]}")
 
-    print(f"\n{len(gaps)} lesson(s) to download into {OUT}")
+    verb = "publish from cache" if args.from_cache else "download"
+    print(f"\n{len(gaps)} lesson(s) to {verb}")
     if not args.apply:
-        print("dry run: nothing downloaded (pass --apply)")
+        print(f"dry run: nothing will be {verb}ed (pass --apply)")
         return 0
 
     failures = []
@@ -141,6 +175,8 @@ def main() -> int:
                    "--course", str(gap["course_id"]), "--file", str(gap["file_id"]),
                    "--output", str(gap["output"]), "--work", str(gap["work"]),
                    "--jobs", str(args.jobs)]
+        if args.from_cache:
+            command += ["--phase", "publish"]
         print(f"\n=== [{number}/{len(gaps)}] {gap['course']} :: {gap['title']} ===", flush=True)
         started = time.time()
         result = subprocess.run(command, capture_output=True, text=True,
@@ -154,7 +190,7 @@ def main() -> int:
             size = gap["output"].stat().st_size / 1024 ** 2
             print(f"    ok {size:.0f} MB in {elapsed:.0f}s", flush=True)
 
-    print(f"\ndownloaded {len(gaps) - len(failures)}/{len(gaps)}")
+    print(f"\n{verb}ed {len(gaps) - len(failures)}/{len(gaps)}")
     for gap in failures:
         print(f"   failed: {gap['course']} :: {gap['title']}")
     return 1 if failures else 0
