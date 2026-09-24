@@ -238,16 +238,6 @@ def main() -> int:
         bili_parts = set().union(*[bili_cache[r] for r in
                                    {u["rel"] for _f, u in units if u} if r in bili_cache]) \
             if any(u and u["rel"] in bili_cache for _f, u in units) else None
-        if bili_parts is not None:
-            # Lessons whose part carries a different title -- 前端工具链's first part is named after
-            # the collection because the batch page had that row selected. bili_upload knows the
-            # alias and does not re-upload them; without it here the page would keep reporting one
-            # missing lesson for a collection that is complete.
-            for _f, unit in units:
-                if unit:
-                    bili_parts |= {norm(t) for t in
-                                   bu.PART_ALIASES.get(pathlib.PurePosixPath(unit["rel"]).name,
-                                                       {}).values()}
 
         rels = sorted({u["rel"] for _f, u in units if u})
         if rels:
@@ -264,9 +254,22 @@ def main() -> int:
             folder = local_by_name.get(name)
             local = local_titles(folder) if folder else set()
 
+        # Lessons whose part carries a different title than the lesson does: 前端工具链's first part
+        # is named after the collection, because the batch upload page had that row selected.
+        # bili_upload knows the alias and does not re-upload it; without it here the page keeps
+        # reporting one lesson missing from Bilibili on a collection that is complete.
+        aliases = {}
+        for _f, unit in units:
+            if unit:
+                title = pathlib.PurePosixPath(unit["rel"]).name
+                aliases |= {norm(local_name): norm(part_title)
+                            for local_name, part_title in bu.PART_ALIASES.get(title, {}).items()}
+
         episodes = []
         for f in sorted(files, key=lambda x: episode_order(x.get("title"))):
             key = norm(f.get("title", ""))
+            on_bilibili = None if bili_parts is None else (
+                key in bili_parts or (aliases.get(key) in bili_parts if key in aliases else False))
             episodes.append({
                 "file_id": f.get("file_id"),
                 "title": str(f.get("title", "")).removesuffix(".mp4"),
@@ -274,7 +277,7 @@ def main() -> int:
                 "size_bytes": int(f.get("size") or 0),
                 "local": key in local,
                 "r2": (key in r2_titles) if r2_titles is not None else None,
-                "bilibili": (key in bili_parts) if bili_parts is not None else None,
+                "bilibili": on_bilibili,
             })
 
         def count(field, value):
