@@ -84,7 +84,7 @@ BILI_BY_COLLECTION = {
     # No 稿件 exists yet for these eleven -- their files were only published from the merged
     # scratch on 2026-09-24. An empty list is a fact ("nothing holds these lessons"), where a
     # missing entry would read as "unknown" on the status page.
-    "前端架构课程/Electron": [],
+    "前端架构课程/Electron": ["BV1zdaw6sEbr"],
     "前端架构课程/React源码分析": ["BV1p5aP6wEBm"],
     "前端架构课程/文档协同": ["BV1A5aP6wEam"],
     "前端架构课程/脚手架技术内幕": ["BV1YXaA6jEC5"],
@@ -95,6 +95,34 @@ BILI_BY_COLLECTION = {
     "前端架构课程/国际化（i18n）": ["BV1jtaP6pEc5"],
     "前端架构课程/企业级包管理方案": ["BV1H5aP6wEBX"],
     "前端架构课程/esbuild": ["BV1H8ac6WEfW"],
+    # The 25 never-exported courses have no 稿件 yet. An empty list is a fact -- "nothing holds
+    # these lessons" -- and stays true until the first file is uploaded and sync_bili_ids fills the
+    # id in. A missing entry would instead read as "unknown" on the status page.
+    "鸿蒙Next课程/HarmonyOS Next SDK": [],
+    "鸿蒙Next课程/ArkUI应用框架": [],
+    "鸿蒙Next课程/HarmonyOS应用模型": [],
+    "鸿蒙Next课程/HarmonyOS Next 特色与生态": [],
+    "鸿蒙Next课程/坚果驾考": [],
+    "鸿蒙Next课程/实战案例-简记": [],
+    "鸿蒙Next课程/daysmatter": [],
+    "鸿蒙Next课程/实战案例-华夏旅行者": [],
+    "鸿蒙Next课程/鸿蒙就业指导": [],
+    "鸿蒙Next课程/鸿蒙认证考试辅导": [],
+    "前端课程/求职之道极速版": [],
+    "前端课程/求职之道常规版": [],
+    "前端架构课程/前端+AI（基础篇）": [],
+    "前端架构课程/React源码解析": [],
+    "前端架构课程/vue源码解析(新)": [],
+    "前端架构课程/vue源码分析": [],
+    "前端架构课程/vue-router源码分析": [],
+    "前端架构课程/从零实现Coding Agent": [],
+    "前端架构课程/AI平台篇（扣子&Dify）": [],
+    "前端架构课程/通用组件库开发": [],
+    "前端架构课程/浏览器插件开发": [],
+    "前端架构课程/Recoil源码分析": [],
+    "前端架构课程/pinia源码": [],
+    "前端架构课程/RxJS": [],
+    "前端架构课程/主题切换": [],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
@@ -158,6 +186,39 @@ R2_BY_COLLECTION = {
     "前端架构课程/国际化（i18n）": "videos/frontend/i18n/duyi-edu/",
     "前端架构课程/企业级包管理方案": "videos/frontend/package-management/duyi-edu/",
     "前端架构课程/运维自动化项目实战": "videos/backend/ops-automation/duyi-edu/",
+    # The 25 courses that were never downloaded at all: no local file, no prefix, no 稿件. Their
+    # prefixes are what make them plannable -- export_missing refuses to offer a lesson it cannot
+    # call missing, and with no mapping the platform answer is unknown rather than false.
+    # Named per docs/NEVER-EXPORTED-COURSES.md (agreed 2026-09-24), by content and reusing the
+    # tree's existing top-level categories except for two new ones: `harmonyos` (the 鸿蒙 group)
+    # and `career` (求职之道). The two pairs that are easy to confuse stay distinct on purpose:
+    # React源码分析 is react-internals while React源码解析 is react-source, and vue源码解析(新) is
+    # vue-source while vue源码分析 is vue-internals.
+    "鸿蒙Next课程/HarmonyOS Next SDK": "videos/harmonyos/next-sdk/duyi-edu/",
+    "鸿蒙Next课程/ArkUI应用框架": "videos/harmonyos/arkui/duyi-edu/",
+    "鸿蒙Next课程/HarmonyOS应用模型": "videos/harmonyos/app-model/duyi-edu/",
+    "鸿蒙Next课程/HarmonyOS Next 特色与生态": "videos/harmonyos/ecosystem/duyi-edu/",
+    "鸿蒙Next课程/坚果驾考": "videos/harmonyos/driving-test/duyi-edu/",
+    "鸿蒙Next课程/实战案例-简记": "videos/harmonyos/case-notes/duyi-edu/",
+    "鸿蒙Next课程/daysmatter": "videos/harmonyos/daysmatter/duyi-edu/",
+    "鸿蒙Next课程/实战案例-华夏旅行者": "videos/harmonyos/case-traveler/duyi-edu/",
+    "鸿蒙Next课程/鸿蒙就业指导": "videos/harmonyos/career/duyi-edu/",
+    "鸿蒙Next课程/鸿蒙认证考试辅导": "videos/harmonyos/certification/duyi-edu/",
+    "前端课程/求职之道极速版": "videos/career/job-hunt-fast/duyi-edu/",
+    "前端课程/求职之道常规版": "videos/career/job-hunt-standard/duyi-edu/",
+    "前端架构课程/前端+AI（基础篇）": "videos/frontend/ai-basics/duyi-edu/",
+    "前端架构课程/React源码解析": "videos/frontend/react-source/duyi-edu/",
+    "前端架构课程/vue源码解析(新)": "videos/frontend/vue-source/duyi-edu/",
+    "前端架构课程/vue源码分析": "videos/frontend/vue-internals/duyi-edu/",
+    "前端架构课程/vue-router源码分析": "videos/frontend/vue-router-source/duyi-edu/",
+    "前端架构课程/从零实现Coding Agent": "videos/frontend/coding-agent/duyi-edu/",
+    "前端架构课程/AI平台篇（扣子&Dify）": "videos/ai/platform-coze-dify/duyi-edu/",
+    "前端架构课程/通用组件库开发": "videos/frontend/component-library/duyi-edu/",
+    "前端架构课程/浏览器插件开发": "videos/frontend/browser-extension/duyi-edu/",
+    "前端架构课程/Recoil源码分析": "videos/frontend/recoil-source/duyi-edu/",
+    "前端架构课程/pinia源码": "videos/frontend/pinia-source/duyi-edu/",
+    "前端架构课程/RxJS": "videos/frontend/rxjs/duyi-edu/",
+    "前端架构课程/主题切换": "videos/frontend/theme-switching/duyi-edu/",
 }
 
 

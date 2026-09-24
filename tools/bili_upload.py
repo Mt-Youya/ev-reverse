@@ -94,6 +94,36 @@ COLLECTIONS = [
     ("前端架构课程/国际化（i18n）", "国际化,i18n,前端,格式化,多语言"),
     ("前端架构课程/企业级包管理方案", "npm,monorepo,包管理,发布,工程化"),
     ("前端架构课程/esbuild", "esbuild,构建,Go,插件,性能"),
+    # The 25 courses that were never exported (docs/NEVER-EXPORTED-COURSES.md, agreed 2026-09-24).
+    # Tags match their cover cards, so poster and 稿件 say the same thing. None of them has a 稿件
+    # yet, so each becomes a new submission the first time files appear -- which is why their covers
+    # had to be delivered before this table was written: Bilibili fixes the cover and the watermark
+    # at creation, and this pipeline cannot drive the creator centre to change either one.
+    ("鸿蒙Next课程/HarmonyOS Next SDK", "ArkTS,Ability,UIAbility,SDK,鸿蒙"),
+    ("鸿蒙Next课程/ArkUI应用框架", "ArkUI,声明式,状态管理,组件,鸿蒙"),
+    ("鸿蒙Next课程/HarmonyOS应用模型", "Stage模型,Ability,生命周期,进程,鸿蒙"),
+    ("鸿蒙Next课程/HarmonyOS Next 特色与生态", "元服务,分布式,多设备,生态,鸿蒙"),
+    ("鸿蒙Next课程/坚果驾考", "ArkTS,项目实战,题库,页面路由,鸿蒙"),
+    ("鸿蒙Next课程/实战案例-简记", "记事本,数据存储,ArkTS,实战,鸿蒙"),
+    ("鸿蒙Next课程/daysmatter", "倒计时,组件,实战,ArkTS,鸿蒙"),
+    ("鸿蒙Next课程/实战案例-华夏旅行者", "旅行,地图,实战,ArkTS,鸿蒙"),
+    ("鸿蒙Next课程/鸿蒙就业指导", "就业,简历,面试,鸿蒙,职业规划"),
+    ("鸿蒙Next课程/鸿蒙认证考试辅导", "认证,考试,考点,鸿蒙,备考"),
+    ("前端课程/求职之道极速版", "求职,简历,面试,前端,职业规划"),
+    ("前端课程/求职之道常规版", "求职,简历,面试,职业规划,前端"),
+    ("前端架构课程/前端+AI（基础篇）", "LLM,Prompt,AI编码,提效,前端"),
+    ("前端架构课程/React源码解析", "React,源码,Fiber,Reconciler,Hooks"),
+    ("前端架构课程/vue源码解析(新)", "Vue3,响应式,编译器,渲染器,源码"),
+    ("前端架构课程/vue源码分析", "Vue,响应式,虚拟DOM,Diff,源码"),
+    ("前端架构课程/vue-router源码分析", "vue-router,路由,匹配器,导航守卫,源码"),
+    ("前端架构课程/从零实现Coding Agent", "Agent,工具调用,上下文,LLM,实战"),
+    ("前端架构课程/AI平台篇（扣子&Dify）", "扣子,Dify,工作流,编排,LLM"),
+    ("前端架构课程/通用组件库开发", "组件库,设计规范,打包,文档站,工程化"),
+    ("前端架构课程/浏览器插件开发", "Manifest,content script,背景页,消息通信,扩展"),
+    ("前端架构课程/Recoil源码分析", "Recoil,atom,selector,状态,源码"),
+    ("前端架构课程/pinia源码", "pinia,store,响应式,插件,Vue3"),
+    ("前端架构课程/RxJS", "RxJS,Observable,操作符,调度器,响应式"),
+    ("前端架构课程/主题切换", "CSS变量,设计令牌,暗色模式,主题,工程化"),
 ]
 
 
