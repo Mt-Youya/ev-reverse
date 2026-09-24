@@ -120,9 +120,9 @@ BILI_BY_COLLECTION = {
     "前端架构课程/通用组件库开发": [],
     "前端架构课程/浏览器插件开发": [],
     "前端架构课程/Recoil源码分析": [],
-    "前端架构课程/pinia源码": [],
+    "前端架构课程/pinia源码": ["BV1WhaN6uES5"],
     "前端架构课程/RxJS": [],
-    "前端架构课程/主题切换": [],
+    "前端架构课程/主题切换": ["BV1xhaN6uE7p"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
@@ -218,7 +218,12 @@ R2_BY_COLLECTION = {
     "前端架构课程/Recoil源码分析": "videos/frontend/recoil-source/duyi-edu/",
     "前端架构课程/pinia源码": "videos/frontend/pinia-source/duyi-edu/",
     "前端架构课程/RxJS": "videos/frontend/rxjs/duyi-edu/",
-    "前端架构课程/主题切换": "videos/frontend/theme-switching/duyi-edu/",
+    # The one course that does not sit directly under `frontend`. 主题切换 is a CSS-technique
+    # course -- the Bilibili tag it is submitted with is `CSS变量,设计令牌,暗色模式,主题,工程化` --
+    # so it belongs in a `css/` group beside css-enterprise rather than at the frontend root.
+    # Decided 2026-09-24, before its first upload: nothing was ever written to the old
+    # `videos/frontend/theme-switching/` key, so this is where it lands rather than a move.
+    "前端架构课程/主题切换": "videos/frontend/css/theme-switching/duyi-edu/",
 }
 
 

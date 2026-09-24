@@ -86,7 +86,7 @@ python tools/watch_and_upload.py --loop-minutes 20            # 之后交给看�
 | Recoil源码分析 | 13 | 1.45 GB | `videos/frontend/recoil-source/duyi-edu/` |
 | pinia源码 | 10 | 0.67 GB | `videos/frontend/pinia-source/duyi-edu/` |
 | RxJS | 7 | 1.40 GB | `videos/frontend/rxjs/duyi-edu/` |
-| 主题切换 | 5 | 1.00 GB | `videos/frontend/theme-switching/duyi-edu/` |
+| 主题切换 | 5 | 1.00 GB | `videos/frontend/css/theme-switching/duyi-edu/` |
 
 **两个容易撞名的**：
 `React源码分析`（38 集，已上传，住 `videos/frontend/react-internals/`）与
