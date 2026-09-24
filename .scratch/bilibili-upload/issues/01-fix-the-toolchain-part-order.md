@@ -1,7 +1,19 @@
 # 01 — 修正 `前端工具链` 稿件（BV1zqhb6bE1W）的分P顺序与第 1 分P 名
 
-Status: ready-for-agent
+Status: ready-for-human
 Type: task
+
+## 需要人工做的（2 分钟，biliup 做不到）
+
+**B站 没有提供这些操作的 CLI**，API 也只有写接口（`POST /x/vu/web/edit`，GET 返回 405），
+手写 POST 载荷有破坏线上稿件的风险。所以这两件事只能手工：
+
+1. 创作中心 → 内容管理 → 稿件管理 → 找到「前端工具链」→ **编辑**
+2. **把第 1 分P 的名字从「前端工具链」改成「01. 课程概述」**
+   —— 改完之后 `tools/bili_upload.py` 的标题匹配就通了：这一集现在被报成"缺失"
+   （每轮上传都会白跑一次），改完即归零。**内容其实早就在稿件里，不需要重传。**
+3. 顺带把分P 拖成课程顺序：`01. 课程概述` → `02. 抽象语法树` → `01. Prettier介绍` → …
+   → `03. SWC`（第一章到第五章）
 
 ## 现状
 
@@ -34,28 +46,9 @@ B站 稿件管理页的「编辑」「⋮」按钮对合成点击无响应（Pla
 坐标换算已核对），所以**不能在页面上拖拽重排分P**。API 删除接口 `member.bilibili.com/x/vu/web/delete`
 返回 404，新 endpoint 未找到。
 
-## 两个候选做法
-
-**A. 使用者在创作中心手动重排（最省事）**
-创作中心 → 内容管理 → 稿件管理 → 该稿件「编辑」→ 分P 管理里拖拽排序，并把第 1 分P 改名。
-约一分钟。
-
-**B. 删掉重传（agent 可独立完成）**
-排序 bug 已在 `80a57bd` 修好，重传即可得到正确顺序：
-
-```powershell
-# 1. 删（需要新 endpoint；旧的是 404，见上）
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\delete_submission.py BV1zqhb6bE1W          # 先 dry run 核对
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\delete_submission.py BV1zqhb6bE1W --apply
-
-# 2. 确认 bili_upload.py 现在会当作「新建稿件」而不是 append（稿件已不存在）
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\bili_upload.py --only 工具链
-
-# 3. 重传（27 集 4.69 GB，约 15 分钟）
-& 'D:\DevelopmentTools\Anaconda\python.exe' tools\bili_upload.py --only 工具链 --apply
-```
-
-代价是重传 4.69 GB，并且换一个 BV 号。
+改名/重排的 API 也走不通：`member.bilibili.com/x/vu/web/edit` 对 GET 返回 **405**，只接受 POST，
+且要带整份 archive 载荷（`videos` 数组里每个分P 的 `filename` 必须是上传时的存储名）。**手写这份载荷
+有破坏线上稿件的风险，所以没有做。** 上面「需要人工做的」那节是替代方案。
 
 ## 验收
 
