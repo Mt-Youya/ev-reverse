@@ -30,27 +30,18 @@ TABLE = REPO / "tools" / "clean_work.py"
 sys.path.insert(0, str(REPO / "tools"))
 import clean_work as cw  # noqa: E402
 import bili_upload as bu  # noqa: E402
+import bili_listing  # noqa: E402
 
 
 def archives() -> dict:
-    """稿件 title -> [(bv, part count)], from the account's own list."""
-    result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "list", "--max-pages", "60"],
-                            capture_output=True, text=True, encoding="utf-8", errors="replace")
-    lines = [line for line in result.stdout.splitlines() if line.startswith("BV")]
-    if not lines:
-        # Bilibili answers the archives endpoint with HTTP 412 when it decides the caller is
-        # asking too often, and biliup reports that as "Unknown Error / error decoding response
-        # body". An empty listing is not "this account has no 稿件" -- it has hundreds -- so
-        # reporting every collection as having none would be a lie, and in bili_upload's case a
-        # costly one.
-        raise SystemExit("biliup list returned no 稿件 at all (HTTP 412 from Bilibili?); "
-                         "refusing to report from an empty listing")
+    """稿件 title -> [bv], from the account's own list (cached, see bili_listing).
+
+    Bilibili answers the archives endpoint with HTTP 412 when it is called too often, and an
+    empty listing is not "this account has no 稿件" -- it has hundreds -- so bili_listing raises
+    rather than letting every collection be reported as having none.
+    """
     found = {}
-    for line in lines:
-        fields = line.split("\t")
-        if len(fields) < 2:
-            continue
-        bv, title = fields[0], fields[1].strip()
+    for bv, title, _status in bili_listing.entries():
         if bv in bu.SUPERSEDED:
             continue
         found.setdefault(title, []).append(bv)

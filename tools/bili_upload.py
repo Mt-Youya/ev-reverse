@@ -33,6 +33,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import bili_listing  # noqa: E402  (one cached read of the account's 稿件 list)
+
 REPO = pathlib.Path(r"D:\Codes\github\ev-reverse")
 OUT = REPO / "verify_fresh" / "out"
 BILIUP = pathlib.Path.home() / ".biliup" / "bin" / "biliup.exe"
@@ -158,18 +161,13 @@ PART_ALIASES = {
 def archive_index(wanted: set) -> dict:
     """稿件 title -> {bv, set of part titles}, only for the collections we care about.
 
-    An unreadable listing is refused rather than treated as an empty account. `biliup list`
-    fails transiently ("Unknown Error / error decoding response body", seen 2026-09-24 after a
-    burst of calls), and the old code turned that into "no 稿件 exists", which makes every
-    collection with a local file look like it needs a new submission -- dozens of duplicate
-    稿件s from one hiccup. The account has hundreds of 稿件s; zero is never the truth.
+    The listing comes from `bili_listing`, which caches it: `biliup list` walks dozens of pages
+    and Bilibili answers the endpoint with HTTP 412 when it is called too often. An unreadable
+    listing is refused rather than treated as an empty account -- the account has hundreds of
+    稿件s, and "no 稿件 exists" makes every collection with a local file look like it needs a new
+    submission, which is dozens of duplicate 稿件s from one hiccup.
     """
-    listing = run("list", "--max-pages", "60")
-    if not any(line.startswith("BV") for line in listing.splitlines()):
-        raise SystemExit(
-            "biliup list returned no 稿件 at all; refusing to run, because an empty index would "
-            "make every collection look like it needs a new submission. Retry when the API "
-            "answers again.")
+    listing = bili_listing.listing()
     index = {}
     for line in listing.splitlines():
         if not line.startswith("BV"):

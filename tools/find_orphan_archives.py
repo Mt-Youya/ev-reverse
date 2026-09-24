@@ -24,6 +24,7 @@ COOKIES = pathlib.Path.home() / ".biliup" / "cookies.json"
 
 sys.path.insert(0, str(REPO / "tools"))
 import clean_work as cw  # noqa: E402
+import bili_listing  # noqa: E402
 
 
 def norm(text: str) -> str:
@@ -31,23 +32,14 @@ def norm(text: str) -> str:
 
 
 def archives() -> list:
-    result = subprocess.run([str(BILIUP), "-u", str(COOKIES), "list", "--max-pages", "60"],
-                            capture_output=True, text=True, encoding="utf-8", errors="replace")
-    rows = []
-    for line in result.stdout.splitlines():
-        if not line.startswith("BV"):
-            continue
-        fields = line.split("\t")
-        if len(fields) >= 2:
-            rows.append((fields[0], fields[1].strip()))
-    if not rows:
-        # The whole point of this tool is to say "no 稿件 of that course exists", and an empty
-        # listing cannot support that claim: Bilibili answers the archives endpoint with HTTP 412
-        # when it thinks the caller asks too often, and biliup turns that into an error message on
-        # stderr with nothing on stdout.
-        raise SystemExit("biliup list returned no 稿件 at all (HTTP 412 from Bilibili?); "
-                         "an empty listing proves nothing about what the account holds")
-    return rows
+    """[(bvid, title)] for the whole account, from the cached listing.
+
+    The point of this tool is to say "no 稿件 of that course exists", and an empty listing cannot
+    support that claim: Bilibili answers the archives endpoint with HTTP 412 when it thinks the
+    caller asks too often, and biliup then prints an error on stderr and nothing on stdout.
+    bili_listing raises in that case instead of returning nothing.
+    """
+    return [(bv, title) for bv, title, _status in bili_listing.entries()]
 
 
 def parts(bv: str) -> set:
