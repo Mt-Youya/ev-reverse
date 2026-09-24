@@ -58,9 +58,16 @@ def output_snapshot() -> str:
 
 
 def _count_matching(pattern: str) -> int:
+    """How many python processes match, or 0 when the query cannot be answered.
+
+    `@(...)` is not decoration. `(Get-CimInstance ... | Where-Object {...}).Count` returns nothing
+    at all when exactly one process matches -- a single CimInstance has no Count property -- so the
+    old form read "one uploader running" as "none running". r2_busy only looked right because an R2
+    pass has both a driver and a child, two matches. Forcing an array makes one match count as one.
+    """
     result = subprocess.run(
         ["powershell", "-NoProfile", "-Command",
-         "(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
+         "@(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
          f"Where-Object {{ $_.CommandLine -match '{pattern}' }}).Count"],
         capture_output=True, text=True, encoding="utf-8", errors="replace")
     text = (result.stdout or "").strip()
