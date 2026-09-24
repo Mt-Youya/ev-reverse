@@ -6,10 +6,12 @@ Bilibili stamps that watermark at 稿件 creation unless the request says otherw
 creator-centre endpoints that would expose the stored setting return 404, so the check has
 to be visual: pull the first seconds of the video back down and look at the top-left corner.
 
-It writes two pngs and prints their paths: the first frame, and the top-left corner enlarged,
-because the mark is small and a full frame hides it.
+It writes pngs and prints their paths: the first frame, and a strip of six top-left corners
+sampled across the clip. The strip is the one to judge by -- a lesson often opens on a blank
+or white slide, where a white watermark would not show, and the mark is small enough that a
+full frame hides it.
 
-    python check_watermark.py BV1P1aw6AEoB [--part 1] [--seconds 12] [--out <dir>]
+    python check_watermark.py BV1P1aw6AEoB [--part 1] [--seconds 60] [--out <dir>]
 """
 
 import argparse
@@ -60,9 +62,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("bvid")
     parser.add_argument("--part", type=int, default=1, help="1-based part number")
-    parser.add_argument("--seconds", type=int, default=12)
+    parser.add_argument("--seconds", type=int, default=60)
+    parser.add_argument("--start", type=int, default=0,
+                        help="seconds into the part to sample from. Lessons that open on a white "
+                             "slide hide a white watermark, so sampling later is often the only "
+                             "way to see it.")
     parser.add_argument("--out", type=pathlib.Path,
                         default=pathlib.Path(r"C:\Users\Yonjay\AppData\Local\Temp\watermark"))
+    parser.add_argument("--compare",
+                        help="path to the local original of the same lesson. Writes a difference "
+                             "image of the top-left corner: the reliable check, because a lesson "
+                             "on a white slide hides a white watermark from the eye")
     args = parser.parse_args()
 
     videos = parts(args.bvid)
@@ -82,17 +92,57 @@ def main() -> int:
                f"Cookie: {cookie_header()}\r\n")
 
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-headers", headers,
-                    "-i", url, "-t", str(args.seconds), "-c", "copy", str(clip)], check=True)
+                    "-ss", str(args.start), "-i", url, "-t", str(args.seconds),
+                    "-c", "copy", str(clip)], check=True)
     print(f"clip  {clip}  ({clip.stat().st_size / 1024 ** 2:.1f} MB)")
 
     frame = args.out / f"{args.bvid}-p{args.part}-frame.png"
-    corner = args.out / f"{args.bvid}-p{args.part}-corner.png"
+    corner = args.out / f"{args.bvid}-p{args.part}-corner-strip.png"
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(clip), "-frames:v", "1",
                     str(frame)], check=True)
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(frame), "-vf",
-                    "crop=560:150:0:0,scale=1120:300:flags=neighbor", str(corner)], check=True)
+    # Six samples across the clip, tiled left to right: the watermark is on every frame, so any
+    # one of them shows it, and sampling avoids judging a lesson by a blank opening slide.
+    every = max(1, args.seconds // 6)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(clip), "-vf",
+                    f"fps=1/{every},crop=560:150:0:0,scale=560:150,tile=6x1",
+                    "-frames:v", "1", str(corner)], check=True)
     print(f"frame {frame}")
-    print(f"corner {corner}   <- look here: a watermark shows as small white text")
+    print(f"strip {corner}   <- look here: six top-left corners across the clip; a watermark is "
+          f"small white text")
+
+    if args.compare:
+        # The strip is a judgement call -- a lesson on a white slide hides a white watermark. This
+        # is the proof: the same content from the local original, scaled to the stream's size, and
+        # the difference between the two corners. A watermark is a shape that is not in the
+        # original, so it shows up as legible glyphs; re-encoding noise does not.
+        original = pathlib.Path(args.compare)
+        if not original.is_file():
+            sys.exit(f"--compare {original} is not a file")
+        size = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                               "-show_entries", "stream=width,height", "-of", "csv=p=0",
+                               str(clip)], capture_output=True, text=True).stdout.strip()
+        width, _, height = size.partition(",")
+        if not width.isdigit():
+            sys.exit(f"could not read the stream size: {size!r}")
+        mine = args.out / f"{args.bvid}-p{args.part}-original.png"
+        theirs = args.out / f"{args.bvid}-p{args.part}-stream.png"
+        diff = args.out / f"{args.bvid}-p{args.part}-diff.png"
+        moment = args.start + 2
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(moment), "-i", str(original),
+                        "-frames:v", "1", "-vf", f"scale={width}:{height}", str(mine)], check=True)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "2", "-i", str(clip),
+                        "-frames:v", "1", str(theirs)], check=True)
+        crop = f"crop={min(560, int(width))}:{min(150, int(height))}:0:0"
+        for source, target in ((mine, args.out / "corner-original.png"),
+                               (theirs, args.out / "corner-stream.png")):
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(source), "-vf", crop,
+                            str(target)], check=True)
+        subprocess.run(["ffmpeg", "-y", "-v", "error",
+                        "-i", str(args.out / "corner-original.png"),
+                        "-i", str(args.out / "corner-stream.png"), "-filter_complex",
+                        "[0][1]blend=all_mode=difference,eq=contrast=8:brightness=0.15,"
+                        "scale=1120:300:flags=neighbor", str(diff)], check=True)
+        print(f"diff  {diff}   <- flat means no watermark; legible glyphs mean Bilibili added one")
     return 0
 
 
