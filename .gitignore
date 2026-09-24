@@ -49,6 +49,11 @@ verify_out*/
 # pointed at. `tools/covers/` holds the sources and `cards.json` holds the words.
 /build/covers/
 
+# One reading of the account's 稿件 list, kept only so that several scripts in a round do not each
+# walk the same dozens of pages (tools/bili_listing.py). It expires in ten minutes, so a committed
+# copy would be a lie about what the account holds.
+/build/bili-listing.txt
+
 .idea
 .vscode
 __pycache__/
