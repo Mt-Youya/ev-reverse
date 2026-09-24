@@ -230,8 +230,8 @@ def main() -> int:
                     future.result()
                 except Exception as error:  # noqa: BLE001
                     with lock:
-                        progress["failed"].append((path, key, str(error)[:200]))
-                    print(f"  FAILED {key}: {str(error)[:160]}", flush=True)
+                        progress["failed"].append((path, key, str(error)[:900]))
+                    print(f"  FAILED {key}: {str(error)[:900]}", flush=True)
         print(f"  {label}: uploaded {progress['done']}/{progress['total']}, "
               f"{progress['bytes'] / 1024 / MIB:.2f} GB, {len(progress['failed'])} failed", flush=True)
         return progress["failed"]
