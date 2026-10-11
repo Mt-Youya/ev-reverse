@@ -1,6 +1,6 @@
 ---
 name: agent-session-archaeology
-description: Find, verify, and mine every local coding-agent transcript that belongs to one project — DSH, Claude Code, Codex, VS Code Chat (Copilot/Cursor/Windsurf/Trae) — and export them as readable Markdown. Portable across Windows, macOS and Linux, for any project, with zero dependencies. Use when the user asks to find all past agent conversations about this repository, to recover how an earlier problem was solved, to audit what agents changed, or to summarize lessons from previous sessions. Handles multi-frame zstd, per-tool path-slug encodings, and authoritative session registries.
+description: Find, verify, and mine every local coding-agent transcript that belongs to one project — DSH, Claude Code, Codex, VS Code Chat (Copilot/Cursor/Windsurf/Trae) — and turn the lessons into a human-readable pitfalls guide. Portable across Windows, macOS and Linux, for any project, with zero dependencies. Use when the user asks to find all past agent conversations about this repository, to recover how an earlier problem was solved, to audit what agents changed, to record a pitfall discovered in the current conversation, or to incrementally update an existing avoiding-pitfalls guide. Handles multi-frame zstd, per-tool path-slug encodings, authoritative registries, deduplicated incremental updates, and output written in the user's own language.
 ---
 
 # Agent Session Archaeology
@@ -12,7 +12,7 @@ Round up the agent conversations scattered across a machine and mine them for ex
 1. **Decide ownership from the transcript, never from the directory name.** One project path can appear under several directory names: `C:\work\demo` becomes `C--work-demo` under Claude Code and `--C-work-demo--` under DSH. The encodings differ per tool and neither is reversible. The only reliable signals are the `cwd` recorded inside the session and the tool's own registry.
 2. **Never trust a single decompress pass to give you everything.** DSH session files are multi-frame zstd; decompressing one shot **silently** returns only the first frame (a single metadata line) with no error. See [references/transcript-formats.md](references/transcript-formats.md).
 3. **Reconcile against the authoritative registry before concluding.** If the session count does not match the tool's own registry, you missed something.
-4. **An export is verbatim, so it inherits whatever was pasted into the conversation** — session cookies, bearer tokens, API keys. `export` redacts credential values as it writes (see [scripts/redact-exports.mjs](scripts/redact-exports.mjs)); for an export directory produced another way, or as a pre-commit guard, run that script directly. It replaces values and keeps key names, so the transcript still reads as evidence.
+4. **An export is verbatim, so it inherits whatever was pasted into the conversation** — session cookies, bearer tokens, API keys. `export` redacts credential values as it writes (see [scripts/redact-exports.mjs](scripts/redact-exports.mjs)); for an export directory produced another way, or as a pre-commit guard, run that script directly. It replaces values and keeps key names, so the transcript still reads as evidence. This matters twice over for the guide: `evidence.gz` is cut *from* those exports, so an unredacted export is how a credential reaches a file that ships with the repository.
 
 ## Environment and installation
 
@@ -155,6 +155,70 @@ Two guards exist because both mistakes were made for real:
 
 - **Oversized excerpt** — warns above 512 KB uncompressed. A wrong `--lines` once made a "36 line" archive hold 1.2 MB of the entire session while still reporting 36 lines.
 - **Personal paths** — warns when an excerpt contains `C:\Users\<name>` or `/Users/<name>`. The archive travels with the repository, so such a path is a dead reference for everyone else and a privacy leak for the author, while the exported session directory it points at is gitignored and not present in any clone. Record the **session name and line range** instead; rewrite any incidental path in the excerpt as `~/…`.
+
+### Updating an existing guide (incremental, never destructive)
+
+A repository may already carry a guide from an earlier run. **Never regenerate it** — it holds hand-written prose and a stable index that other documents link to.
+
+```bash
+node "$SKILL/scripts/build-guide-index.mjs" --guide <guide-dir> --json
+```
+
+That prints the inventory: every existing `id`, its `source`, and `nextIds` — the next free id per prefix. Use it to:
+
+1. **Deduplicate before appending.** A finding is already recorded when its session and line range appear in an existing `source`, or when its subject matches an existing entry. In that case **update that entry** — status, resolution, a sharper diagnosis — rather than adding a near-duplicate. Two entries for one bug are worse than one.
+2. **Continue the numbering** from `nextIds`. Never reuse an id.
+3. **Append to the matching topic file**, at the end. Do not reorder, renumber or rewrite existing records.
+4. **Rebuild the index** (`build-guide-index.mjs` without `--json`); it rewrites only the region between the README's marker comments and leaves the prose alone.
+
+Stamp each addition with its own `batch` date, so the next increment stays traceable.
+
+### Capturing a pitfall you just hit
+
+You do not need a session export. When a pitfall surfaces **in the conversation you are in**, that conversation is the source:
+
+1. Extract the same facts you would from a transcript: what broke, how it surfaced, how it was diagnosed, what fixed it, what to do differently. Quote the **real** error text, command and path from the conversation — not a paraphrase of them.
+2. Pick the topic and take the id from `nextIds`.
+3. Write the entry into that topic file with the evidence inline (the actual output, quoted). Archive a range only when the surrounding context is genuinely needed *and* the session has already been exported — otherwise inline is the correct choice.
+4. Set `source` to the session id when you know it, or `current session <YYYY-MM-DD>` when you do not.
+5. Rebuild the index.
+
+Do not wait for a batch. A pitfall written down while it is fresh is worth more than one reconstructed a month later from a transcript nobody re-reads.
+
+### Write for humans
+
+The guide is read by people, not by the agent that produced it.
+
+**1. Write in the user's language.** Whatever language the conversation is in, the guide body uses it — titles, the seven sections, the README prose. Only the metadata labels (`batch`, `severity`, `status`, `source`) stay English, because scripts parse them.
+
+**2. Humanize before finishing.** Resolve a humanizer nearest-first, and stop at the first hit — the same way configuration lookup works, a narrower scope wins:
+
+1. **This repository.** `<project>/.agents/skills/`, `<project>/.claude/skills/`. A project-local humanizer is the most relevant one that can exist: someone chose it for *this* codebase's voice and language.
+2. **This machine.** `~/.agents/skills/`, `~/.claude/skills/`, `~/.codex/skills/`, plus the skill list the client injects into the session. Look for a name containing `humaniz` (or the equivalent in the user's language).
+3. **The open ecosystem** — [skills.sh](https://skills.sh) and GitHub — only once 1 and 2 both came up empty. Run the CLI **with the package manager the project declares** — `npx` inside a pnpm repo dies with `EBADDEVENGINES`, which is a mismatch to respect, not to work around by leaving the directory:
+   ```bash
+   pnpm dlx skills find "humanizer <language>"   # project pins pnpm
+   npx      skills find "humanizer <language>"   # npm, or no pin
+   yarn dlx skills find "humanizer <language>"   # yarn
+   bunx     skills find "humanizer <language>"   # bun
+   ```
+   If the CLI cannot start at all — a sandbox that denies writes to the package-manager cache (`ERR_PNPM_CLI_DLX_CACHE`, npm `EPERM`), no network, or the tool is missing — do not stop there: search the web for `skills.sh humanizer <language>`. The `skills.sh` search page is client-rendered and its API requires a Vercel OIDC token, so a plain web search is the route that works when the CLI is unavailable.
+
+If one turns up at any level, **use it as-is** — do not keep searching for a "better" one. If all three come up empty, do not stall and do not install anything without asking; apply the rules below.
+
+Naming convention in the ecosystem: plain `humanizer` is the English one; localized versions carry a language suffix (`humanizer-zh`, `humanizer-ja`, …). Pick the one matching **the language the user is writing in** — not the language of this skill.
+
+The rules to apply when no humanizer is available:
+
+- **Concrete beats abstract.** "The local clock ran 12 s ahead of Supabase" — not "a time-synchronisation issue was present".
+- **One idea per paragraph.** Cut the pile-up of parallel clauses that machine prose defaults to.
+- **No throat-clearing.** Delete openers like "It is worth noting that", "In conclusion", "Furthermore", and the closing paragraph that repeats what was just said.
+- **Name the actor.** "The agent read the exit code and declared success" beats "success was declared".
+- **A heading states the conclusion**, not the topic: "Migration 2 can never apply", not "Migration ordering".
+- **Leave code, paths and commands exactly as they are.** Do not smooth them out for the sake of readability.
+- **Keep quotes verbatim.** They are evidence; rewriting them destroys their value.
+
+Read the result back once as if a colleague had written it. If it sounds like a status report produced by a machine, rewrite it.
 
 ## Boundaries
 

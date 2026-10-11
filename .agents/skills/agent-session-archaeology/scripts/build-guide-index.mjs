@@ -94,11 +94,30 @@ function parseTopic(file) {
     const sev = fieldValue(meta, 'severity');
     const status = fieldValue(meta, 'status');
     const batch = fieldValue(meta, 'batch');
+    // Kept raw: it is a comma/`·`-joined list of `tool/session @lines` references, and incremental
+    // updates deduplicate against it.
+    const source = fieldValue(meta, 'source');
     const hasEvidence = /📎/.test(lines.slice(i, Math.min(i + 80, lines.length)).join('\n').split('\n---')[0]);
-    pitfalls.push({ id, name: name.trim(), severity: sev, status, batch, hasEvidence });
+    pitfalls.push({ id, name: name.trim(), severity: sev, status, batch, source, hasEvidence });
   }
 
   return { title: title ?? path.basename(file, '.md'), blurb, pitfalls };
+}
+
+/** Highest used number per prefix, +1 — so a new pitfall continues the sequence instead of colliding. */
+function nextIds(all) {
+  const highest = new Map();
+  for (const p of all) {
+    const m = /^([A-Z]+)-(\d+)$/.exec(p.id);
+    if (!m) continue;
+    const n = Number(m[2]);
+    if (!highest.has(m[1]) || n > highest.get(m[1])) highest.set(m[1], n);
+  }
+  return Object.fromEntries(
+    [...highest]
+      .toSorted((a, b) => a[0].localeCompare(b[0]))
+      .map(([prefix, n]) => [prefix, `${prefix}-${String(n + 1).padStart(2, '0')}`]),
+  );
 }
 
 function collect(guide) {
@@ -175,6 +194,26 @@ function main() {
   const guide = path.resolve(args.guide ?? 'docs/avoiding-pitfalls-guide');
   const readme = path.join(guide, 'README.md');
   const data = collect(guide);
+
+  // Machine-readable inventory for incremental updates: an agent deduplicates new findings against
+  // `source`/`id` and reads the next free id, instead of re-reading every topic file.
+  if (args.json) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          guide: path.relative(process.cwd(), guide).replace(/\\/g, '/'),
+          topics: data.topics.map((t) => ({ file: t.file, title: t.title, pitfalls: t.pitfalls.length })),
+          existingIds: data.all.map((p) => p.id).toSorted(),
+          nextIds: nextIds(data.all),
+          pitfalls: data.all,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return;
+  }
+
   const generated = renderIndex(data);
 
   if (data.all.length === 0) {
