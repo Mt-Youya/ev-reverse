@@ -24,6 +24,9 @@
  *   node scripts/find-agent-sessions.mjs export [--project <dir>] [--out <dir>] [--full] [--content]
  *   node scripts/find-agent-sessions.mjs doctor
  *
+ * `export` redacts credential values out of what it wrote (see redact-exports.mjs); an export
+ * directory that was produced some other way can be cleaned with that script directly.
+ *
  * Adding a new tool: write a reader returning the shared session shape, then add one entry to
  * SOURCES below. Nothing else needs to change.
  */
@@ -32,6 +35,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
+
+import { redactDirectory } from './redact-exports.mjs';
 
 // ---------------------------------------------------------------------------
 // environment
@@ -847,8 +852,17 @@ function main() {
       files.push(target);
     }
     if (files.length > 0) fs.writeFileSync(path.join(outDir, 'index.md'), renderIndex(result, files), 'utf8');
+    // An export is verbatim: whatever was pasted into a session is pasted into the project.
+    // Redacting here, rather than leaving it to whoever remembers, is the difference between a
+    // credential in a project directory for a day and one that is never written at all.
+    const redaction = redactDirectory(outDir);
     process.stdout.write(`Exported ${files.length} session(s) to ${outDir}\n`);
     for (const f of files) process.stdout.write(`  ${path.basename(f)}\n`);
+    const redacted = Object.values(redaction.counts).reduce((a, b) => a + b, 0);
+    process.stdout.write(redacted === 0
+      ? 'No credential values were found in the export.\n'
+      : `Redacted ${redacted} credential value(s) in ${redaction.touched} file(s) — `
+        + `key names kept, values replaced.\n`);
     return;
   }
 

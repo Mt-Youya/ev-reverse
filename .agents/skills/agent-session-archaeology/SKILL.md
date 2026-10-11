@@ -12,6 +12,7 @@ Round up the agent conversations scattered across a machine and mine them for ex
 1. **Decide ownership from the transcript, never from the directory name.** One project path can appear under several directory names: `C:\work\demo` becomes `C--work-demo` under Claude Code and `--C-work-demo--` under DSH. The encodings differ per tool and neither is reversible. The only reliable signals are the `cwd` recorded inside the session and the tool's own registry.
 2. **Never trust a single decompress pass to give you everything.** DSH session files are multi-frame zstd; decompressing one shot **silently** returns only the first frame (a single metadata line) with no error. See [references/transcript-formats.md](references/transcript-formats.md).
 3. **Reconcile against the authoritative registry before concluding.** If the session count does not match the tool's own registry, you missed something.
+4. **An export is verbatim, so it inherits whatever was pasted into the conversation** — session cookies, bearer tokens, API keys. `export` redacts credential values as it writes (see [scripts/redact-exports.mjs](scripts/redact-exports.mjs)); for an export directory produced another way, or as a pre-commit guard, run that script directly. It replaces values and keeps key names, so the transcript still reads as evidence.
 
 ## Environment and installation
 
@@ -46,13 +47,17 @@ node "$SKILL/scripts/find-agent-sessions.mjs" scan --content
 # 4. Export readable Markdown (defaults to <project>/.agent-sessions/)
 node "$SKILL/scripts/find-agent-sessions.mjs" export          # conversation text
 node "$SKILL/scripts/find-agent-sessions.mjs" export --full   # include tool calls and results
+
+# 5. Credentials are stripped as part of export. Verify, or clean an older export directory:
+node "$SKILL/scripts/redact-exports.mjs" --check              # exit 1 if anything remains
+node "$SKILL/scripts/redact-exports.mjs"                      # redact in place
 ```
 
 Options: `--project <dir>`, `--json` (JSON scan output), `--out <dir>` (export destination).
 
 The `match` column in `scan` means: `cwd` = the recorded working directory is inside this project; `registry` = the tool's own registry names it; `content` = the text mentions this project's absolute path.
 
-After export, `index.md` is the overview and `<source>--<id>.md` is one session. **Exports contain local paths and personal context — always gitignore them.**
+After export, `index.md` is the overview and `<source>--<id>.md` is one session. **Exports contain local paths and personal context — always gitignore them** (`.agent-sessions/`), and keep the ignore rule even though values are redacted: the redactor removes credentials, not the personal context around them.
 
 ## Supported sources
 
