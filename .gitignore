@@ -60,3 +60,11 @@ __pycache__/
 
 # tools/export_video.py complete video output
 /ev-videos/
+
+# Output of the browser-upload round (docs/BILIBILI-UPLOAD.md section 8). The covers are
+# rendered from tools/covers/cards.json and the shots are the evidence that section was
+# written from -- both regenerable, both wanted on disk, neither wanted in the index. The
+# scripts that produce them (tools/covers/, .scratch/cdp-*.mjs, .scratch/ab.ps1) are
+# tracked; only their output is not.
+/build/bili-covers/
+/.scratch/bili-shots/
