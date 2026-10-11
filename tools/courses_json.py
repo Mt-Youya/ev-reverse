@@ -20,6 +20,7 @@ rather than "not there": a course with no prefix established yet has no R2 answe
 """
 
 import argparse
+import collections
 import json
 import pathlib
 import re
@@ -186,6 +187,83 @@ def course_files(detail) -> list:
     return [f for f in files if f.get("type") == "video"]
 
 
+def episode_index(index: dict) -> dict:
+    """(course id, file id) -> the platform's own record for that lesson.
+
+    A catalog video's id is `<course>:<file>`, which is exactly the pair the course list is keyed
+    by: on this account all 1910 catalog videos resolve, so the tree never has to guess which
+    lesson a file is by matching its title.
+    """
+    found = {}
+    for cid, record in index["courses"].items():
+        for f in course_files(record["course_detail"]):
+            if f.get("file_id") is not None:
+                found[(int(cid), int(f["file_id"]))] = f
+    return found
+
+
+def course_tree(byname: dict, roots: dict) -> list:
+    """The player's own catalog tree, stamped with each lesson's upload state.
+
+    The page mirrors the player's directory tree, so the tree comes from catalog.json -- the same
+    document the player draws -- rather than from a re-grouping of the flat course list. Nodes are
+    emitted in catalog order and named exactly as the player names them; only the per-video state
+    below is added.
+
+    Every video is looked up by `<course id>:<file id>`, not by title: 工程管理实战 stores its
+    lesson 35 as `35. [测试体系]单元测试.mp4.mp4`, and titles repeat across courses.
+    """
+    by_id = {}
+    for course in byname.values():
+        for episode in course["episodes"]:
+            if episode.get("file_id") is not None:
+                by_id[(course["id"], int(episode["file_id"]))] = (course, episode)
+
+    def visit(node) -> dict | None:
+        kind = node.get("kind")
+        title = str(node.get("title") or "")
+        if kind == "video":
+            cid, _, fid = str(node.get("id") or "").partition(":")
+            found = by_id.get((int(cid), int(fid))) if cid.isdigit() and fid.isdigit() else None
+            if not found:
+                return None
+            course, episode = found
+            record = {
+                "kind": "video",
+                "title": title,
+                "file_id": int(fid),
+                "duration_seconds": episode["duration_seconds"],
+                "size_bytes": episode["size_bytes"],
+                "local": episode["local"],
+                "r2": episode["r2"],
+                "bilibili": episode["bilibili"],
+            }
+            if episode["bilibili"] and course["bilibili_ids"]:
+                # Which part of which 稿件 carries it, so the page can link straight to the
+                # lesson instead of naming a BV the reader then has to search.
+                record["bv"] = course["bilibili_ids"][0]
+                record["page"] = next((i + 1 for i, e in enumerate(course["episodes"])
+                                       if e is episode), None)
+            return record
+
+        children = [child for child in (visit(c) for c in node.get("children") or []) if child]
+        if not children:
+            return None
+        # A folder's own totals are the only place they are written down: a video carries its own
+        # three flags and nothing else, and the page aggregates as it renders. `both` means the
+        # same thing here as in the course list -- on R2 and on Bilibili -- so adding `local`
+        # would turn it into "still on disk", which is 17 lessons, not the 1075 that are up.
+        summary = {"count": 0, "both": 0}
+        for child in children:
+            folder = child["kind"] == "folder"
+            summary["count"] += child["summary"]["count"] if folder else 1
+            summary["both"] += (child["summary"]["both"] if folder
+                                else 1 if child["r2"] and child["bilibili"] else 0)
+        return {"kind": "folder", "title": title, "children": children, "summary": summary}
+
+    return [node for node in (visit(root) for root in (roots.get("roots") or [])) if node]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", type=pathlib.Path, default=DEFAULT_DIR)
@@ -319,6 +397,17 @@ def main() -> int:
         "both": sum(c["counts"]["both"] for c in courses),
     }
 
+    # A second view over the same facts: the player's catalog tree, so a reader navigates the
+    # backlog the way they navigate the player. Built from catalog.json rather than re-grouped
+    # from the course list, and emitted into courses.json so one file describes the page.
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    tree = course_tree({c["name"]: c for c in courses}, catalog)
+    in_tree = sum(node["summary"]["count"] for node in tree)
+    if in_tree != totals["episodes"]:
+        print(f"warning: the catalog tree holds {in_tree} videos but the course list has "
+              f"{totals['episodes']} episodes; the tree view will be incomplete",
+              file=sys.stderr)
+
     document = {
         "$schema": "./courses.schema.json",
         "generated_at": time.strftime("%Y-%m-%d %H:%M"),
@@ -326,6 +415,7 @@ def main() -> int:
         "spine": "verify_fresh/index.json (the account's own course list)",
         "totals": totals,
         "courses": courses,
+        "catalog": tree,
     }
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -334,10 +424,13 @@ def main() -> int:
 
     # The page cannot fetch() a local file when it is opened straight from disk, so the same
     # document is also emitted as a script that assigns it to a global. Regenerate, do not
-    # hand-edit: courses.json stays the source of truth.
+    # hand-edit: courses.json stays the source of truth. Written compact because this is machine
+    # input, not reading material, and the catalog tree roughly doubles the document; the
+    # validator decodes both and compares the documents, so the two encodings cannot drift.
     (args.out_dir / "courses.data.js").write_text(
         "// Generated from courses.json -- do not edit. Regenerate with tools/courses_json.py\n"
-        "window.COURSE_DATA = " + json.dumps(document, ensure_ascii=False, indent=1) + ";\n",
+        "window.COURSE_DATA = " + json.dumps(document, ensure_ascii=False, separators=(",", ":"))
+        + ";\n",
         encoding="utf-8")
 
     (args.out_dir / "courses.schema.json").write_text(
@@ -415,6 +508,49 @@ def schema() -> dict:
                      "episode_count", "duration_seconds", "size_bytes", "counts", "episodes"],
         "additionalProperties": False,
     }
+    # The catalog tree, recursive: a folder holds folders and videos, a video carries its own
+    # three flags. Only folders carry `summary` ("两边都有 x/y"); a video's contribution is its
+    # own line, so repeating a summary per video would say the same thing twice 1910 times.
+    summary = {
+        "type": "object",
+        "properties": {
+            "count": {"type": "integer", "minimum": 0, "description": "Videos below this node."},
+            "both": {"type": "integer", "minimum": 0,
+                     "description": "Videos below this node that are on R2 and on Bilibili."},
+        },
+        "required": ["count", "both"],
+        "additionalProperties": False,
+    }
+    catalog_video = {
+        "type": "object",
+        "properties": {
+            "kind": {"const": "video"},
+            "title": {"type": "string", "description": "The player's own name, extension and all."},
+            "file_id": {"type": "integer"},
+            "duration_seconds": {"type": "integer", "minimum": 0},
+            "size_bytes": {"type": "integer", "minimum": 0},
+            "local": {"type": "boolean"},
+            "r2": {"type": ["boolean", "null"]},
+            "bilibili": {"type": ["boolean", "null"]},
+            "bv": {"type": "string", "description": "The 稿件 carrying this lesson, when known."},
+            "page": {"type": ["integer", "null"], "description": "Its part number in that 稿件."},
+        },
+        "required": ["kind", "title", "file_id", "duration_seconds", "size_bytes", "local",
+                     "r2", "bilibili"],
+        "additionalProperties": False,
+    }
+    catalog_folder = {
+        "type": "object",
+        "properties": {
+            "kind": {"const": "folder"},
+            "title": {"type": "string"},
+            "children": {"type": "array",
+                         "items": {"oneOf": [{"$ref": "#/$defs/catalog_folder"}, catalog_video]}},
+            "summary": summary,
+        },
+        "required": ["kind", "title", "children", "summary"],
+        "additionalProperties": False,
+    }
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://github.com/ev-reverse/courses.schema.json",
@@ -422,6 +558,7 @@ def schema() -> dict:
         "description": "Every course on the account and where each of its lessons has reached: "
                        "on disk, in the R2 bucket, and on Bilibili.",
         "type": "object",
+        "$defs": {"catalog_folder": catalog_folder},
         "properties": {
             "$schema": {"type": "string", "description": "Relative path to this schema."},
             "generated_at": {"type": "string", "description": "Local time, YYYY-MM-DD HH:MM."},
@@ -444,8 +581,14 @@ def schema() -> dict:
                 "additionalProperties": False,
             },
             "courses": {"type": "array", "items": course},
+            "catalog": {
+                "type": "array",
+                "description": "The player's catalog tree (catalog.json), the same hierarchy the "
+                               "player shows, with each video's upload state attached.",
+                "items": {"$ref": "#/$defs/catalog_folder"},
+            },
         },
-        "required": ["generated_at", "account_id", "totals", "courses"],
+        "required": ["generated_at", "account_id", "totals", "courses", "catalog"],
         "additionalProperties": False,
     }
 
