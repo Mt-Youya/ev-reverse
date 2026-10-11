@@ -1471,6 +1471,69 @@
         "scene": "one interface flipping between light and dark palettes while a token grid re-maps its colours",
         "palette": "grey and gold"
       }
+    },
+    {
+      "key": "ai-comic",
+      "out": "AI 大全栈/AI/项目_LangGraph实现AI漫剧",
+      "title": "LangGraph 实现 AI 漫剧",
+      "en": "STORYBOARD TO COMIC",
+      "tags": [
+        "需求结构化",
+        "故事大纲",
+        "结构化分镜",
+        "子图"
+      ],
+      "epLabel": "SERIES / 09 EPISODES",
+      "ghost": "09",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 09 集 · 总时长 7 小时 06 分",
+      "footerRight": "LangGraph 实现 AI 漫剧",
+      "bg": {
+        "scene": "a film strip unrolling out of a glowing graph of story beats, its frames lighting up one by one into comic panels",
+        "palette": "magenta and deep blue"
+      }
+    },
+    {
+      "key": "agent-observability",
+      "out": "AI 大全栈/AI/Agent观测与评估",
+      "title": "Agent 观测与评估",
+      "en": "TRACING & EVALUATION",
+      "tags": [
+        "Langfuse",
+        "Tracing",
+        "评估器",
+        "回归测试"
+      ],
+      "epLabel": "SERIES / 21 EPISODES",
+      "ghost": "21",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 21 集 · 总时长 8 小时 44 分",
+      "footerRight": "Agent 观测与评估",
+      "bg": {
+        "scene": "an agent run drawn as a glowing trace waterfall: nested spans of different lengths, one branch flagged red by a small evaluation dial",
+        "palette": "teal and coral"
+      }
+    },
+    {
+      "key": "agent-infra",
+      "out": "AI 大全栈/AI/项目：Agent基础设施建设",
+      "title": "Agent 基础设施建设",
+      "en": "GATEWAY TO SANDBOX",
+      "tags": [
+        "AI网关",
+        "AgentSpec",
+        "沙箱",
+        "MinIO"
+      ],
+      "epLabel": "SERIES / 30 EPISODES",
+      "ghost": "30",
+      "eyebrow": "AI 全栈 · 视频课程",
+      "footerLeft": "共 30 集 · 总时长 14 小时 16 分",
+      "footerRight": "Agent 基础设施建设",
+      "bg": {
+        "scene": "an isometric infrastructure blueprint: a gateway routing traffic into sealed sandbox cells, artefact crates carried to a storage vault",
+        "palette": "slate blue and lime"
+      }
     }
   ]
 }
