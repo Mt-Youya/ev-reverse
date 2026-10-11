@@ -36,20 +36,24 @@ import { pathToFileURL } from 'node:url';
  * required to look like secrets — 12+ characters of one unbroken token — so ordinary prose
  * ("the token was empty", "session: a lookup table") is left alone.
  *
- * A cookie pair: `SESSDATA=abc…`, `bili_jct: abc…`, `"token": "abc…"`. The names cover what
- * this ecosystem actually leaks (Bilibili cookies, generic session/auth/api tokens) without
- * trying to be a dictionary.
+ * Three layers, because no single one of them is enough:
+ *   1. **Named fields** — `SESSDATA=abc…`, `bili_jct: abc…`, `"refresh_token": "abc"`, plus a
+ *      `Cookie:`/`Set-Cookie:` header and an `Authorization:` header whatever its scheme is
+ *      (`Bearer …`, `Basic …`, GitHub's space-separated `token ghp_…`, `AWS4-HMAC-SHA256 …`).
+ *   2. **Name shapes** — anything that *ends* in a secret word (`WEBHOOK_SECRET=`, `MY_APP_KEY=`,
+ *      `DEPLOY_TOKEN=`) and a password inside a connection string (`postgres://user:pass@host`),
+ *      so a project whose names nobody anticipated is still covered. A fixed list alone would only
+ *      ever catch the names someone thought of.
+ *   3. **Token shapes** — issuer prefixes (`ghp_`, `xoxb-`, `sk-`, `AIza`, `glpat-`, `npm_`, …) and
+ *      bare JWTs, which identify themselves with no name in front of them.
+ *
+ * What is deliberately *out* of layer 1 keeps the artifact usable as evidence: `session` is the
+ * export's own front matter (`Session: <id>`, how a reader gets back to the original), `sid` is a
+ * parameter of the player's segment URLs, and `auth` is an AWS4 scheme name. A credential behind
+ * one of those names inside a real `Cookie:` or `Authorization:` header is still removed.
  */
 /**
- * Cookie and field names that carry a credential. Deliberately narrow: a transcript is evidence,
- * and over-redaction destroys the things it is evidence *of*. Three names that look tempting are
- * out on purpose, because in this ecosystem they are identifiers, not secrets:
- *   `session`  — the export's own front matter is `Session: <id>`, which is how a reader gets back
- *                to the original; redacting it breaks the trail the guide cites.
- *   `sid`      — `?bid=119354&sid=1113723` is a parameter of the player's segment URLs.
- *   `auth`     — `AUTH: AWS4-HMAC-SHA256` is a scheme name.
- * A credential hiding behind one of those names in a real `Cookie:` header is still removed, by
- * the cookie-header rule below.
+ * Field and cookie names whose value is a credential. Layer 1 above.
  */
 const SECRET_NAMES = [
   'SESSDATA', 'bili_jct', 'DedeUserID__ckMd5', 'sec_ck', 'buvid3',
@@ -67,12 +71,42 @@ const VALUE = String.raw`[A-Za-z0-9%._~+/=\\-]{12,}`;
 /** 6+ for identifiers, which are shorter by nature. */
 const IDENTIFIER_VALUE = String.raw`[A-Za-z0-9%._~+/=\\-]{6,}`;
 
+/**
+ * Tokens whose own shape identifies them, so they are caught even with no name in front of them —
+ * a bare `ghp_…` pasted into a shell command is as much a leak as `token=…`. Each prefix is
+ * issuer-specific enough that prose does not match it by accident.
+ */
+const PROVIDER_TOKENS = [
+  'gh[pousr]_[A-Za-z0-9]{20,}',                    // GitHub: pat, oauth, user, server, refresh
+  'github_pat_[A-Za-z0-9_]{20,}',                  // GitHub fine-grained PAT
+  'xox[baprs]-[A-Za-z0-9-]{10,}',                  // Slack
+  'sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}',      // OpenAI
+  '(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}',      // Stripe
+  'AIza[A-Za-z0-9_-]{30,}',                        // Google API key
+  'glpat-[A-Za-z0-9_-]{16,}',                      // GitLab PAT
+  'npm_[A-Za-z0-9]{30,}',
+  'SG\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}',  // SendGrid
+  'dop_v1_[a-f0-9]{40,}',                          // DigitalOcean
+  'hf_[A-Za-z0-9]{30,}',                           // Hugging Face
+  'pypi-[A-Za-z0-9_-]{30,}',
+].join('|');
+
 export const RULES = [
   {
     // `SESSDATA=abc`, `bili_jct: abc`, `"refresh_token": "abc"` — the quote is part of the name.
     name: 'name=value pair',
     re: new RegExp(
       String.raw`((?:${SECRET_NAMES})["']?\s*[=:]\s*["']?)(?!\[redacted\])(${VALUE})`, 'gi'),
+    to: '$1[redacted]',
+  },
+  {
+    // A fixed list cannot know every project's names, so anything that *ends* in a secret word
+    // counts too: WEBHOOK_SECRET=, MY_APP_KEY=, DEPLOY_TOKEN=. One separator is required before
+    // the suffix, which is what keeps bare `key:` and `token:` in a code sample out of it.
+    name: 'suffixed secret name',
+    re: new RegExp(
+      String.raw`((?:[A-Za-z0-9]+[_-])+(?:secret|key|token|password|passwd|pwd)["']?\s*[=:]\s*["']?)`
+      + String.raw`(?!\[redacted\])(${VALUE})`, 'gi'),
     to: '$1[redacted]',
   },
   {
@@ -88,6 +122,14 @@ export const RULES = [
       + String.raw`(?!\[redacted\])([^"]{6,})`, 'gi'),
     to: '$1[redacted]',
   },
+  {
+    // The whole value of an Authorization header is credential material whatever the scheme is:
+    // `Bearer …`, `Basic …`, `token ghp_…` (GitHub, space-separated), `AWS4-HMAC-SHA256 Credential=…`.
+    // The two rules below catch the same tokens when the header name is absent.
+    name: 'authorization header',
+    re: /(^|[\s"'(])((?:proxy-)?authorization\s*:\s*)(?![ \t]*\[redacted\])[^\s"'][^\r\n"']{7,}/gim,
+    to: '$1$2[redacted]',
+  },
   { name: 'bearer token', re: /(\bBearer\s+)(?!\[redacted\])([A-Za-z0-9\-._~+/]{16,}=*)/gi, to: '$1[redacted]' },
   { name: 'basic auth', re: /(\bBasic\s+)(?!\[redacted\])([A-Za-z0-9+/]{16,}=*)/gi, to: '$1[redacted]' },
   {
@@ -96,6 +138,19 @@ export const RULES = [
     name: 'cookie header',
     re: /(^|[\s"'(])((?:set-)?cookie\s*:\s*)(?![ \t]*\[redacted\])[^\s"'][^\r\n"']{7,}/gim,
     to: '$1$2[redacted]',
+  },
+  { name: 'provider token', re: new RegExp(String.raw`\b(?:${PROVIDER_TOKENS})`, 'g'), to: '[redacted]' },
+  {
+    // Three base64url segments, the first of which decodes to `{"` — unambiguous when it stands alone.
+    name: 'bare JWT',
+    re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
+    to: '[redacted]',
+  },
+  {
+    // `postgres://user:pass@host` — the password is the part between the last colon and the `@`.
+    name: 'connection string password',
+    re: /(\b[a-z][a-z0-9+.\-]{1,20}:\/\/)([^/\s@:]{0,64}):(?!\[redacted\])([^@\s/]{4,})@/gi,
+    to: '$1$2:[redacted]@',
   },
   { name: 'aws access key id', re: /\b(AKIA[0-9A-Z]{16})\b/g, to: '[redacted]' },
   {
