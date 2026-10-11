@@ -1,0 +1,16 @@
+{
+  "roots": [
+    "verify_fresh/out",
+    "verify_fresh/work"
+  ],
+  "r2": {
+    "bucket": "cyrus-media-private",
+    "prefix": "videos/",
+    "account_id": "b48fdde62898699d8398a64c19217cd4",
+    "cred_target": "cf-evmedia-r2"
+  },
+  "bilibili": {
+    "source": "auto"
+  },
+  "min_age_minutes": 60
+}

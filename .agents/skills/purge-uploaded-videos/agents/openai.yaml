@@ -1,0 +1,4 @@
+interface:
+  display_name: "Purge Uploaded Videos"
+  short_description: "Delete local videos already held by Bilibili and Cloudflare R2"
+  default_prompt: "Use $purge-uploaded-videos to delete local videos that Bilibili and R2 both already hold."
