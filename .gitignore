@@ -70,3 +70,11 @@ __pycache__/
 /.scratch/bili-shots/
 
 .agent-sessions/
+
+# Raw agent session logs. These are machine-local by nature: they grow with every session,
+# they hold whatever was pasted into a conversation, and two of them were committed early
+# (`.claude/sessions/1b8d953d-*.jsonl`, 8.5 MB, carrying a live bearer token; `.codex/sessions/
+# rollout-*.jsonl`). Only the `sessions/` subdirectory is ignored -- a project-level agent
+# config under `.claude/` or `.codex/` is still committable on purpose, not by accident.
+/.claude/sessions/
+/.codex/sessions/
