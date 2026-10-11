@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Session Archaeology"
+  short_description: "Find every local agent transcript for one project"
+  default_prompt: "Use $agent-session-archaeology to find all past agent conversations about this project and summarize the lessons."

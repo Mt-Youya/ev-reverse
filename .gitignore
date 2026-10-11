@@ -68,3 +68,5 @@ __pycache__/
 # tracked; only their output is not.
 /build/bili-covers/
 /.scratch/bili-shots/
+
+.agent-sessions/
