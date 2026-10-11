@@ -106,23 +106,31 @@ BILI_BY_COLLECTION = {
     "鸿蒙Next课程/实战案例-简记": [],
     "鸿蒙Next课程/daysmatter": [],
     "鸿蒙Next课程/实战案例-华夏旅行者": [],
-    "鸿蒙Next课程/鸿蒙就业指导": [],
-    "鸿蒙Next课程/鸿蒙认证考试辅导": [],
+    "鸿蒙Next课程/鸿蒙就业指导": ["BV1zAaN6tE51"],
+    "鸿蒙Next课程/鸿蒙认证考试辅导": ["BV1JAaN6bEHp"],
     "前端课程/求职之道极速版": [],
     "前端课程/求职之道常规版": [],
     "前端架构课程/前端+AI（基础篇）": [],
-    "前端架构课程/React源码解析": [],
-    "前端架构课程/vue源码解析(新)": [],
+    "前端架构课程/React源码解析": ["BV1Prpb6EE9L"],
+    "前端架构课程/vue源码解析(新)": ["BV1LJpb6aEKG"],
     "前端架构课程/vue源码分析": [],
     "前端架构课程/vue-router源码分析": [],
     "前端架构课程/从零实现Coding Agent": [],
     "前端架构课程/AI平台篇（扣子&Dify）": [],
     "前端架构课程/通用组件库开发": [],
-    "前端架构课程/浏览器插件开发": [],
+    "前端架构课程/浏览器插件开发": ["BV1QTp86bEz9"],
     "前端架构课程/Recoil源码分析": [],
     "前端架构课程/pinia源码": ["BV1WhaN6uES5"],
-    "前端架构课程/RxJS": [],
+    "前端架构课程/RxJS": ["BV1wdaP6PEZh"],
     "前端架构课程/主题切换": ["BV1xhaN6uE7p"],
+    # Three AI courses the exporter produced on 2026-10-09 and 2026-10-10. Their 稿件 were created
+    # through the creator centre (docs/BILIBILI-UPLOAD.md section 8) rather than by bili_upload, so
+    # sync_bili_ids never saw a title it recognised and left these as empty lists -- which reads as
+    # "nothing holds these lessons" and would have had a later pass create a second 稿件 for each.
+    # Recorded here by hand from the BVs the upload actually produced.
+    "AI 大全栈/AI/项目_LangGraph实现AI漫剧": ["BV1KApg6hEq7"],
+    "AI 大全栈/AI/Agent观测与评估": ["BV1LCpu65EzC"],
+    "AI 大全栈/AI/项目：Agent基础设施建设": ["BV1HLpG6cE1F"],
 }
 
 # collection -> R2 prefix. Hand-established from the live bucket and verified by uploading
@@ -224,6 +232,15 @@ R2_BY_COLLECTION = {
     # Decided 2026-09-24, before its first upload: nothing was ever written to the old
     # `videos/frontend/theme-switching/` key, so this is where it lands rather than a move.
     "前端架构课程/主题切换": "videos/frontend/css/theme-switching/duyi-edu/",
+    # Three AI courses the exporter produced on 2026-10-09, none of which had a home because
+    # nothing of theirs had ever been published. Like the never-exported group, there is no
+    # filename intersection to prove them against, so the names follow the tree's convention
+    # (lowercase, hyphenated, by content) and stay clear of the existing `videos/ai/` keys:
+    # `agents`, `langgraph`, `langchain`, `langchain/architecture-duyi-edu`,
+    # `langgraph/architecture-duyi-edu` and `platform-coze-dify`. None collides.
+    "AI 大全栈/AI/Agent观测与评估": "videos/ai/agent-observability/duyi-edu/",
+    "AI 大全栈/AI/项目_LangGraph实现AI漫剧": "videos/ai/langgraph-comic/duyi-edu/",
+    "AI 大全栈/AI/项目：Agent基础设施建设": "videos/ai/agent-infrastructure/duyi-edu/",
 }
 
 
