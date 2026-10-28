@@ -1,6 +1,6 @@
 # 02 — 删掉 `工程管理实战`（BV1K9hp6WEyX）里多出来的 2 个「35. 单元测试」分P
 
-Status: ready-for-human
+Status: resolved
 Type: task
 
 ## 需要人工做的（1 分钟，biliup 做不到）
@@ -52,3 +52,33 @@ file_id 982963   标题 "35. [测试体系]单元测试.mp4.mp4"   （见 verify
 ```
 
 应只剩 **1** 行。
+
+## Comments
+
+**2026-10-13 — 已修完，人工那一步不需要了。**
+
+「创作中心的编辑按钮对合成点击无响应」这个结论已经过时：它是用当时的工具测的，而
+agent-browser + CDP 这套（`docs/BILIBILI-UPLOAD.md` §8）能驱动编辑页 —— 同一天用同一条路
+把 Electron 从 51 个分P 加到 71、给另外三门课追加了分P，都是这么做的。
+
+删分P 的实际流程（脚本在 `.scratch/delete-duplicate-parts.mjs`，可复用）：
+
+1. 打开 `?type=edit&bvid=BV1K9hp6WEyX`；
+2. 每行右侧有 `div.icon-btn`（垃圾桶图标），**先 hover 那一行**再点它，否则控件没接上；
+3. 会弹出「确定要删除这个分P么」，点「确认」；
+4. 删一条会让行号整体上移，所以每轮重新找、**永远删最后一条**，第一条就是要留的；
+5. 点「立即投稿」保存。
+
+结果：
+
+```
+BV1K9hp6WEyX  工程管理实战  parts=43  only_self=1  state=-50
+重复标题: 无
+单元测试分P 数: 1
+```
+
+45 → 43，与 `verify_fresh/index.json` 的 43 集对齐，重复标题清零。
+
+顺带一提，这条 issue 的「为什么不能自动删」里说对了：`x/vu/web/delete` 仍然 404、编辑接口仍然
+要整份 archive 载荷。走页面是绕开这两点的唯一路子，而不是不可能。
+

@@ -80,8 +80,11 @@ def every_lesson() -> list:
     for cid, record in index["courses"].items():
         detail = record["course_detail"]
         name = detail["self"]["name"]
+        # The table spells a name Windows cannot put in a path with `_` (cw.path_key), so a raw
+        # comparison missed `项目:LangGraph实现AI漫剧` and fell through to a path that cannot be
+        # created -- the lesson would never be exported into the folder its siblings live in.
         collection = next((rel for rel in cw.R2_BY_COLLECTION
-                           if pathlib.PurePosixPath(rel).name == name), None)
+                           if pathlib.PurePosixPath(rel).name == cw.path_key(name)), None)
         if collection is None:
             category = categories.get(name)
             if category is None:

@@ -1,0 +1,3 @@
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\文档协同\第二章 理论基础\01. 文档协同常见方案.mp4
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\文档协同\第二章 理论基础\11. Yjs快速上手.mp4
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\文档协同\第二章 理论基础\16. [练习]协同画板.mp4

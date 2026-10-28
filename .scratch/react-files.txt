@@ -1,0 +1,4 @@
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\React源码分析\1.初出茅庐\5.React原理核心技术点预备【下】.mp4
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\React源码分析\2.崭露头角\05.Fibers Node.mp4
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\React源码分析\3.初露锋芒\04.实现JSX方法.mp4
+D:\Codes\github\ev-reverse\verify_fresh\out\前端架构课程\React源码分析\3.初露锋芒\18.合成事件系统.mp4

@@ -114,12 +114,12 @@ BILI_BY_COLLECTION = {
     "前端架构课程/React源码解析": ["BV1Prpb6EE9L"],
     "前端架构课程/vue源码解析(新)": ["BV1LJpb6aEKG"],
     "前端架构课程/vue源码分析": [],
-    "前端架构课程/vue-router源码分析": [],
+    "前端架构课程/vue-router源码分析": ["BV1gVpn6eEri"],
     "前端架构课程/从零实现Coding Agent": [],
     "前端架构课程/AI平台篇（扣子&Dify）": [],
-    "前端架构课程/通用组件库开发": [],
+    "前端架构课程/通用组件库开发": ["BV1BopJ6LEij"],
     "前端架构课程/浏览器插件开发": ["BV1QTp86bEz9"],
-    "前端架构课程/Recoil源码分析": [],
+    "前端架构课程/Recoil源码分析": ["BV1MEpn6cEBP"],
     "前端架构课程/pinia源码": ["BV1WhaN6uES5"],
     "前端架构课程/RxJS": ["BV1wdaP6PEZh"],
     "前端架构课程/主题切换": ["BV1xhaN6uE7p"],
@@ -255,6 +255,22 @@ def norm(title: str) -> str:
     """
     t = re.sub(r"(\.(mp4|mkv|ts))+$", "", str(title).strip(), flags=re.I)
     return re.sub(r"\s+", "", t)
+
+
+def path_key(name: str) -> str:
+    """A collection name as these tables and the disk spell it.
+
+    The tables' keys double as folder names under `verify_fresh/out`, so a platform name Windows
+    refuses to put in a path is written with the offending character replaced: the course
+    `项目:LangGraph实现AI漫剧` is `项目_LangGraph实现AI漫剧` in both tables, on disk, and in its
+    稿件's own title. A lookup with the raw course name therefore matches nothing -- the status
+    page reported that collection as never uploaded on either platform while R2 and Bilibili each
+    held all nine lessons -- so every name-to-table lookup goes through this.
+
+    A caller may hand it a node that names itself nowhere (None); that stays a miss, as it was
+    when the lookup was a plain `in`, rather than becoming a TypeError.
+    """
+    return re.sub(r'[<>:"/\\|?*]', "_", str(name))
 
 
 def lesson_number(name: str):

@@ -16,7 +16,8 @@ Three things are reported per collection:
     shared with a present one is never uploaded;
   * parts against the local file count, as a sanity check while an upload is in flight.
 
-    工程管理实战 is the known duplicate and needs a human (issues/02): the delete endpoint 404s.
+    工程管理实战 was the known duplicate: it carried three copies of `35. [测试体系]单元测试` until
+    2026-10-13, when the extra two were removed through the edit page (issues/02, now resolved).
 """
 
 import argparse
@@ -34,15 +35,19 @@ BILIUP = pathlib.Path.home() / ".biliup" / "bin" / "biliup.exe"
 COOKIES = pathlib.Path.home() / ".biliup" / "cookies.json"
 VIDEO_SUFFIXES = (".mp4", ".mkv", ".ts")
 
-# Collections whose duplicate parts are known, tracked, and waiting on a human.
-KNOWN_DUPLICATES = {"工程管理实战"}
+# Collections whose duplicate parts are known, tracked, and waiting on a human. Empty as of
+# 2026-10-13: 工程管理实战's extra two copies of `35. [测试体系]单元测试` were deleted through the
+# creator centre, so nothing here is tolerated any more -- if a duplicate reappears the run must
+# fail rather than stay quiet about it.
+KNOWN_DUPLICATES = set()
 
-# Collections that will stay one lesson short of their catalogue count: 前端工具链's
-# 01. ESLint介绍 cannot be published -- one truncated AAC frame fails the strict validation and
-# the exporter refuses (docs/EXPORT-PIPELINE.md §5). Not a defect to report every run.
-UNEXPORTABLE = {"前端工具链"}
+# Collections that stay one lesson short of their catalogue count because a lesson cannot be
+# published at all. Empty as of 2026-10-13: 前端工具链's `01. ESLint介绍` did get published -- the
+# run below reads 28 parts against a catalogue of 28 -- so the exemption no longer applies.
+UNEXPORTABLE = set()
 
 sys.path.insert(0, str(REPO / "tools"))
+import bili_upload as bu  # noqa: E402
 import clean_work as cw  # noqa: E402
 
 
@@ -116,6 +121,12 @@ def main() -> int:
                  if p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES] if (OUT / rel).is_dir() else []
         expected = catalogue.get(name)
         for bv in bvs:
+            # A 稿件 in SUPERSEDED has been replaced by a re-upload (the old one carries a
+            # watermark) and is still listed by the account. Reporting it as short of its
+            # catalogue would be a permanent false alarm, and a permanent one is how a real
+            # shortfall gets ignored.
+            if bv in bu.SUPERSEDED:
+                continue
             titles = parts(bv)
             if not titles:
                 print(f"{name[:34]:<34}{'?':>6}{str(expected or '-'):>5}{len(local):>6}  {bv}: no data")

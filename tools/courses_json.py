@@ -10,7 +10,8 @@ Where each number comes from:
                        that were never exported, which is why it is the spine of the document
                        rather than a walk of the export tree.
   * verify_fresh/out -- what is on disk.
-  * R2 / Bilibili   -- object names under the course's prefix, and part titles of its 稿件.
+  * R2 / Bilibili   -- the bucket's own object names (not only those under the course's prefix,
+                       which is a hand-written claim), and the part titles of its 稿件.
 
 Per episode, a platform is reported as `true`, `false`, or `null`. `null` means "not known"
 rather than "not there": a course with no prefix established yet has no R2 answer, and writing
@@ -118,6 +119,24 @@ def local_folders() -> dict:
         if path.name not in found or count > found[path.name][1]:
             found[path.name] = (path, count)
     return {name: path for name, (path, _count) in found.items()}
+
+
+def stray_home(titles: set, own: set, homes: dict):
+    """The prefix that holds most of a collection's lessons when the mapped one holds none.
+
+    Only asked then. A prefix in `clean_work.R2_BY_COLLECTION` is a hand-written claim about where
+    a collection lives and is also where the uploaders write, so a prefix holding nothing of its
+    collection reads two ways: nothing of it was ever uploaded, or the prefix does not point at
+    its home. The bucket settles which. A collection's lesson titles are near-unique there -- on
+    this account no collection with an empty prefix shares more than one title with any other
+    prefix -- so a prefix holding half of them is a mapping to fix, not a coincidence.
+    """
+    votes = collections.Counter()
+    for title in titles:
+        for home in homes.get(title, ()):
+            if home not in own:
+                votes[home] += 1
+    return votes.most_common(1)[0] if votes else (None, 0)
 
 
 def bili_titles(bvs) -> set:
@@ -273,12 +292,21 @@ def main() -> int:
     roots = catalog_roots()
     s3 = upload_to_r2.client(upload_to_r2.credentials())
 
+    # One listing of the bucket instead of one per prefix. It answers the same question about each
+    # prefix, and it can also answer the one a prefix cannot -- where a collection's lessons are:
+    # `r2_cache` is what the mapped prefixes hold, `homes` is the bucket's own index, and the two
+    # are compared below. At this bucket's size it is also cheaper: 1.4k objects is two paginated
+    # calls against the 72 the loop made. Listed from the root, not from `videos/`, so a prefix
+    # that ever moves outside that root is still read correctly.
+    bucket = upload_to_r2.list_remote(s3, "cyrus-media-private", "")
+    videos = {k: size for k, (size, _e) in bucket.items()
+              if size > 0 and k.lower().endswith(VIDEO_SUFFIXES)}
     r2_cache = {}
     for prefix in sorted(set(cw.R2_BY_COLLECTION.values())):
-        r2_cache[prefix] = {norm(k.rsplit("/", 1)[-1])
-                            for k, (size, _e) in
-                            upload_to_r2.list_remote(s3, "cyrus-media-private", prefix).items()
-                            if size > 0 and k.lower().endswith(VIDEO_SUFFIXES)}
+        r2_cache[prefix] = {norm(k.rsplit("/", 1)[-1]) for k in videos if k.startswith(prefix)}
+    homes = {}
+    for key in videos:
+        homes.setdefault(norm(key.rsplit("/", 1)[-1]), set()).add(key.rsplit("/", 1)[0] + "/")
     bili_cache = {rel: bili_titles(bvs) for rel, bvs in cw.BILI_BY_COLLECTION.items()}
     mappings = name_map()
 
@@ -301,18 +329,32 @@ def main() -> int:
         def attribute(node, inherited):
             # a chapter carries its name at self.name, not at the top level
             own = (node.get("self") or {}).get("name") or node.get("title")
-            current = mappings[own] if own in mappings else inherited
+            current = mappings.get(cw.path_key(own), inherited)
             for f in node.get("files", []):
                 if f.get("type") == "video":
                     units.append((f, current))
             for child in node.get("childs", []):
                 attribute(child, current)
 
-        attribute(detail, mappings.get(name))
+        attribute(detail, mappings.get(cw.path_key(name)))
         rel = next((u["rel"] for _f, u in units if u), None)
         prefixes = {u["prefix"] for _f, u in units if u and u["prefix"]}
         all_bvs = sorted({bv for _f, u in units if u for bv in u["bvs"]})
         r2_titles = set().union(*[r2_cache[p] for p in prefixes]) if prefixes else None
+        # A prefix that holds none of this collection's lessons cannot say whether they were never
+        # uploaded or the prefix points somewhere else: both come back empty, and the page wrote
+        # the first as a fact for seventeen courses. Ask the bucket instead, and when another
+        # prefix holds half of them, report the R2 answer as unknown rather than as absent -- a
+        # lesson that is in the bucket must never be offered for upload again. Two hits minimum
+        # because one shared title (`01.课程导言` sits in four prefixes here) proves nothing.
+        titles = {norm(f.get("title", "")) for f in files}
+        if r2_titles is not None and titles and not (r2_titles & titles):
+            home, hits = stray_home(titles, prefixes, homes)
+            if home and hits >= 2 and hits * 2 >= len(titles):
+                print(f"warning: {name}: {sorted(prefixes)} holds none of its {len(titles)} "
+                      f"lessons, but {home} holds {hits} of them; reporting R2 as unknown -- "
+                      f"check clean_work.R2_BY_COLLECTION", file=sys.stderr)
+                r2_titles = None
         bili_parts = set().union(*[bili_cache[r] for r in
                                    {u["rel"] for _f, u in units if u} if r in bili_cache]) \
             if any(u and u["rel"] in bili_cache for _f, u in units) else None
@@ -380,7 +422,13 @@ def main() -> int:
                 "both": both,
                 "only_r2": sum(1 for e in episodes if e["r2"] and e["bilibili"] is False),
                 "only_bilibili": sum(1 for e in episodes if e["bilibili"] and e["r2"] is False),
-                "neither": count("r2", False) if r2_titles is not None else None,
+                # "都无" means absent from both, so it has to test both. Counting `r2 is False`
+                # alone called a lesson Bilibili holds a lesson nothing holds -- the reader sees
+                # "两边都没有" about a collection that is up. Null unless both answers are known,
+                # for the same reason the episode fields are: an unknown is not a "no".
+                "neither": (sum(1 for e in episodes
+                                if e["r2"] is False and e["bilibili"] is False)
+                            if r2_titles is not None and bili_parts is not None else None),
             },
             "episodes": episodes,
         })
@@ -472,8 +520,9 @@ def schema() -> dict:
             "only_r2": {"type": "integer", "minimum": 0},
             "only_bilibili": {"type": "integer", "minimum": 0},
             "neither": {"type": ["integer", "null"], "minimum": 0,
-                        "description": "Null when the course has no R2 mapping, so absence "
-                                       "cannot be claimed."},
+                        "description": "Lessons absent from both platforms. Null when either "
+                                       "platform's answer is unknown, so absence cannot be "
+                                       "claimed."},
         },
         "required": ["local", "r2", "bilibili", "both", "only_r2", "only_bilibili", "neither"],
         "additionalProperties": False,

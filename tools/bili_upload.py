@@ -180,13 +180,19 @@ SUPERSEDED = {"BV1o2hk6fEX6"}
 #
 # 前端工具链's first part was overwritten with the collection's own name: the batch upload page had
 # that row selected when the collection title was typed, so 01. 课程概述 was submitted as
-# 「前端工具链」 (see .scratch/bilibili-upload/issues/01). Only Bilibili's editor can rename a part
-# and it will not accept a synthetic click, so the mismatch is recorded here. Without this the
-# collection either has to be skipped by --skip forever or grows a duplicate part on every pass,
-# because the file never matches a part title.
-PART_ALIASES = {
-    "前端工具链": {"01. 课程概述.mp4": "前端工具链"},
-}
+# 「前端工具链」 (see .scratch/bilibili-upload/issues/01). That mismatch held for weeks, and this
+# table carried the workaround -- a file -> part-title alias, so the uploader would stop trying to
+# append a lesson the 稿件 already held under another name.
+#
+# Both halves are resolved as of 2026-10-13, so the table is empty:
+#   * the part is named correctly again (`01. 课程概述`, renamed through the creator centre), so
+#     `01. 课程概述.mp4` matches a part title on its own;
+#   * the lesson genuinely absent from that 稿件, `第三章 ESLint/01. ESLint介绍.mp4` (1863s), has
+#     since been uploaded -- which for a while left two parts sharing the title `01. ESLint介绍`,
+#     exactly what the rename separated.
+# Kept as an empty dict rather than removed: main() reads it unconditionally, and an empty table is
+# the claim "no collection needs an alias", which is a fact worth stating rather than implying.
+PART_ALIASES = {}
 
 
 def parts_of(bv: str) -> set:
